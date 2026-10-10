@@ -1,11 +1,11 @@
 from django import forms
 
-from core.choices import CargoMinisterial, EstadoLibro, TipoDocumento, TipoLibro
+from core.choices import CargoMinisterial, EstadoLibro, TipoLibro
 from core.forms import FormularioBase, FormularioSinConstraints, widget_cascada
-from personas.models import Documento
+from personas.forms import DocumentoMixin
 from ubicacion.models import Departamento, Pais
 
-from .models import Folio, Iglesia, Libro, Ministro, Parroquia
+from .models import Folio, Libro, Ministro, Parroquia
 
 
 class ParroquiaForm(FormularioBase):
@@ -55,29 +55,17 @@ class ParroquiaForm(FormularioBase):
             self.fields["departamento"].initial = municipio.departamento_id
 
 
-class MinistroForm(FormularioBase):
+class MinistroForm(DocumentoMixin, FormularioBase):
     """Formulario de ministro con tipo/número de documento como campos auxiliares.
 
-    El par tipo+número se resuelve contra ``personas.Documento``: se reutiliza el
-    documento si ya existe y no pertenece a otro ministro. Si ambos quedan vacíos
-    el ministro se guarda sin documento.
+    El par tipo+número se resuelve contra ``personas.Documento`` mediante
+    ``DocumentoMixin``: se reutiliza el documento si ya existe y no pertenece a
+    otro ministro. El documento es obligatorio.
     """
-
-    tipo_documento = forms.ChoiceField(
-        choices=[("", "---------"), *TipoDocumento.choices],
-        label="Tipo de documento",
-        required=False,
-    )
-    numero_documento = forms.CharField(
-        max_length=30,
-        label="Número de documento",
-        required=False,
-    )
 
     class Meta:
         model = Ministro
         fields = [
-            "cedula",
             "nombre",
             "apellido",
             "cargo",
@@ -87,61 +75,16 @@ class MinistroForm(FormularioBase):
             "parroquia",
         ]
         field_order = [
-            "cedula",
+            "tipo_documento",
+            "numero_documento",
             "nombre",
             "apellido",
             "cargo",
-            "tipo_documento",
-            "numero_documento",
             "fecha_nacimiento",
             "telefono",
             "email",
             "parroquia",
         ]
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        if self.instance.pk and self.instance.documento_id:
-            documento = self.instance.documento
-            self.fields["tipo_documento"].initial = documento.tipo_documento
-            self.fields["numero_documento"].initial = documento.numero_documento
-
-    def clean(self):
-        datos = super().clean()
-        tipo = datos.get("tipo_documento")
-        numero = datos.get("numero_documento", "")
-        if tipo and not numero:
-            self.add_error("numero_documento", "Indique el número del documento.")
-        elif numero and not tipo:
-            self.add_error("tipo_documento", "Seleccione el tipo de documento.")
-        elif tipo and numero:
-            existente = Documento.objects.filter(
-                tipo_documento=tipo, numero_documento=numero
-            ).first()
-            if existente is not None:
-                ministro = getattr(existente, "ministro", None)
-                if ministro is not None and ministro.pk != self.instance.pk:
-                    raise forms.ValidationError("El documento ya pertenece a otro ministro.")
-                self.documento_existente = existente
-        return datos
-
-    def save(self, commit=True):
-        ministro = super().save(commit=False)
-        tipo = self.cleaned_data.get("tipo_documento")
-        numero = self.cleaned_data.get("numero_documento", "")
-        if tipo and numero:
-            documento = getattr(self, "documento_existente", None)
-            if documento is None:
-                documento, _ = Documento.objects.get_or_create(
-                    tipo_documento=tipo, numero_documento=numero
-                )
-            ministro.documento = documento
-        else:
-            ministro.documento = None
-        if commit:
-            ministro.save()
-            self.save_m2m()
-        return ministro
 
 
 class LibroForm(FormularioSinConstraints):
@@ -269,23 +212,6 @@ class CerrarLibroForm(forms.Form):
             self.fields["ministro_cierre"].queryset = Ministro.objects.filter(
                 parroquia=libro.parroquia
             ).order_by("apellido", "nombre")
-
-
-class IglesiaForm(FormularioSinConstraints):
-    class Meta:
-        model = Iglesia
-        fields = ["parroquia", "nombre", "direccion"]
-
-    def clean(self):
-        datos = super().clean()
-        parroquia = datos.get("parroquia")
-        nombre = datos.get("nombre")
-        otros = Iglesia.objects.all()
-        if self.instance.pk:
-            otros = otros.exclude(pk=self.instance.pk)
-        if parroquia and nombre and otros.filter(parroquia=parroquia, nombre=nombre).exists():
-            self.add_error("nombre", "Ya existe una iglesia con ese nombre en esta parroquia.")
-        return datos
 
 
 class FolioForm(FormularioBase):

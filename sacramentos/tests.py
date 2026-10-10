@@ -26,7 +26,7 @@ from core.choices import (
     TipoLibro,
     TipoSacramento,
 )
-from parroquias.models import Folio, Iglesia, Libro, Ministro, Parroquia
+from parroquias.models import Folio, Libro, Ministro, Parroquia
 from parroquias.services import (
     cerrar_libro,
     folio_sugerido,
@@ -74,15 +74,27 @@ class BaseSacramentosTests(TestCase):
         )
         self.folio = Folio.objects.create(libro=self.libro, numero_folio=1)
         self.ministro = Ministro.objects.create(
-            cedula="1234567890",
+            documento=self._crear_documento("1234567890"),
             nombre="Carlos",
             apellido="Gómez",
             cargo=CargoMinisterial.PARROCO,
         )
-        self.padre = Padre.objects.create(cedula="1111111111", nombre="José", apellido="Pérez")
-        self.madre = Madre.objects.create(cedula="2222222222", nombre="María", apellido="Gómez")
-        self.padrino = Padrino.objects.create(nombre="Pedro López")
+        self.padre = Padre.objects.create(
+            documento=self._crear_documento("11111111"), nombre="José", apellido="Pérez"
+        )
+        self.madre = Madre.objects.create(
+            documento=self._crear_documento("22222222"), nombre="María", apellido="Gómez"
+        )
+        self.padrino = Padrino.objects.create(
+            documento=self._crear_documento("33333333"), nombre="Pedro López"
+        )
         self.fiel = self._crear_fiel()
+
+    def _crear_documento(self, numero_documento, tipo_documento=TipoDocumento.CC):
+        documento, _ = Documento.objects.get_or_create(
+            tipo_documento=tipo_documento, numero_documento=numero_documento
+        )
+        return documento
 
     def _media_temporal(self):
         ruta = tempfile.mkdtemp()
@@ -417,7 +429,6 @@ class ConfirmacionTests(BaseSacramentosTests):
         confirmacion = self._crear_confirmacion(
             fecha_bautismo=date(2000, 6, 10),
             parroquia_bautismo="Parroquia La Catedral",
-            iglesia_bautismo="Capilla del Sagrario",
             municipio_bautismo=self.municipio,
             libro_bautismo=2,
             folio_bautismo=5,
@@ -426,7 +437,6 @@ class ConfirmacionTests(BaseSacramentosTests):
         )
         self.assertEqual(confirmacion.fecha_bautismo, date(2000, 6, 10))
         self.assertEqual(confirmacion.parroquia_bautismo, "Parroquia La Catedral")
-        self.assertEqual(confirmacion.iglesia_bautismo, "Capilla del Sagrario")
         self.assertEqual(confirmacion.municipio_bautismo, self.municipio)
         self.assertEqual(confirmacion.numero_bautismo, 12)
         self.assertEqual(confirmacion.observaciones_bautismo, "Bautizado en la capilla")
@@ -467,7 +477,6 @@ class PrimeraComunionTests(BaseSacramentosTests):
         primera = self._crear_primera_comunion(
             fecha_bautismo=date(2018, 8, 30),
             parroquia_bautismo="Parroquia San José",
-            iglesia_bautismo="Iglesia principal",
             municipio_bautismo=self.municipio,
             libro_bautismo=2,
             folio_bautismo=8,
@@ -475,7 +484,6 @@ class PrimeraComunionTests(BaseSacramentosTests):
         )
         self.assertEqual(primera.fecha_bautismo, date(2018, 8, 30))
         self.assertEqual(primera.parroquia_bautismo, "Parroquia San José")
-        self.assertEqual(primera.iglesia_bautismo, "Iglesia principal")
         self.assertEqual(primera.municipio_bautismo, self.municipio)
         self.assertEqual(primera.numero_bautismo, 12)
 
@@ -626,40 +634,6 @@ class SacramentosNuevasReglasTests(BaseSacramentosTests):
             fecha=date(2026, 3, 15),
             fecha_registro=date(2026, 3, 15),
             parroquia=self.parroquia,
-        )
-        sacramento.clean()
-
-    def test_clean_rechaza_iglesia_de_otra_parroquia(self):
-        otra_parroquia = Parroquia.objects.create(
-            nombre="Otra Parroquia", municipio=self.municipio, direccion="Otra"
-        )
-        iglesia = Iglesia.objects.create(parroquia=otra_parroquia, nombre="Iglesia ajena")
-        sacramento = Sacramento(
-            tipo=TipoSacramento.BAUTISMO,
-            fiel=self.fiel,
-            libro=self.libro,
-            folio=self.folio,
-            numero=1,
-            fecha=date(2026, 3, 15),
-            fecha_registro=date(2026, 3, 15),
-            parroquia=self.parroquia,
-            iglesia=iglesia,
-        )
-        with self.assertRaises(ValidationError):
-            sacramento.clean()
-
-    def test_clean_acepta_iglesia_de_la_parroquia_del_libro(self):
-        iglesia = Iglesia.objects.create(parroquia=self.parroquia, nombre="Iglesia propia")
-        sacramento = Sacramento(
-            tipo=TipoSacramento.BAUTISMO,
-            fiel=self.fiel,
-            libro=self.libro,
-            folio=self.folio,
-            numero=1,
-            fecha=date(2026, 3, 15),
-            fecha_registro=date(2026, 3, 15),
-            parroquia=self.parroquia,
-            iglesia=iglesia,
         )
         sacramento.clean()
 

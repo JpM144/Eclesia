@@ -3,11 +3,12 @@ from django.shortcuts import render
 from django.urls import reverse
 from django.utils.http import url_has_allowed_host_and_scheme
 
+from core.choices import TipoDocumento
 from core.views import CrudUpdateView
 
 from . import consultas
-from .forms import FielForm, MadreForm, PadreForm, PadrinoForm
-from .models import Fiel, Madre, Padre, Padrino
+from .forms import DocumentoMixin, FielForm, MadreForm, PadreForm, PadrinoForm
+from .models import Documento, Fiel, Madre, Padre, Padrino
 
 # ---------------------------------------------------------------------------
 # Consultar personas (solo lectura)
@@ -95,21 +96,29 @@ class FielUpdateView(PersonaUpdateMixin, CrudUpdateView):
 # ---------------------------------------------------------------------------
 
 
-def _persona_por_cedula(request, modelo):
-    cedula = request.GET.get("cedula", "").strip()
-    if not cedula:
-        return JsonResponse({"error": "El parámetro 'cedula' es obligatorio."}, status=400)
-    persona = modelo.objects.filter(cedula=cedula).first()
+def _persona_por_documento(request, modelo):
+    tipo = request.GET.get("tipo", TipoDocumento.CC).strip() or TipoDocumento.CC
+    numero = request.GET.get("numero", "").strip()
+    if not numero:
+        return JsonResponse({"error": "El parámetro 'numero' es obligatorio."}, status=400)
+    numero = DocumentoMixin.normalizar_numero(tipo, numero)
+    documento = Documento.objects.filter(tipo_documento=tipo, numero_documento=numero).first()
+    persona = modelo.objects.filter(documento=documento).first() if documento else None
     if persona is None:
         return JsonResponse({"error": "No se encontró la persona."}, status=404)
     return JsonResponse(
-        {"cedula": persona.cedula, "nombre": persona.nombre, "apellido": persona.apellido}
+        {
+            "tipo_documento": documento.tipo_documento,
+            "numero_documento": documento.numero_documento,
+            "nombre": persona.nombre,
+            "apellido": persona.apellido,
+        }
     )
 
 
 def api_padre(request):
-    return _persona_por_cedula(request, Padre)
+    return _persona_por_documento(request, Padre)
 
 
 def api_madre(request):
-    return _persona_por_cedula(request, Madre)
+    return _persona_por_documento(request, Madre)

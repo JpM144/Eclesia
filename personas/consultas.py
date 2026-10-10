@@ -85,14 +85,18 @@ def _buscar_por_documento(valor, exacto):
     )
     personas += [_persona_fiel(fiel) for fiel in fieles]
 
-    padres = Padre.objects.filter(**{f"cedula__{sufijo}": valor}).order_by("nombre", "apellido")[
-        : LIMITE_PERSONAS + 1
-    ]
+    padres = (
+        Padre.objects.filter(**{f"documento__numero_documento__{sufijo}": valor})
+        .select_related("documento")
+        .order_by("nombre", "apellido")[: LIMITE_PERSONAS + 1]
+    )
     personas += [_persona_simple(PADRE, padre) for padre in padres]
 
-    madres = Madre.objects.filter(**{f"cedula__{sufijo}": valor}).order_by("nombre", "apellido")[
-        : LIMITE_PERSONAS + 1
-    ]
+    madres = (
+        Madre.objects.filter(**{f"documento__numero_documento__{sufijo}": valor})
+        .select_related("documento")
+        .order_by("nombre", "apellido")[: LIMITE_PERSONAS + 1]
+    )
     personas += [_persona_simple(MADRE, madre) for madre in madres]
 
     padrinos = (
@@ -125,21 +129,21 @@ def _buscar_por_nombre(q):
         ),
         *(
             _persona_simple(PADRE, padre)
-            for padre in _filtrar_palabras(
-                Padre.objects, ["nombre", "apellido"], palabras
-            ).order_by("nombre", "apellido")[: LIMITE_PERSONAS + 1]
+            for padre in _filtrar_palabras(Padre.objects, ["nombre", "apellido"], palabras)
+            .select_related("documento")
+            .order_by("nombre", "apellido")[: LIMITE_PERSONAS + 1]
         ),
         *(
             _persona_simple(MADRE, madre)
-            for madre in _filtrar_palabras(
-                Madre.objects, ["nombre", "apellido"], palabras
-            ).order_by("nombre", "apellido")[: LIMITE_PERSONAS + 1]
+            for madre in _filtrar_palabras(Madre.objects, ["nombre", "apellido"], palabras)
+            .select_related("documento")
+            .order_by("nombre", "apellido")[: LIMITE_PERSONAS + 1]
         ),
         *(
             _persona_padrino(padrino)
-            for padrino in _filtrar_palabras(Padrino.objects, ["nombre"], palabras).order_by(
-                "nombre"
-            )[: LIMITE_PERSONAS + 1]
+            for padrino in _filtrar_palabras(Padrino.objects, ["nombre"], palabras)
+            .select_related("documento")
+            .order_by("nombre")[: LIMITE_PERSONAS + 1]
         ),
         *(
             _persona_testigo(testigo)
@@ -165,13 +169,20 @@ def _filtrar_palabras(queryset, campos, palabras):
     return queryset
 
 
+def _documento_texto(documento):
+    """Formato corto del documento, p. ej. ``CC 1065870446``."""
+    if documento is None:
+        return "—"
+    return f"{documento.tipo_documento} {documento.numero_documento}"
+
+
 def _persona_fiel(fiel):
     return {
         "tipo": FIEL,
         "etiqueta_tipo": ETIQUETAS_TIPO[FIEL],
         "pk": fiel.pk,
         "nombre": str(fiel),
-        "documento": str(fiel.documento),
+        "documento": _documento_texto(fiel.documento),
         "editable": True,
         "url_editar": reverse("personas:fiel_editar", args=[fiel.pk]),
         "partidas": [],
@@ -184,7 +195,7 @@ def _persona_simple(tipo, persona):
         "etiqueta_tipo": ETIQUETAS_TIPO[tipo],
         "pk": persona.pk,
         "nombre": str(persona),
-        "documento": persona.cedula,
+        "documento": _documento_texto(persona.documento),
         "editable": True,
         "url_editar": reverse(f"personas:{tipo}_editar", args=[persona.pk]),
         "partidas": [],
@@ -197,7 +208,7 @@ def _persona_padrino(padrino):
         "etiqueta_tipo": ETIQUETAS_TIPO[PADRINO],
         "pk": padrino.pk,
         "nombre": str(padrino),
-        "documento": str(padrino.documento) if padrino.documento_id else "—",
+        "documento": _documento_texto(padrino.documento),
         "editable": True,
         "url_editar": reverse("personas:padrino_editar", args=[padrino.pk]),
         "partidas": [],

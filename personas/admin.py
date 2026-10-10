@@ -19,17 +19,17 @@ class FielAdmin(admin.ModelAdmin):
 
 @admin.register(Padre)
 class PadreAdmin(admin.ModelAdmin):
-    list_display = ["cedula", "nombre", "apellido"]
-    search_fields = ["cedula", "nombre", "apellido"]
+    list_display = ["documento", "nombre", "apellido"]
+    search_fields = ["documento__numero_documento", "nombre", "apellido"]
 
 
 @admin.register(Madre)
 class MadreAdmin(admin.ModelAdmin):
-    list_display = ["cedula", "nombre", "apellido"]
-    search_fields = ["cedula", "nombre", "apellido"]
+    list_display = ["documento", "nombre", "apellido"]
+    search_fields = ["documento__numero_documento", "nombre", "apellido"]
 
 
 @admin.register(Padrino)
 class PadrinoAdmin(admin.ModelAdmin):
     list_display = ["nombre", "documento"]
-    search_fields = ["nombre"]
+    search_fields = ["nombre", "documento__numero_documento"]

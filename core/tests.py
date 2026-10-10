@@ -37,20 +37,31 @@ class EscenarioBase(TestCase):
             parroquia=self.parroquia,
         )
         self.folio = Folio.objects.create(libro=self.libro, numero_folio=1)
+        self._documento_ministro = self._crear_documento("1234567890")
         self.ministro = Ministro.objects.create(
-            cedula="1234567890",
+            documento=self._documento_ministro,
             nombre="Carlos",
             apellido="Gómez",
             cargo=CargoMinisterial.PARROCO,
         )
-        self.padre = Padre.objects.create(cedula="1111111111", nombre="José", apellido="Pérez")
-        self.madre = Madre.objects.create(cedula="2222222222", nombre="María", apellido="Gómez")
-        self.padrino = Padrino.objects.create(nombre="Pedro López")
+        self.padre = Padre.objects.create(
+            documento=self._crear_documento("1111111111"), nombre="José", apellido="Pérez"
+        )
+        self.madre = Madre.objects.create(
+            documento=self._crear_documento("2222222222"), nombre="María", apellido="Gómez"
+        )
+        self.padrino = Padrino.objects.create(
+            documento=self._crear_documento("3333333333"), nombre="Pedro López"
+        )
+
+    def _crear_documento(self, numero_documento, tipo_documento=TipoDocumento.CC):
+        documento, _ = Documento.objects.get_or_create(
+            tipo_documento=tipo_documento, numero_documento=numero_documento
+        )
+        return documento
 
     def _crear_fiel(self, numero_documento, nombres="Ana María", apellidos="López Sánchez"):
-        documento = Documento.objects.create(
-            tipo_documento=TipoDocumento.CC, numero_documento=numero_documento
-        )
+        documento = self._crear_documento(numero_documento)
         return Fiel.objects.create(
             documento=documento,
             nombres=nombres,
@@ -216,14 +227,6 @@ class SidebarTreeviewTests(EscenarioBase):
                 self.assertEqual(
                     self._subenlaces_activos(self._bloque_treeview(contenido)), [esperado]
                 )
-
-    def test_iglesias_marca_su_subenlace(self):
-        self.client.force_login(self.usuario)
-        contenido = self._contenido(reverse("parroquias:iglesia_lista"))
-        self.assertIn("menu-open", contenido)
-        self.assertIn('class="nav-item menu-open active"', contenido)
-        self.assertIn('<a href="#" class="nav-link active">', contenido)
-        self.assertEqual(self._subenlaces_activos(self._bloque_treeview(contenido)), ["Iglesias"])
 
     @staticmethod
     def _clases_del_enlace(contenido, url):

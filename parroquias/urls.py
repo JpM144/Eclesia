@@ -30,15 +30,6 @@ urlpatterns = [
     path("libros/<int:pk>/cerrar/", views.LibroCerrarView.as_view(), name="libro_cerrar"),
     path("libros/<int:pk>/indice/", views.LibroIndiceView.as_view(), name="libro_indice"),
     path("libros/<int:pk>/eliminar/", views.LibroDeleteView.as_view(), name="libro_eliminar"),
-    # Iglesias
-    path("iglesias/", views.IglesiaListView.as_view(), name="iglesia_lista"),
-    path("iglesias/nuevo/", views.IglesiaCreateView.as_view(), name="iglesia_crear"),
-    path("iglesias/<int:pk>/editar/", views.IglesiaUpdateView.as_view(), name="iglesia_editar"),
-    path(
-        "iglesias/<int:pk>/eliminar/",
-        views.IglesiaDeleteView.as_view(),
-        name="iglesia_eliminar",
-    ),
     # Folios (anidados en el libro)
     path(
         "libros/<int:libro_id>/folios/",

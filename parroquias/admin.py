@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Folio, Iglesia, Libro, Ministro, Parroquia
+from .models import Folio, Libro, Ministro, Parroquia
 
 
 @admin.register(Parroquia)
@@ -12,8 +12,8 @@ class ParroquiaAdmin(admin.ModelAdmin):
 
 @admin.register(Ministro)
 class MinistroAdmin(admin.ModelAdmin):
-    list_display = ["cedula", "nombre", "apellido", "cargo", "parroquia", "telefono", "email"]
-    search_fields = ["cedula", "nombre", "apellido"]
+    list_display = ["documento", "nombre", "apellido", "cargo", "parroquia", "telefono", "email"]
+    search_fields = ["documento__numero_documento", "nombre", "apellido"]
     list_filter = ["cargo"]
 
 
@@ -22,13 +22,6 @@ class LibroAdmin(admin.ModelAdmin):
     list_display = ["nombre", "numero_libro", "parroquia", "fecha_apertura", "estado"]
     search_fields = ["nombre"]
     list_filter = ["parroquia", "estado"]
-
-
-@admin.register(Iglesia)
-class IglesiaAdmin(admin.ModelAdmin):
-    list_display = ["nombre", "parroquia", "direccion"]
-    search_fields = ["nombre"]
-    list_filter = ["parroquia"]
 
 
 @admin.register(Folio)

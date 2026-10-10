@@ -27,6 +27,7 @@ from sacramentos.models import (
 )
 from ubicacion.models import Departamento, Municipio, Pais
 
+from .forms import PadreForm
 from .models import Documento, Fiel, Madre, Padre, Padrino
 
 # ---------------------------------------------------------------------------
@@ -53,6 +54,43 @@ class DocumentoTests(TestCase):
         Documento.objects.create(tipo_documento=TipoDocumento.CC, numero_documento="1234567890")
         Documento.objects.create(tipo_documento=TipoDocumento.CE, numero_documento="1234567890")
         self.assertEqual(Documento.objects.count(), 2)
+
+    def test_un_documento_puede_pertenecer_a_varios_modelos(self):
+        documento = Documento.objects.create(
+            tipo_documento=TipoDocumento.CC, numero_documento="999"
+        )
+        Padre.objects.create(documento=documento, nombre="Ana", apellido="Uno")
+        Madre.objects.create(documento=documento, nombre="Ana", apellido="Uno")
+        Padrino.objects.create(documento=documento, nombre="Ana Uno")
+        self.assertEqual(Documento.objects.count(), 1)
+
+
+class DocumentoMixinFormTests(TestCase):
+    def _datos(self, numero, tipo=TipoDocumento.CC):
+        return {
+            "tipo_documento": tipo,
+            "numero_documento": numero,
+            "nombre": "Luis",
+            "apellido": "Pérez",
+        }
+
+    def test_normaliza_puntos_y_espacios(self):
+        form = PadreForm(data=self._datos("1.234 5678"))
+        self.assertTrue(form.is_valid(), form.errors)
+        padre = form.save()
+        self.assertEqual(padre.documento.numero_documento, "12345678")
+
+    def test_pasaporte_se_guarda_en_mayusculas(self):
+        form = PadreForm(data=self._datos("ab 12-cd", TipoDocumento.PA))
+        self.assertTrue(form.is_valid(), form.errors)
+        padre = form.save()
+        self.assertEqual(padre.documento.numero_documento, "AB12CD")
+
+    def test_cedula_con_letras_es_rechazada(self):
+        form = PadreForm(data=self._datos("12a34"))
+        self.assertFalse(form.is_valid())
+        self.assertIn("numero_documento", form.errors)
+        self.assertIn("solo números", form.errors["numero_documento"][0])
 
 
 class FielTests(TestCase):
@@ -95,31 +133,46 @@ class FielTests(TestCase):
 
 class PadreTests(TestCase):
     def test_str(self):
-        padre = Padre.objects.create(cedula="1234567890", nombre="José", apellido="Pérez")
+        documento = Documento.objects.create(
+            tipo_documento=TipoDocumento.CC, numero_documento="1234567890"
+        )
+        padre = Padre.objects.create(documento=documento, nombre="José", apellido="Pérez")
         self.assertEqual(str(padre), "José Pérez")
 
-    def test_cedula_unica(self):
-        Padre.objects.create(cedula="1234567890", nombre="José", apellido="Pérez")
+    def test_documento_unico(self):
+        documento = Documento.objects.create(
+            tipo_documento=TipoDocumento.CC, numero_documento="1234567890"
+        )
+        Padre.objects.create(documento=documento, nombre="José", apellido="Pérez")
         with self.assertRaises(IntegrityError):
             with transaction.atomic():
-                Padre.objects.create(cedula="1234567890", nombre="Otro", apellido="Gómez")
+                Padre.objects.create(documento=documento, nombre="Otro", apellido="Gómez")
 
 
 class MadreTests(TestCase):
     def test_str(self):
-        madre = Madre.objects.create(cedula="0987654321", nombre="María", apellido="Gómez")
+        documento = Documento.objects.create(
+            tipo_documento=TipoDocumento.CC, numero_documento="0987654321"
+        )
+        madre = Madre.objects.create(documento=documento, nombre="María", apellido="Gómez")
         self.assertEqual(str(madre), "María Gómez")
 
-    def test_cedula_unica(self):
-        Madre.objects.create(cedula="0987654321", nombre="María", apellido="Gómez")
+    def test_documento_unico(self):
+        documento = Documento.objects.create(
+            tipo_documento=TipoDocumento.CC, numero_documento="0987654321"
+        )
+        Madre.objects.create(documento=documento, nombre="María", apellido="Gómez")
         with self.assertRaises(IntegrityError):
             with transaction.atomic():
-                Madre.objects.create(cedula="0987654321", nombre="Otra", apellido="Pérez")
+                Madre.objects.create(documento=documento, nombre="Otra", apellido="Pérez")
 
 
 class PadrinoTests(TestCase):
     def test_str(self):
-        padrino = Padrino.objects.create(nombre="Pedro López")
+        documento = Documento.objects.create(
+            tipo_documento=TipoDocumento.CC, numero_documento="777777"
+        )
+        padrino = Padrino.objects.create(nombre="Pedro López", documento=documento)
         self.assertEqual(str(padrino), "Pedro López")
 
     def test_documento_es_protegido(self):
@@ -173,7 +226,9 @@ class BasePersonasWebTests(TestCase):
             self.libros[tipo_libro] = libro
             self.folios[tipo_libro] = Folio.objects.create(libro=libro, numero_folio=1)
         self.ministro = Ministro.objects.create(
-            cedula="9999999999",
+            documento=Documento.objects.create(
+                tipo_documento=TipoDocumento.CC, numero_documento="9999999999"
+            ),
             nombre="Carlos",
             apellido="Gómez",
             cargo=CargoMinisterial.PARROCO,
@@ -298,7 +353,13 @@ class ConsultarPersonasTests(BasePersonasWebTests):
         self.assertContains(respuesta, "Confirmado")
 
     def test_madre_en_dos_partidas(self):
-        madre = Madre.objects.create(cedula="222", nombre="Marta", apellido="Gómez")
+        madre = Madre.objects.create(
+            documento=Documento.objects.create(
+                tipo_documento=TipoDocumento.CC, numero_documento="222"
+            ),
+            nombre="Marta",
+            apellido="Gómez",
+        )
         fiel = self.crear_fiel("111", nombres="Ana", apellidos="López")
         self.crear_bautismo(fiel, madre=madre)
         self.crear_confirmacion(fiel, madre=madre)
@@ -309,9 +370,26 @@ class ConsultarPersonasTests(BasePersonasWebTests):
 
     def test_boton_editar_presente_para_los_cuatro_tipos(self):
         fiel = self.crear_fiel("111", nombres="Ana García", apellidos="Uno")
-        padre = Padre.objects.create(cedula="222", nombre="Luis García", apellido="Dos")
-        madre = Madre.objects.create(cedula="333", nombre="Marta García", apellido="Tres")
-        padrino = Padrino.objects.create(nombre="Pedro García")
+        padre = Padre.objects.create(
+            documento=Documento.objects.create(
+                tipo_documento=TipoDocumento.CC, numero_documento="222"
+            ),
+            nombre="Luis García",
+            apellido="Dos",
+        )
+        madre = Madre.objects.create(
+            documento=Documento.objects.create(
+                tipo_documento=TipoDocumento.CC, numero_documento="333"
+            ),
+            nombre="Marta García",
+            apellido="Tres",
+        )
+        padrino = Padrino.objects.create(
+            documento=Documento.objects.create(
+                tipo_documento=TipoDocumento.CC, numero_documento="444"
+            ),
+            nombre="Pedro García",
+        )
         respuesta = self.client.get(reverse("personas:consultar"), {"q": "García"})
         personas = respuesta.context["personas"]
         self.assertEqual(len(personas), 4)
@@ -364,28 +442,59 @@ class ConsultarPersonasTests(BasePersonasWebTests):
 class EditarPersonaTests(BasePersonasWebTests):
     def test_editar_los_cuatro_tipos_guarda_y_vuelve_a_consultar(self):
         fiel = self.crear_fiel("111", nombres="Ana", apellidos="Uno")
-        padre = Padre.objects.create(cedula="222", nombre="Luis", apellido="Dos")
-        madre = Madre.objects.create(cedula="333", nombre="Marta", apellido="Tres")
-        padrino = Padrino.objects.create(nombre="Pedro Cuatro")
+        padre = Padre.objects.create(
+            documento=Documento.objects.create(
+                tipo_documento=TipoDocumento.CC, numero_documento="222"
+            ),
+            nombre="Luis",
+            apellido="Dos",
+        )
+        madre = Madre.objects.create(
+            documento=Documento.objects.create(
+                tipo_documento=TipoDocumento.CC, numero_documento="333"
+            ),
+            nombre="Marta",
+            apellido="Tres",
+        )
+        padrino = Padrino.objects.create(
+            documento=Documento.objects.create(
+                tipo_documento=TipoDocumento.CC, numero_documento="444"
+            ),
+            nombre="Pedro Cuatro",
+        )
         casos = [
             (
                 "personas:padre_editar",
                 padre,
-                {"cedula": "222", "nombre": "Luis Nuevo", "apellido": "Dos"},
+                {
+                    "tipo_documento": TipoDocumento.CC,
+                    "numero_documento": "222",
+                    "nombre": "Luis Nuevo",
+                    "apellido": "Dos",
+                },
                 "nombre",
                 "Luis Nuevo",
             ),
             (
                 "personas:madre_editar",
                 madre,
-                {"cedula": "333", "nombre": "Marta Nueva", "apellido": "Tres"},
+                {
+                    "tipo_documento": TipoDocumento.CC,
+                    "numero_documento": "333",
+                    "nombre": "Marta Nueva",
+                    "apellido": "Tres",
+                },
                 "nombre",
                 "Marta Nueva",
             ),
             (
                 "personas:padrino_editar",
                 padrino,
-                {"nombre": "Pedro Nuevo"},
+                {
+                    "tipo_documento": TipoDocumento.CC,
+                    "numero_documento": "444",
+                    "nombre": "Pedro Nuevo",
+                },
                 "nombre",
                 "Pedro Nuevo",
             ),
@@ -411,37 +520,78 @@ class EditarPersonaTests(BasePersonasWebTests):
                 self.assertEqual(getattr(objeto, campo), valor)
 
     def test_editar_guarda_y_redirige_a_next(self):
-        padre = Padre.objects.create(cedula="222", nombre="Luis", apellido="Pérez")
+        padre = Padre.objects.create(
+            documento=Documento.objects.create(
+                tipo_documento=TipoDocumento.CC, numero_documento="222"
+            ),
+            nombre="Luis",
+            apellido="Pérez",
+        )
         destino = reverse("personas:consultar") + "?q=perez"
         url = reverse("personas:padre_editar", args=[padre.pk]) + "?next=" + quote(destino)
         respuesta = self.client.post(
-            url, {"cedula": "222", "nombre": "Luis Nuevo", "apellido": "Pérez"}
+            url,
+            {
+                "tipo_documento": TipoDocumento.CC,
+                "numero_documento": "222",
+                "nombre": "Luis Nuevo",
+                "apellido": "Pérez",
+            },
         )
         self.assertRedirects(respuesta, destino)
         padre.refresh_from_db()
         self.assertEqual(padre.nombre, "Luis Nuevo")
 
     def test_next_externo_se_ignora_y_vuelve_a_consultar(self):
-        padre = Padre.objects.create(cedula="222", nombre="Luis", apellido="Pérez")
+        padre = Padre.objects.create(
+            documento=Documento.objects.create(
+                tipo_documento=TipoDocumento.CC, numero_documento="222"
+            ),
+            nombre="Luis",
+            apellido="Pérez",
+        )
         url = (
             reverse("personas:padre_editar", args=[padre.pk])
             + "?next="
             + quote("http://otro-sitio.com")
         )
         respuesta = self.client.post(
-            url, {"cedula": "222", "nombre": "Luis Nuevo", "apellido": "Pérez"}
+            url,
+            {
+                "tipo_documento": TipoDocumento.CC,
+                "numero_documento": "222",
+                "nombre": "Luis Nuevo",
+                "apellido": "Pérez",
+            },
         )
         self.assertRedirects(respuesta, reverse("personas:consultar"))
 
-    def test_cedula_duplicada_muestra_error_en_el_campo(self):
-        Padre.objects.create(cedula="111", nombre="José", apellido="Pérez")
-        padre = Padre.objects.create(cedula="222", nombre="Luis", apellido="Gómez")
+    def test_documento_duplicado_de_padre_muestra_error_en_el_campo(self):
+        Padre.objects.create(
+            documento=Documento.objects.create(
+                tipo_documento=TipoDocumento.CC, numero_documento="111"
+            ),
+            nombre="José",
+            apellido="Pérez",
+        )
+        padre = Padre.objects.create(
+            documento=Documento.objects.create(
+                tipo_documento=TipoDocumento.CC, numero_documento="222"
+            ),
+            nombre="Luis",
+            apellido="Gómez",
+        )
         respuesta = self.client.post(
             reverse("personas:padre_editar", args=[padre.pk]),
-            {"cedula": "111", "nombre": "Luis", "apellido": "Gómez"},
+            {
+                "tipo_documento": TipoDocumento.CC,
+                "numero_documento": "111",
+                "nombre": "Luis",
+                "apellido": "Gómez",
+            },
         )
         self.assertEqual(respuesta.status_code, 200)
-        self.assertIn("cedula", respuesta.context["form"].errors)
+        self.assertIn("numero_documento", respuesta.context["form"].errors)
 
     def test_documento_duplicado_muestra_error_en_el_campo(self):
         self.crear_fiel("111", nombres="Ana", apellidos="Uno")
@@ -469,7 +619,13 @@ class EditarPersonaTests(BasePersonasWebTests):
         self.assertContains(respuesta, "las 2 partidas")
 
     def test_formulario_de_edicion_no_tiene_boton_eliminar(self):
-        padre = Padre.objects.create(cedula="222", nombre="Luis", apellido="Pérez")
+        padre = Padre.objects.create(
+            documento=Documento.objects.create(
+                tipo_documento=TipoDocumento.CC, numero_documento="222"
+            ),
+            nombre="Luis",
+            apellido="Pérez",
+        )
         respuesta = self.client.get(reverse("personas:padre_editar", args=[padre.pk]))
         self.assertNotContains(respuesta, "Eliminar")
 
@@ -507,25 +663,37 @@ class RutasEliminadasTests(BasePersonasWebTests):
 class ApiPersonasTests(BasePersonasWebTests):
     def setUp(self):
         super().setUp()
-        self.padre = Padre.objects.create(cedula="123", nombre="José", apellido="Pérez")
-        self.madre = Madre.objects.create(cedula="456", nombre="María", apellido="Gómez")
+        self.padre = Padre.objects.create(
+            documento=Documento.objects.create(
+                tipo_documento=TipoDocumento.CC, numero_documento="123"
+            ),
+            nombre="José",
+            apellido="Pérez",
+        )
+        self.madre = Madre.objects.create(
+            documento=Documento.objects.create(
+                tipo_documento=TipoDocumento.CC, numero_documento="456"
+            ),
+            nombre="María",
+            apellido="Gómez",
+        )
 
     def test_api_padre_devuelve_los_datos(self):
-        respuesta = self.client.get(reverse("personas:api_padre"), {"cedula": "123"})
+        respuesta = self.client.get(reverse("personas:api_padre"), {"numero": "123"})
         self.assertEqual(respuesta.status_code, 200)
         self.assertEqual(respuesta.json()["nombre"], "José")
         self.assertEqual(respuesta.json()["apellido"], "Pérez")
 
     def test_api_madre_devuelve_los_datos(self):
-        respuesta = self.client.get(reverse("personas:api_madre"), {"cedula": "456"})
+        respuesta = self.client.get(reverse("personas:api_madre"), {"numero": "456"})
         self.assertEqual(respuesta.status_code, 200)
         self.assertEqual(respuesta.json()["nombre"], "María")
 
     def test_api_padre_inexistente_devuelve_404(self):
-        respuesta = self.client.get(reverse("personas:api_padre"), {"cedula": "999"})
+        respuesta = self.client.get(reverse("personas:api_padre"), {"numero": "999"})
         self.assertEqual(respuesta.status_code, 404)
 
-    def test_api_sin_cedula_devuelve_400(self):
+    def test_api_sin_numero_devuelve_400(self):
         self.assertEqual(self.client.get(reverse("personas:api_padre")).status_code, 400)
         self.assertEqual(self.client.get(reverse("personas:api_madre")).status_code, 400)
 
@@ -555,7 +723,7 @@ class ConteoConsultasTests(BasePersonasWebTests):
     def _limpiar_escenario(self):
         Sacramento.objects.filter(fiel__isnull=False).delete()
         Fiel.objects.all().delete()
-        Documento.objects.all().delete()
+        Documento.objects.exclude(pk=self.ministro.documento_id).delete()
 
     def _consultar(self):
         with CaptureQueriesContext(connection) as captura:

@@ -23,7 +23,9 @@ class Documento(models.Model):
 
 
 class Padre(models.Model):
-    cedula = models.CharField(max_length=20, unique=True)
+    documento = models.OneToOneField(
+        Documento, on_delete=models.PROTECT, related_name="padre", verbose_name="documento"
+    )
     nombre = models.CharField(max_length=100)
     apellido = models.CharField(max_length=100)
 
@@ -37,7 +39,9 @@ class Padre(models.Model):
 
 
 class Madre(models.Model):
-    cedula = models.CharField(max_length=20, unique=True)
+    documento = models.OneToOneField(
+        Documento, on_delete=models.PROTECT, related_name="madre", verbose_name="documento"
+    )
     nombre = models.CharField(max_length=100)
     apellido = models.CharField(max_length=100)
 
@@ -52,8 +56,8 @@ class Madre(models.Model):
 
 class Padrino(models.Model):
     nombre = models.CharField(max_length=255)
-    documento = models.ForeignKey(
-        Documento, on_delete=models.PROTECT, null=True, blank=True, related_name="padrinos"
+    documento = models.OneToOneField(
+        Documento, on_delete=models.PROTECT, related_name="padrino", verbose_name="documento"
     )
 
     class Meta:

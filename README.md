@@ -65,7 +65,7 @@ Bloques disponibles en `base.html`:
 
 `base.html` ya incluye la barra superior (nombre completo y rol del usuario, más el botón
 **Cerrar sesión**), el sidebar con Inicio, Bautismos, Confirmaciones, Matrimonios, la sección **Catálogos**,
-el desplegable **Parroquias** con Parroquias, Iglesias, Ministros y Libros, y el ítem **Consultar personas**,
+el desplegable **Parroquias** con Parroquias, Ministros y Libros, y el ítem **Consultar personas**,
 y el pie de página. El ítem del sidebar queda activo automáticamente comparando
 `request.resolver_match.url_name` con el nombre de la ruta:
 
@@ -116,7 +116,7 @@ Reglas:
   comparando el prefijo del nombre de la ruta (p. ej. `'entidad_' in actual`). **No** se usa
   `in request.path` dentro del árbol: la URL corta de la lista (p. ej. `/parroquias/`) es
   prefijo de las demás y marcaría varios subenlaces a la vez.
-- El desplegable "Parroquias" agrupa solo el namespace `parroquias` (Parroquias, Iglesias,
+- El desplegable "Parroquias" agrupa solo el namespace `parroquias` (Parroquias,
   Ministros y Libros), por lo que su condición es `ns == 'parroquias'`. Los folios de un
   libro activan "Libros" (`'folio_' in actual`).
 - "Consultar personas" es un ítem propio del sidebar, fuera del desplegable, que enlaza
@@ -286,16 +286,7 @@ de borrado funcionan igual. En la vista, una mezcla sobre `CrudBaseMixin` carga 
 en `dispatch` (404 si no existe) y sobreescribe `get_url_lista` para construir la ruta
 anidada (`parroquias/views.py`, `FolioBaseMixin`).
 
-## Parroquias, Iglesias y Libros
-
-### Iglesias
-
-Las iglesias y capillas de cada parroquia se administran con el CRUD de **Iglesias**
-(ítem del desplegable Parroquias, después de Parroquias). La lista muestra nombre,
-parroquia y dirección y filtra por parroquia con el parámetro GET `parroquia`; el
-filtro se conserva al paginar. El formulario valida la unicidad de nombre dentro de
-la misma parroquia con un mensaje claro en español. Una iglesia con sacramentos no se
-puede eliminar (ver *Borrado protegido*).
+## Parroquias y Libros
 
 ### Apertura y cierre de libros
 
@@ -341,8 +332,8 @@ evitar los mensajes genéricos de las restricciones de la base de datos.
 `CrudDeleteView` captura `django.db.models.ProtectedError` cuando el registro tiene
 dependencias protegidas (`on_delete=PROTECT`): en lugar de un error 500 vuelve a la
 lista con el mensaje **“No se puede eliminar porque tiene registros asociados”**
-(`mensaje_protegido`, personalizable). Aplica a Iglesias con sacramentos, Libros con
-folios o partidas y Parroquias con libros, iglesias o sacramentos. Los ministros usan
+(`mensaje_protegido`, personalizable). Aplica a Libros con
+folios o partidas y Parroquias con libros o sacramentos. Los ministros usan
 `on_delete=SET_NULL` en `Parroquia` (se desligan de la parroquia), así que no bloquean
 el borrado.
 

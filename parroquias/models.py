@@ -32,7 +32,6 @@ class Parroquia(models.Model):
 
 
 class Ministro(models.Model):
-    cedula = models.CharField(max_length=20, unique=True, verbose_name="cédula")
     nombre = models.CharField(max_length=100)
     apellido = models.CharField(max_length=100, blank=True)
     cargo = models.CharField(
@@ -42,7 +41,7 @@ class Ministro(models.Model):
     telefono = models.CharField(max_length=20, blank=True, verbose_name="teléfono")
     email = models.EmailField(null=True, blank=True)
     documento = models.OneToOneField(
-        Documento, on_delete=models.PROTECT, null=True, blank=True, related_name="ministro"
+        Documento, on_delete=models.PROTECT, related_name="ministro", verbose_name="documento"
     )
     parroquia = models.ForeignKey(
         Parroquia,
@@ -140,25 +139,6 @@ class Libro(models.Model):
 
     def __str__(self):
         return self.nombre
-
-
-class Iglesia(models.Model):
-    parroquia = models.ForeignKey(Parroquia, on_delete=models.PROTECT, related_name="iglesias")
-    nombre = models.CharField(max_length=255)
-    direccion = models.CharField(max_length=255, blank=True)
-
-    class Meta:
-        verbose_name = "iglesia"
-        verbose_name_plural = "iglesias"
-        ordering = ["parroquia", "nombre"]
-        constraints = [
-            models.UniqueConstraint(
-                fields=["parroquia", "nombre"], name="unico_iglesia_por_parroquia"
-            )
-        ]
-
-    def __str__(self):
-        return f"{self.nombre} ({self.parroquia})"
 
 
 class Folio(models.Model):

@@ -27,7 +27,6 @@ class SacramentoAdmin(admin.ModelAdmin):
         "fecha_registro",
         "folio",
         "parroquia",
-        "iglesia",
         "estado",
         "ministro",
         "fiel",

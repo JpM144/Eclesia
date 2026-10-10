@@ -18,7 +18,7 @@ from core.choices import (
     TipoLibro,
     TipoSacramento,
 )
-from parroquias.models import Folio, Iglesia, Libro, Ministro, Parroquia
+from parroquias.models import Folio, Libro, Ministro, Parroquia
 from personas.models import Fiel, Madre, Padre, Padrino
 from ubicacion.models import Municipio
 
@@ -46,14 +46,6 @@ class Sacramento(models.Model):
     )
     ministro = models.ForeignKey(
         Ministro, on_delete=models.PROTECT, null=True, blank=True, related_name="sacramentos"
-    )
-    iglesia = models.ForeignKey(
-        Iglesia,
-        on_delete=models.PROTECT,
-        null=True,
-        blank=True,
-        related_name="sacramentos",
-        verbose_name="iglesia",
     )
     estado = models.CharField(
         max_length=10,
@@ -152,10 +144,6 @@ class Sacramento(models.Model):
                         )
                     }
                 )
-            if self.iglesia and self.iglesia.parroquia_id != libro.parroquia_id:
-                raise ValidationError(
-                    {"iglesia": "La iglesia debe pertenecer a la parroquia del libro."}
-                )
 
     def __str__(self):
         return f"{self.get_tipo_display()} N.° {self.numero} - {self.folio}"
@@ -235,9 +223,6 @@ class DatosBautismoMixin(models.Model):
     fecha_bautismo = models.DateField(null=True, blank=True, verbose_name="fecha de bautismo")
     parroquia_bautismo = models.CharField(
         max_length=255, blank=True, verbose_name="parroquia de bautismo"
-    )
-    iglesia_bautismo = models.CharField(
-        max_length=255, blank=True, verbose_name="iglesia de bautismo"
     )
     municipio_bautismo = models.ForeignKey(
         Municipio,

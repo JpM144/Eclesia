@@ -13,7 +13,7 @@ from personas.models import Documento, Fiel
 from sacramentos.models import Sacramento
 from ubicacion.models import Departamento, Municipio, Pais
 
-from .models import Folio, Iglesia, Libro, Ministro, Parroquia
+from .models import Folio, Libro, Ministro, Parroquia
 
 
 class BaseParroquiasTests(TestCase):
@@ -29,9 +29,13 @@ class BaseParroquiasTests(TestCase):
             email="contacto@sanpedro.co",
         )
 
-    def _crear_ministro(self, **kwargs):
+    def _crear_ministro(self, documento=None, numero_documento="1234567890", **kwargs):
+        if documento is None:
+            documento, _ = Documento.objects.get_or_create(
+                tipo_documento=TipoDocumento.CC, numero_documento=numero_documento
+            )
         datos = {
-            "cedula": "1234567890",
+            "documento": documento,
             "nombre": "Carlos",
             "apellido": "Gómez",
             "cargo": CargoMinisterial.PARROCO,
@@ -93,7 +97,7 @@ class MinistroTests(BaseParroquiasTests):
         ministro = self._crear_ministro(apellido="")
         self.assertEqual(str(ministro), "Carlos  - Párroco")
 
-    def test_cedula_unica(self):
+    def test_documento_unico(self):
         self._crear_ministro()
         with self.assertRaises(IntegrityError):
             with transaction.atomic():
@@ -323,9 +327,13 @@ class CrudParroquiasBaseTests(TestCase):
             direccion="Calle 1 # 2-34",
         )
 
-    def _crear_ministro(self, **kwargs):
+    def _crear_ministro(self, documento=None, numero_documento="1234567890", **kwargs):
+        if documento is None:
+            documento, _ = Documento.objects.get_or_create(
+                tipo_documento=TipoDocumento.CC, numero_documento=numero_documento
+            )
         datos = {
-            "cedula": "1234567890",
+            "documento": documento,
             "nombre": "Carlos",
             "apellido": "Gómez",
             "cargo": CargoMinisterial.PARROCO,
@@ -345,7 +353,7 @@ class CrudParroquiasBaseTests(TestCase):
             fecha_nacimiento=date(1990, 1, 1),
         )
 
-    def _crear_partida(self, libro, numero=1, iglesia=None, fiel=None):
+    def _crear_partida(self, libro, numero=1, fiel=None):
         folio, _ = Folio.objects.get_or_create(libro=libro, numero_folio=1)
         if fiel is None:
             fiel = self._crear_fiel(numero_documento=f"DOC{numero}")
@@ -358,7 +366,6 @@ class CrudParroquiasBaseTests(TestCase):
             fecha=date(2026, 3, 15),
             fecha_registro=date(2026, 3, 15),
             parroquia=self.parroquia,
-            iglesia=iglesia,
         )
 
 
@@ -404,7 +411,7 @@ class ParroquiaCrudTests(CrudParroquiasBaseTests):
     def test_parroco_solo_ofrece_ministros_con_cargo_parroco(self):
         parroco = self._crear_ministro()
         vicario = self._crear_ministro(
-            cedula="999", nombre="Luis", apellido="Díaz", cargo=CargoMinisterial.VICARIO
+            numero_documento="999", nombre="Luis", apellido="Díaz", cargo=CargoMinisterial.VICARIO
         )
         respuesta = self.client.get(reverse("parroquias:parroquia_crear"))
         queryset = respuesta.context["form"].fields["parroco"].queryset
@@ -456,26 +463,23 @@ class MinistroCrudTests(CrudParroquiasBaseTests):
         self.assertContains(respuesta, "Carlos")
         self.assertContains(respuesta, "Párroco")
 
-    def test_crear_ministro_sin_documento(self):
+    def test_crear_ministro_sin_documento_muestra_error(self):
         respuesta = self.client.post(
             reverse("parroquias:ministro_crear"),
             {
-                "cedula": "555",
                 "nombre": "Ana",
                 "apellido": "Rojas",
                 "cargo": CargoMinisterial.VICARIO,
                 "parroquia": self.parroquia.pk,
             },
-            follow=True,
         )
-        self.assertRedirects(respuesta, reverse("parroquias:ministro_lista"))
-        ministro = Ministro.objects.get(cedula="555")
-        self.assertIsNone(ministro.documento)
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertContains(respuesta, "Indique el documento de la persona.")
+        self.assertFalse(Ministro.objects.filter(nombre="Ana").exists())
 
     def test_crear_ministro_con_documento_lo_crea_una_sola_vez(self):
         direccion = reverse("parroquias:ministro_crear")
         datos = {
-            "cedula": "777",
             "nombre": "Pedro",
             "apellido": "López",
             "cargo": CargoMinisterial.DIACONO,
@@ -484,7 +488,7 @@ class MinistroCrudTests(CrudParroquiasBaseTests):
         }
         self.client.post(direccion, datos, follow=True)
         self.assertEqual(Documento.objects.count(), 1)
-        ministro = Ministro.objects.get(cedula="777")
+        ministro = Ministro.objects.get(documento__numero_documento="12345")
         self.assertEqual(ministro.documento.numero_documento, "12345")
 
         respuesta = self.client.post(
@@ -504,7 +508,6 @@ class MinistroCrudTests(CrudParroquiasBaseTests):
         respuesta = self.client.post(
             reverse("parroquias:ministro_crear"),
             {
-                "cedula": "888",
                 "nombre": "Lucía",
                 "apellido": "Vargas",
                 "cargo": CargoMinisterial.CATEQUISTA,
@@ -515,7 +518,9 @@ class MinistroCrudTests(CrudParroquiasBaseTests):
         )
         self.assertRedirects(respuesta, reverse("parroquias:ministro_lista"))
         self.assertEqual(Documento.objects.count(), 1)
-        self.assertEqual(Ministro.objects.get(cedula="888").documento, documento)
+        self.assertEqual(
+            Ministro.objects.get(documento__numero_documento="888").documento, documento
+        )
 
     def test_rechaza_documento_de_otro_ministro(self):
         documento = Documento.objects.create(
@@ -525,7 +530,6 @@ class MinistroCrudTests(CrudParroquiasBaseTests):
         respuesta = self.client.post(
             reverse("parroquias:ministro_crear"),
             {
-                "cedula": "222",
                 "nombre": "Otro",
                 "apellido": "Ministro",
                 "cargo": CargoMinisterial.VICARIO,
@@ -534,14 +538,13 @@ class MinistroCrudTests(CrudParroquiasBaseTests):
             },
         )
         self.assertEqual(respuesta.status_code, 200)
-        self.assertContains(respuesta, "El documento ya pertenece a otro ministro")
-        self.assertFalse(Ministro.objects.filter(cedula="222").exists())
+        self.assertContains(respuesta, "Este documento ya pertenece a otra persona.")
+        self.assertFalse(Ministro.objects.filter(nombre="Otro").exists())
 
     def test_tipo_de_documento_sin_numero_es_error(self):
         respuesta = self.client.post(
             reverse("parroquias:ministro_crear"),
             {
-                "cedula": "333",
                 "nombre": "Incompleto",
                 "cargo": CargoMinisterial.VICARIO,
                 "tipo_documento": TipoDocumento.CC,
@@ -550,7 +553,7 @@ class MinistroCrudTests(CrudParroquiasBaseTests):
         )
         self.assertEqual(respuesta.status_code, 200)
         self.assertContains(respuesta, "Indique el número del documento.")
-        self.assertFalse(Ministro.objects.filter(cedula="333").exists())
+        self.assertFalse(Ministro.objects.filter(nombre="Incompleto").exists())
 
     def test_precarga_documento_al_editar(self):
         documento = Documento.objects.create(
@@ -756,8 +759,6 @@ class LoginRequeridoParroquiasTests(TestCase):
             reverse("parroquias:libro_lista"),
             reverse("parroquias:libro_cerrar", args=[self.libro.pk]),
             reverse("parroquias:libro_indice", args=[self.libro.pk]),
-            reverse("parroquias:iglesia_lista"),
-            reverse("parroquias:iglesia_crear"),
             reverse("parroquias:folio_lista", args=[self.libro.pk]),
             reverse("parroquias:folio_crear", args=[self.libro.pk]),
         ]
@@ -766,152 +767,6 @@ class LoginRequeridoParroquiasTests(TestCase):
                 respuesta = self.client.get(url)
                 self.assertEqual(respuesta.status_code, 302)
                 self.assertIn("/login/", respuesta.url)
-
-
-class IglesiaTests(BaseParroquiasTests):
-    def test_str(self):
-        iglesia = Iglesia.objects.create(parroquia=self.parroquia, nombre="Capilla El Carmen")
-        self.assertEqual(str(iglesia), "Capilla El Carmen (San Pedro Claver)")
-
-    def test_nombre_unico_por_parroquia(self):
-        Iglesia.objects.create(parroquia=self.parroquia, nombre="Capilla El Carmen")
-        with self.assertRaises(IntegrityError):
-            with transaction.atomic():
-                Iglesia.objects.create(parroquia=self.parroquia, nombre="Capilla El Carmen")
-
-    def test_mismo_nombre_en_otra_parroquia_permitido(self):
-        otra_parroquia = Parroquia.objects.create(
-            nombre="Otra Parroquia", municipio=self.municipio, direccion="Otra"
-        )
-        Iglesia.objects.create(parroquia=self.parroquia, nombre="Capilla El Carmen")
-        Iglesia.objects.create(parroquia=otra_parroquia, nombre="Capilla El Carmen")
-        self.assertEqual(Iglesia.objects.count(), 2)
-
-    def test_protect_impide_borrar_parroquia_con_iglesias(self):
-        iglesia = Iglesia.objects.create(parroquia=self.parroquia, nombre="Capilla")
-        with self.assertRaises(ProtectedError):
-            self.parroquia.delete()
-        self.assertTrue(Iglesia.objects.filter(pk=iglesia.pk).exists())
-
-
-# ---------------------------------------------------------------------------
-# CRUD de Iglesias
-# ---------------------------------------------------------------------------
-
-
-class IglesiaCrudTests(CrudParroquiasBaseTests):
-    def _crear_iglesia(self, **kwargs):
-        datos = {
-            "parroquia": self.parroquia,
-            "nombre": "Capilla El Carmen",
-            "direccion": "Calle 3 # 4-5",
-        }
-        datos.update(kwargs)
-        return Iglesia.objects.create(**datos)
-
-    def _otra_parroquia(self):
-        return Parroquia.objects.create(
-            nombre="Inmaculada Concepción", municipio=self.municipio, direccion="Otra"
-        )
-
-    def test_lista_muestra_las_iglesias(self):
-        self._crear_iglesia()
-        respuesta = self.client.get(reverse("parroquias:iglesia_lista"))
-        self.assertEqual(respuesta.status_code, 200)
-        self.assertTemplateUsed(respuesta, "parroquias/iglesia_lista.html")
-        self.assertContains(respuesta, "Capilla El Carmen")
-        self.assertContains(respuesta, "San Pedro Claver")
-
-    def test_crear_iglesia(self):
-        respuesta = self.client.post(
-            reverse("parroquias:iglesia_crear"),
-            {
-                "parroquia": self.parroquia.pk,
-                "nombre": "Capilla San José",
-                "direccion": "Carrera 7 # 8-9",
-            },
-            follow=True,
-        )
-        self.assertRedirects(respuesta, reverse("parroquias:iglesia_lista"))
-        self.assertTrue(Iglesia.objects.filter(nombre="Capilla San José").exists())
-        self.assertContains(respuesta, "Registro creado correctamente")
-
-    def test_editar_iglesia(self):
-        iglesia = self._crear_iglesia()
-        respuesta = self.client.post(
-            reverse("parroquias:iglesia_editar", args=[iglesia.pk]),
-            {
-                "parroquia": self.parroquia.pk,
-                "nombre": "Capilla Renombrada",
-                "direccion": "",
-            },
-            follow=True,
-        )
-        self.assertRedirects(respuesta, reverse("parroquias:iglesia_lista"))
-        iglesia.refresh_from_db()
-        self.assertEqual(iglesia.nombre, "Capilla Renombrada")
-
-    def test_eliminar_iglesia(self):
-        iglesia = self._crear_iglesia()
-        respuesta = self.client.post(
-            reverse("parroquias:iglesia_eliminar", args=[iglesia.pk]), follow=True
-        )
-        self.assertRedirects(respuesta, reverse("parroquias:iglesia_lista"))
-        self.assertFalse(Iglesia.objects.filter(pk=iglesia.pk).exists())
-
-    def test_filtro_por_parroquia(self):
-        otra = self._otra_parroquia()
-        self._crear_iglesia(nombre="Capilla A")
-        self._crear_iglesia(nombre="Capilla B", parroquia=otra)
-        respuesta = self.client.get(reverse("parroquias:iglesia_lista"), {"parroquia": otra.pk})
-        self.assertContains(respuesta, "Capilla B")
-        self.assertNotContains(respuesta, "Capilla A")
-
-    def test_iglesia_duplicada_en_la_misma_parroquia_es_error_de_formulario(self):
-        self._crear_iglesia()
-        respuesta = self.client.post(
-            reverse("parroquias:iglesia_crear"),
-            {
-                "parroquia": self.parroquia.pk,
-                "nombre": "Capilla El Carmen",
-                "direccion": "",
-            },
-        )
-        self.assertEqual(respuesta.status_code, 200)
-        self.assertContains(respuesta, "Ya existe una iglesia con ese nombre en esta parroquia.")
-        self.assertNotContains(respuesta, "is violated")
-        self.assertEqual(Iglesia.objects.filter(nombre="Capilla El Carmen").count(), 1)
-
-    def test_mismo_nombre_en_otra_parroquia_se_permite(self):
-        otra = self._otra_parroquia()
-        self._crear_iglesia()
-        respuesta = self.client.post(
-            reverse("parroquias:iglesia_crear"),
-            {
-                "parroquia": otra.pk,
-                "nombre": "Capilla El Carmen",
-                "direccion": "",
-            },
-            follow=True,
-        )
-        self.assertRedirects(respuesta, reverse("parroquias:iglesia_lista"))
-        self.assertEqual(Iglesia.objects.filter(nombre="Capilla El Carmen").count(), 2)
-
-    def test_eliminar_iglesia_con_sacramentos_muestra_mensaje(self):
-        iglesia = self._crear_iglesia()
-        libro = Libro.objects.create(
-            nombre="Bautismos 2026",
-            tipo_libro=TipoLibro.BAUTISMOS,
-            detalle="Registro",
-            fecha_apertura=date(2026, 1, 1),
-            parroquia=self.parroquia,
-        )
-        self._crear_partida(libro, iglesia=iglesia)
-        respuesta = self.client.post(
-            reverse("parroquias:iglesia_eliminar", args=[iglesia.pk]), follow=True
-        )
-        self.assertTrue(Iglesia.objects.filter(pk=iglesia.pk).exists())
-        self.assertContains(respuesta, "No se puede eliminar porque tiene registros asociados")
 
 
 # ---------------------------------------------------------------------------
@@ -983,7 +838,7 @@ class LibroFormularioTests(CrudParroquiasBaseTests):
             nombre="Inmaculada Concepción", municipio=self.municipio, direccion="Otra"
         )
         otro_ministro = self._crear_ministro(
-            cedula="999", nombre="Luis", apellido="Díaz", parroquia=otra
+            numero_documento="999", nombre="Luis", apellido="Díaz", parroquia=otra
         )
         libro = self._crear_libro()
         respuesta = self.client.get(reverse("parroquias:libro_editar", args=[libro.pk]))
@@ -1188,8 +1043,8 @@ class BorradoProtegidoCrudTests(CrudParroquiasBaseTests):
         self.assertTrue(Libro.objects.filter(pk=libro.pk).exists())
         self.assertContains(respuesta, "No se puede eliminar porque tiene registros asociados")
 
-    def test_eliminar_parroquia_con_iglesias_muestra_mensaje(self):
-        Iglesia.objects.create(parroquia=self.parroquia, nombre="Capilla")
+    def test_eliminar_parroquia_con_libros_muestra_mensaje(self):
+        self._crear_libro()
         respuesta = self.client.post(
             reverse("parroquias:parroquia_eliminar", args=[self.parroquia.pk]), follow=True
         )

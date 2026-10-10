@@ -8,8 +8,8 @@ from django.views.generic import FormView, TemplateView
 from core.choices import EstadoLibro, TipoLibro, TipoSacramento
 from core.views import CrudBaseMixin, CrudCreateView, CrudDeleteView, CrudListView, CrudUpdateView
 
-from .forms import CerrarLibroForm, FolioForm, IglesiaForm, LibroForm, MinistroForm, ParroquiaForm
-from .models import Folio, Iglesia, Libro, Ministro, Parroquia
+from .forms import CerrarLibroForm, FolioForm, LibroForm, MinistroForm, ParroquiaForm
+from .models import Folio, Libro, Ministro, Parroquia
 from .services import cerrar_libro, indice_libro
 
 # ---------------------------------------------------------------------------
@@ -69,9 +69,9 @@ class MinistroListView(CrudListView):
     model = Ministro
     nombre_singular = "ministro"
     nombre_plural = "ministros"
-    search_fields = ["cedula", "nombre", "apellido"]
+    search_fields = ["documento__numero_documento", "nombre", "apellido"]
     columnas = [
-        {"campo": "cedula", "etiqueta": "Cédula"},
+        {"campo": "documento", "etiqueta": "Documento"},
         {"campo": "nombre", "etiqueta": "Nombre"},
         {"campo": "apellido", "etiqueta": "Apellido"},
         {"campo": "cargo", "etiqueta": "Cargo"},
@@ -269,67 +269,6 @@ class LibroIndiceView(CrudBaseMixin, TemplateView):
         contexto["libro"] = self.libro
         contexto["entradas"] = entradas
         return contexto
-
-
-# ---------------------------------------------------------------------------
-# Iglesias
-# ---------------------------------------------------------------------------
-
-
-class IglesiaListView(CrudListView):
-    model = Iglesia
-    template_name = "parroquias/iglesia_lista.html"
-    nombre_singular = "iglesia"
-    nombre_plural = "iglesias"
-    search_fields = ["nombre", "direccion"]
-    columnas = [
-        {"campo": "nombre", "etiqueta": "Nombre"},
-        {"campo": "parroquia__nombre", "etiqueta": "Parroquia"},
-        {"campo": "direccion", "etiqueta": "Dirección"},
-    ]
-    select_related = ("parroquia",)
-    url_lista = "parroquias:iglesia_lista"
-    url_crear = "parroquias:iglesia_crear"
-    url_editar = "parroquias:iglesia_editar"
-    url_eliminar = "parroquias:iglesia_eliminar"
-
-    def get_queryset(self):
-        queryset = super().get_queryset()
-        parroquia = self.request.GET.get("parroquia", "")
-        if parroquia.isdigit():
-            queryset = queryset.filter(parroquia_id=parroquia)
-        return queryset
-
-    def get_context_data(self, **kwargs):
-        contexto = super().get_context_data(**kwargs)
-        contexto.update(
-            parroquias=Parroquia.objects.all(),
-            filtro_parroquia=self.request.GET.get("parroquia", ""),
-        )
-        return contexto
-
-
-class IglesiaCreateView(CrudCreateView):
-    model = Iglesia
-    form_class = IglesiaForm
-    nombre_singular = "iglesia"
-    nombre_plural = "iglesias"
-    url_lista = "parroquias:iglesia_lista"
-
-
-class IglesiaUpdateView(CrudUpdateView):
-    model = Iglesia
-    form_class = IglesiaForm
-    nombre_singular = "iglesia"
-    nombre_plural = "iglesias"
-    url_lista = "parroquias:iglesia_lista"
-
-
-class IglesiaDeleteView(CrudDeleteView):
-    model = Iglesia
-    nombre_singular = "iglesia"
-    nombre_plural = "iglesias"
-    url_lista = "parroquias:iglesia_lista"
 
 
 # ---------------------------------------------------------------------------
