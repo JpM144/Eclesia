@@ -1,0 +1,24 @@
+{% extends "crud/formulario.html" %}
+
+{% block title %}Cerrar libro - Sistema de Gestión Parroquial{% endblock %}
+{% block heading %}Cerrar libro: {{ libro.nombre }}{% endblock %}
+
+{% block aviso %}
+  <div class="alert alert-warning">
+    <i class="fas fa-lock"></i>
+    Al cerrar el libro se guarda la diligencia de cierre. Después <strong>no se podrán
+    registrar partidas nuevas</strong> en este libro.
+  </div>
+  <p class="text-muted">
+    Libro de {{ libro.get_tipo_libro_display }} de {{ libro.parroquia }},
+    abierto el {{ libro.fecha_apertura }}{% if libro.ministro_apertura %}
+    por {{ libro.ministro_apertura }}{% endif %}.
+  </p>
+{% endblock %}
+
+{% block botones %}
+  <button type="submit" class="btn btn-warning">
+    <i class="fas fa-lock"></i> Cerrar libro
+  </button>
+  <a href="{{ url_lista }}" class="btn btn-secondary">Cancelar</a>
+{% endblock %}

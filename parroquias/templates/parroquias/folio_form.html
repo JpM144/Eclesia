@@ -1,0 +1,4 @@
+{% extends "crud/formulario.html" %}
+
+{% block title %}{% if object %}Editar{% else %}Nuevo{% endif %} folio de {{ libro.nombre }} - Sistema de Gestión Parroquial{% endblock %}
+{% block heading %}{% if object %}Editar folio{% else %}Nuevo folio{% endif %} de {{ libro.nombre }}{% endblock %}

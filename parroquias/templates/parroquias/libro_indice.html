@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+
+{% block title %}Índice de {{ libro.nombre }} - Sistema de Gestión Parroquial{% endblock %}
+{% block heading %}Índice de {{ libro.nombre }}{% endblock %}
+
+{% block extra_css %}
+<style>
+  @media print {
+    .main-sidebar,
+    .main-header,
+    .main-footer,
+    .content-header,
+    .no-print {
+      display: none !important;
+    }
+    .content-wrapper {
+      margin-left: 0 !important;
+    }
+    .content,
+    .container-fluid {
+      padding: 0 !important;
+    }
+    .card {
+      border: none !important;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-body">
+    <div class="no-print mb-3">
+      <a href="{% url 'parroquias:libro_lista' %}" class="btn btn-secondary btn-sm">
+        <i class="fas fa-arrow-left"></i> Volver
+      </a>
+      <button type="button" class="btn btn-primary btn-sm" onclick="window.print()">
+        <i class="fas fa-print"></i> Imprimir
+      </button>
+    </div>
+
+    <h3 class="mb-1">{{ libro.nombre }}</h3>
+    <p class="text-muted mb-3">
+      {{ libro.get_tipo_libro_display }} · Número {{ libro.numero_libro|default_if_none:"—" }} ·
+      {{ libro.parroquia }}
+    </p>
+
+    <h5>Diligencia de apertura</h5>
+    <p class="mb-1">Fecha: {{ libro.fecha_apertura }}</p>
+    <p class="mb-1">Ministro que abre: {{ libro.ministro_apertura|default:"—" }}</p>
+    <p class="mb-3">Total de folios: {{ libro.total_folios|default_if_none:"—" }}</p>
+
+    {% if libro.estado == "CERRADO" %}
+      <h5>Diligencia de cierre</h5>
+      <p class="mb-1">Fecha: {{ libro.fecha_cierre }}</p>
+      <p class="mb-1">Ministro que cierra: {{ libro.ministro_cierre|default:"—" }}</p>
+      <p class="mb-3">Nota: {{ libro.nota_cierre|default:"—" }}</p>
+    {% endif %}
+
+    <h5>Índice alfabético</h5>
+    <table class="table table-sm table-striped">
+      <thead>
+        <tr>
+          <th>Apellidos</th>
+          <th>Nombres</th>
+          <th>Número</th>
+          <th>Folio</th>
+          <th>Fecha</th>
+          <th>Tipo</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for entrada in entradas %}
+          <tr>
+            <td>{{ entrada.apellidos }}</td>
+            <td>{{ entrada.nombres }}</td>
+            <td>{{ entrada.numero }}</td>
+            <td>{{ entrada.folio }}</td>
+            <td>{{ entrada.fecha }}</td>
+            <td>{{ entrada.tipo_display }}</td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="6" class="text-center text-muted py-3">
+              Este libro todavía no tiene partidas.
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,22 @@
+{% extends "crud/lista.html" %}
+
+{% block title %}Folios de {{ libro.nombre }} - Sistema de Gestión Parroquial{% endblock %}
+{% block heading %}Folios de {{ libro.nombre }}{% endblock %}
+
+{% block boton_crear %}
+  <a href="{% url 'parroquias:libro_lista' %}" class="btn btn-secondary btn-sm">
+    <i class="fas fa-arrow-left"></i> Libros
+  </a>
+  <a href="{% url 'parroquias:folio_crear' libro.pk %}" class="btn btn-primary btn-sm">
+    <i class="fas fa-plus"></i> Nuevo
+  </a>
+{% endblock %}
+
+{% block acciones_fila %}
+  <a href="{% url 'parroquias:folio_editar' libro.pk objeto.pk %}" class="btn btn-sm btn-info" title="Editar">
+    <i class="fas fa-pencil-alt"></i>
+  </a>
+  <a href="{% url 'parroquias:folio_eliminar' libro.pk objeto.pk %}" class="btn btn-sm btn-danger" title="Eliminar">
+    <i class="fas fa-trash"></i>
+  </a>
+{% endblock %}

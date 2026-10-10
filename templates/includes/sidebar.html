@@ -1,0 +1,103 @@
+<!-- Menú lateral -->
+<aside class="main-sidebar sidebar-dark-primary elevation-4">
+  <a href="{% url 'dashboard' %}" class="brand-link">
+    <i class="fas fa-church nav-icon ml-2 mr-2"></i>
+    <span class="brand-text font-weight-light">Gestión Parroquial</span>
+  </a>
+  <div class="sidebar">
+    <nav>
+      {% with actual=request.resolver_match.url_name ns=request.resolver_match.namespace %}
+      <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
+        <li class="nav-item">
+          <a href="{% url 'dashboard' %}" class="nav-link{% if actual == 'dashboard' %} active{% endif %}">
+            <i class="nav-icon fas fa-tachometer-alt"></i>
+            <p>Inicio</p>
+          </a>
+        </li>
+        <li class="nav-item">
+          {# TODO: ruta pendiente #}
+          <a href="#" class="nav-link{% if actual == 'bautismo_lista' %} active{% endif %}">
+            <i class="nav-icon fas fa-water"></i>
+            <p>Bautismos</p>
+          </a>
+        </li>
+        <li class="nav-item">
+          {# TODO: ruta pendiente #}
+          <a href="#" class="nav-link{% if actual == 'confirmacion_lista' %} active{% endif %}">
+            <i class="nav-icon fas fa-dove"></i>
+            <p>Confirmaciones</p>
+          </a>
+        </li>
+        <li class="nav-item">
+          {# TODO: ruta pendiente #}
+          <a href="#" class="nav-link{% if actual == 'matrimonio_lista' %} active{% endif %}">
+            <i class="nav-icon fas fa-ring"></i>
+            <p>Matrimonios</p>
+          </a>
+        </li>
+
+        <li class="nav-header">Catálogos</li>
+        <li class="nav-item">
+          {% url 'ubicacion:pais_lista' as url_paises %}
+          <a href="{{ url_paises }}" class="nav-link{% if url_paises in request.path %} active{% endif %}">
+            <i class="nav-icon fas fa-flag"></i>
+            <p>Países</p>
+          </a>
+        </li>
+        <li class="nav-item">
+          {% url 'ubicacion:departamento_lista' as url_departamentos %}
+          <a href="{{ url_departamentos }}" class="nav-link{% if url_departamentos in request.path %} active{% endif %}">
+            <i class="nav-icon fas fa-map"></i>
+            <p>Departamentos</p>
+          </a>
+        </li>
+        <li class="nav-item">
+          {% url 'ubicacion:municipio_lista' as url_municipios %}
+          <a href="{{ url_municipios }}" class="nav-link{% if url_municipios in request.path %} active{% endif %}">
+            <i class="nav-icon fas fa-city"></i>
+            <p>Municipios</p>
+          </a>
+        </li>
+
+        <li class="nav-item{% if ns == 'parroquias' %} menu-open active{% endif %}">
+          <a href="#" class="nav-link{% if ns == 'parroquias' %} active{% endif %}">
+            <i class="nav-icon fas fa-church"></i>
+            <p>Parroquias<i class="right fas fa-angle-left"></i></p>
+          </a>
+          <ul class="nav nav-treeview">
+            <li class="nav-item">
+              {% url 'parroquias:parroquia_lista' as url_sub_parroquias %}
+              <a href="{{ url_sub_parroquias }}" class="nav-link{% if 'parroquia_' in actual %} active{% endif %}">
+                <i class="far fa-circle nav-icon"></i>
+                <p>Parroquias</p>
+              </a>
+            </li>
+            <li class="nav-item">
+              {% url 'parroquias:ministro_lista' as url_sub_ministros %}
+              <a href="{{ url_sub_ministros }}" class="nav-link{% if 'ministro_' in actual %} active{% endif %}">
+                <i class="far fa-circle nav-icon"></i>
+                <p>Ministros</p>
+              </a>
+            </li>
+            <li class="nav-item">
+              {% url 'parroquias:libro_lista' as url_sub_libros %}
+              <a href="{{ url_sub_libros }}" class="nav-link{% if 'libro_' in actual or 'folio_' in actual %} active{% endif %}">
+                <i class="far fa-circle nav-icon"></i>
+                <p>Libros</p>
+              </a>
+            </li>
+          </ul>
+        </li>
+
+        <li class="nav-item">
+          {% url 'personas:consultar' as url_consultar %}
+          <a href="{{ url_consultar }}" class="nav-link{% if ns == 'personas' %} active{% endif %}">
+            <i class="nav-icon fas fa-search"></i>
+            <p>Consultar personas</p>
+          </a>
+        </li>
+      </ul>
+      {% endwith %}
+    </nav>
+  </div>
+</aside>

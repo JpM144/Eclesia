@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block title %}{% if object %}Editar{% else %}Nuevo{% endif %} {{ nombre_singular }} - Sistema de Gestión Parroquial{% endblock %}
+{% block heading %}{% if object %}Editar {{ nombre_singular }}{% else %}Nuevo {{ nombre_singular }}{% endif %}{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-body">
+    {% block aviso %}{% endblock %}
+
+    {% if form.non_field_errors %}
+      <div class="alert alert-danger">
+        {% for error in form.non_field_errors %}
+          <p class="mb-0">{{ error }}</p>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    <form method="post" novalidate>
+      {% csrf_token %}
+      {% for campo in form %}
+        <div class="form-group">
+          <label for="{{ campo.id_for_label }}">
+            {{ campo.label }}{% if campo.field.required %} <span class="text-danger">*</span>{% endif %}
+          </label>
+          {{ campo }}
+          {% if campo.help_text %}
+            <small class="form-text text-muted">{{ campo.help_text }}</small>
+          {% endif %}
+          {% for error in campo.errors %}
+            <div class="text-danger small">{{ error }}</div>
+          {% endfor %}
+        </div>
+      {% endfor %}
+
+      {% block botones %}
+      <button type="submit" class="btn btn-primary">
+        <i class="fas fa-save"></i> Guardar
+      </button>
+      <a href="{{ url_lista }}" class="btn btn-secondary">Cancelar</a>
+      {% endblock %}
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}{% endblock %}

@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+
+{% block title %}Eliminar {{ nombre_singular }} - Sistema de Gestión Parroquial{% endblock %}
+{% block heading %}Eliminar {{ nombre_singular }}{% endblock %}
+
+{% block content %}
+<div class="card card-danger">
+  <div class="card-header">
+    <h3 class="card-title">Confirmar eliminación</h3>
+  </div>
+  <div class="card-body">
+    <p>¿Seguro que deseas eliminar <strong>{{ object }}</strong>?</p>
+    <p class="text-muted mb-3">
+      No se puede eliminar si tiene registros asociados.
+    </p>
+    <form method="post">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-danger">
+        <i class="fas fa-trash"></i> Eliminar
+      </button>
+      <a href="{{ url_lista }}" class="btn btn-secondary">Cancelar</a>
+    </form>
+  </div>
+</div>
+{% endblock %}

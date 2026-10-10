@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+
+{% block title %}Inicio - Sistema de Gestión Parroquial{% endblock %}
+{% block heading %}Inicio{% endblock %}
+
+{% block content %}
+<div class="row">
+  <div class="col-lg-4 col-6">
+    <div class="small-box bg-info">
+      <div class="inner">
+        <h3>{{ totales.bautismos }}</h3>
+        <p>Bautismos</p>
+      </div>
+      <div class="icon">
+        <i class="fas fa-water"></i>
+      </div>
+      {# TODO: ruta pendiente #}
+      <a href="#" class="small-box-footer">Ver más <i class="fas fa-arrow-circle-right"></i></a>
+    </div>
+  </div>
+  <div class="col-lg-4 col-6">
+    <div class="small-box bg-primary">
+      <div class="inner">
+        <h3>{{ totales.primeras_comuniones }}</h3>
+        <p>Primeras Comuniones</p>
+      </div>
+      <div class="icon">
+        <i class="fas fa-bread-slice"></i>
+      </div>
+      {# TODO: ruta pendiente #}
+      <a href="#" class="small-box-footer">Ver más <i class="fas fa-arrow-circle-right"></i></a>
+    </div>
+  </div>
+  <div class="col-lg-4 col-6">
+    <div class="small-box bg-success">
+      <div class="inner">
+        <h3>{{ totales.confirmaciones }}</h3>
+        <p>Confirmaciones</p>
+      </div>
+      <div class="icon">
+        <i class="fas fa-dove"></i>
+      </div>
+      {# TODO: ruta pendiente #}
+      <a href="#" class="small-box-footer">Ver más <i class="fas fa-arrow-circle-right"></i></a>
+    </div>
+  </div>
+  <div class="col-lg-4 col-6">
+    <div class="small-box bg-warning">
+      <div class="inner">
+        <h3>{{ totales.matrimonios }}</h3>
+        <p>Matrimonios</p>
+      </div>
+      <div class="icon">
+        <i class="fas fa-ring"></i>
+      </div>
+      {# TODO: ruta pendiente #}
+      <a href="#" class="small-box-footer">Ver más <i class="fas fa-arrow-circle-right"></i></a>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <h3 class="card-title">Últimos sacramentos registrados</h3>
+  </div>
+  <div class="card-body p-0">
+    <table class="table table-striped table-sm">
+      <thead>
+        <tr>
+          <th>Tipo</th>
+          <th>Fiel</th>
+          <th>Folio</th>
+          <th>Número</th>
+          <th>Fecha</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for sacramento in ultimos_sacramentos %}
+          <tr>
+            <td>{{ sacramento.get_tipo_display }}</td>
+            <td>{{ sacramento.fiel|default:"—" }}</td>
+            <td>{{ sacramento.folio }}</td>
+            <td>{{ sacramento.numero }}</td>
+            <td>{{ sacramento.fecha|date:"d/m/Y" }}</td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="5" class="text-center">Sin sacramentos registrados</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
