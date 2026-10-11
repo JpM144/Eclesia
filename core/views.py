@@ -1,31 +1,14 @@
 from django.contrib import messages
-from django.db.models import Count, ProtectedError, Q
+from django.db.models import ProtectedError, Q
 from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.views.generic import CreateView, DeleteView, ListView, UpdateView
 
-from core.choices import TipoSacramento
-from sacramentos.models import Sacramento
+from core.services import resumen_dashboard
 
 
 def dashboard(request):
-    totales = Sacramento.objects.aggregate(
-        bautismos=Count("pk", filter=Q(tipo=TipoSacramento.BAUTISMO)),
-        primeras_comuniones=Count("pk", filter=Q(tipo=TipoSacramento.PRIMERA_COMUNION)),
-        confirmaciones=Count("pk", filter=Q(tipo=TipoSacramento.CONFIRMACION)),
-        matrimonios=Count("pk", filter=Q(tipo=TipoSacramento.MATRIMONIO)),
-    )
-    ultimos_sacramentos = Sacramento.objects.select_related("folio__libro", "fiel").order_by(
-        "-fecha", "-id"
-    )[:5]
-    return render(
-        request,
-        "core/dashboard.html",
-        {
-            "totales": totales,
-            "ultimos_sacramentos": ultimos_sacramentos,
-        },
-    )
+    return render(request, "core/dashboard.html", resumen_dashboard())
 
 
 # ---------------------------------------------------------------------------

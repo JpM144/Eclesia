@@ -1,95 +1,248 @@
 {% extends "base.html" %}
+{% load static %}
+{% load dashboard_extras %}
 
 {% block title %}Inicio - Sistema de Gestión Parroquial{% endblock %}
 {% block heading %}Inicio{% endblock %}
 
-{% block content %}
-<div class="row">
-  <div class="col-lg-4 col-6">
-    <div class="small-box bg-info">
-      <div class="inner">
-        <h3>{{ totales.bautismos }}</h3>
-        <p>Bautismos</p>
-      </div>
-      <div class="icon">
-        <i class="fas fa-water"></i>
-      </div>
-      {# TODO: ruta pendiente #}
-      <a href="#" class="small-box-footer">Ver más <i class="fas fa-arrow-circle-right"></i></a>
-    </div>
-  </div>
-  <div class="col-lg-4 col-6">
-    <div class="small-box bg-primary">
-      <div class="inner">
-        <h3>{{ totales.primeras_comuniones }}</h3>
-        <p>Primeras Comuniones</p>
-      </div>
-      <div class="icon">
-        <i class="fas fa-bread-slice"></i>
-      </div>
-      {# TODO: ruta pendiente #}
-      <a href="#" class="small-box-footer">Ver más <i class="fas fa-arrow-circle-right"></i></a>
-    </div>
-  </div>
-  <div class="col-lg-4 col-6">
-    <div class="small-box bg-success">
-      <div class="inner">
-        <h3>{{ totales.confirmaciones }}</h3>
-        <p>Confirmaciones</p>
-      </div>
-      <div class="icon">
-        <i class="fas fa-dove"></i>
-      </div>
-      {# TODO: ruta pendiente #}
-      <a href="#" class="small-box-footer">Ver más <i class="fas fa-arrow-circle-right"></i></a>
-    </div>
-  </div>
-  <div class="col-lg-4 col-6">
-    <div class="small-box bg-warning">
-      <div class="inner">
-        <h3>{{ totales.matrimonios }}</h3>
-        <p>Matrimonios</p>
-      </div>
-      <div class="icon">
-        <i class="fas fa-ring"></i>
-      </div>
-      {# TODO: ruta pendiente #}
-      <a href="#" class="small-box-footer">Ver más <i class="fas fa-arrow-circle-right"></i></a>
-    </div>
-  </div>
-</div>
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+{% endblock %}
 
-<div class="card">
-  <div class="card-header">
-    <h3 class="card-title">Últimos sacramentos registrados</h3>
+{% block content %}
+<div class="dashboard">
+
+  {# Encabezado #}
+  <div class="dashboard-encabezado">
+    <div class="encabezado-texto">
+      <p class="encabezado-pequeno">Bienvenido al</p>
+      <h1 class="encabezado-titulo">Sistema de Gestión Parroquial</h1>
+      <p class="encabezado-descripcion">
+        Gestiona y administra la información de tu parroquia de forma rápida y segura.
+      </p>
+    </div>
+    <blockquote class="encabezado-cita">
+      <p>Todo lo que hagan, háganlo de corazón, como para el Señor y no para los hombres.</p>
+      <cite>Colosenses 3:23</cite>
+    </blockquote>
   </div>
-  <div class="card-body p-0">
-    <table class="table table-striped table-sm">
-      <thead>
-        <tr>
-          <th>Tipo</th>
-          <th>Fiel</th>
-          <th>Folio</th>
-          <th>Número</th>
-          <th>Fecha</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for sacramento in ultimos_sacramentos %}
-          <tr>
-            <td>{{ sacramento.get_tipo_display }}</td>
-            <td>{{ sacramento.fiel|default:"—" }}</td>
-            <td>{{ sacramento.folio }}</td>
-            <td>{{ sacramento.numero }}</td>
-            <td>{{ sacramento.fecha|date:"d/m/Y" }}</td>
-          </tr>
-        {% empty %}
-          <tr>
-            <td colspan="5" class="text-center">Sin sacramentos registrados</td>
-          </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+
+  {# Tarjetas por sacramento #}
+  <div class="row">
+    <div class="col-12 col-md-6 col-lg-3 mb-3">
+      <div class="card tarjeta-sacramento tarjeta-bautismo h-100">
+        <div class="card-body">
+          <span class="tarjeta-flecha" aria-hidden="true"><i class="fas fa-chevron-right"></i></span>
+          {# TODO: enlace a la lista de partidas #}
+          <div class="tarjeta-cabecera">
+            <span class="icono-circulo">{% include "core/iconos/gota.svg" %}</span>
+            <div>
+              <p class="tarjeta-titulo">Bautismos</p>
+              <p class="tarjeta-total">{{ totales.bautismos }}</p>
+            </div>
+          </div>
+          {% with variacion=variaciones.BAUTISMO %}
+            <div class="tarjeta-variacion tarjeta-variacion--{{ variacion.direccion }}">
+              <span class="variacion-valor">
+                {% if variacion.direccion == "sube" %}
+                  <i class="fas fa-arrow-up" aria-hidden="true"></i>
+                {% elif variacion.direccion == "baja" %}
+                  <i class="fas fa-arrow-down" aria-hidden="true"></i>
+                {% else %}
+                  <i class="fas fa-minus" aria-hidden="true"></i>
+                {% endif %}
+                {{ variacion.valor }}
+              </span>
+              <span class="variacion-etiqueta">vs. mes anterior</span>
+            </div>
+          {% endwith %}
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12 col-md-6 col-lg-3 mb-3">
+      <div class="card tarjeta-sacramento tarjeta-primera-comunion h-100">
+        <div class="card-body">
+          <span class="tarjeta-flecha" aria-hidden="true"><i class="fas fa-chevron-right"></i></span>
+          {# TODO: enlace a la lista de partidas #}
+          <div class="tarjeta-cabecera">
+            <span class="icono-circulo">{% include "core/iconos/caliz.svg" %}</span>
+            <div>
+              <p class="tarjeta-titulo">Primera Comunión</p>
+              <p class="tarjeta-total">{{ totales.primeras_comuniones }}</p>
+            </div>
+          </div>
+          {% with variacion=variaciones.PRIMERA_COMUNION %}
+            <div class="tarjeta-variacion tarjeta-variacion--{{ variacion.direccion }}">
+              <span class="variacion-valor">
+                {% if variacion.direccion == "sube" %}
+                  <i class="fas fa-arrow-up" aria-hidden="true"></i>
+                {% elif variacion.direccion == "baja" %}
+                  <i class="fas fa-arrow-down" aria-hidden="true"></i>
+                {% else %}
+                  <i class="fas fa-minus" aria-hidden="true"></i>
+                {% endif %}
+                {{ variacion.valor }}
+              </span>
+              <span class="variacion-etiqueta">vs. mes anterior</span>
+            </div>
+          {% endwith %}
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12 col-md-6 col-lg-3 mb-3">
+      <div class="card tarjeta-sacramento tarjeta-confirmacion h-100">
+        <div class="card-body">
+          <span class="tarjeta-flecha" aria-hidden="true"><i class="fas fa-chevron-right"></i></span>
+          {# TODO: enlace a la lista de partidas #}
+          <div class="tarjeta-cabecera">
+            <span class="icono-circulo">{% include "core/iconos/paloma.svg" %}</span>
+            <div>
+              <p class="tarjeta-titulo">Confirmación</p>
+              <p class="tarjeta-total">{{ totales.confirmaciones }}</p>
+            </div>
+          </div>
+          {% with variacion=variaciones.CONFIRMACION %}
+            <div class="tarjeta-variacion tarjeta-variacion--{{ variacion.direccion }}">
+              <span class="variacion-valor">
+                {% if variacion.direccion == "sube" %}
+                  <i class="fas fa-arrow-up" aria-hidden="true"></i>
+                {% elif variacion.direccion == "baja" %}
+                  <i class="fas fa-arrow-down" aria-hidden="true"></i>
+                {% else %}
+                  <i class="fas fa-minus" aria-hidden="true"></i>
+                {% endif %}
+                {{ variacion.valor }}
+              </span>
+              <span class="variacion-etiqueta">vs. mes anterior</span>
+            </div>
+          {% endwith %}
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12 col-md-6 col-lg-3 mb-3">
+      <div class="card tarjeta-sacramento tarjeta-matrimonio h-100">
+        <div class="card-body">
+          <span class="tarjeta-flecha" aria-hidden="true"><i class="fas fa-chevron-right"></i></span>
+          {# TODO: enlace a la lista de partidas #}
+          <div class="tarjeta-cabecera">
+            <span class="icono-circulo">{% include "core/iconos/anillos.svg" %}</span>
+            <div>
+              <p class="tarjeta-titulo">Matrimonios</p>
+              <p class="tarjeta-total">{{ totales.matrimonios }}</p>
+            </div>
+          </div>
+          {% with variacion=variaciones.MATRIMONIO %}
+            <div class="tarjeta-variacion tarjeta-variacion--{{ variacion.direccion }}">
+              <span class="variacion-valor">
+                {% if variacion.direccion == "sube" %}
+                  <i class="fas fa-arrow-up" aria-hidden="true"></i>
+                {% elif variacion.direccion == "baja" %}
+                  <i class="fas fa-arrow-down" aria-hidden="true"></i>
+                {% else %}
+                  <i class="fas fa-minus" aria-hidden="true"></i>
+                {% endif %}
+                {{ variacion.valor }}
+              </span>
+              <span class="variacion-etiqueta">vs. mes anterior</span>
+            </div>
+          {% endwith %}
+        </div>
+      </div>
+    </div>
   </div>
+
+  {# Fila inferior #}
+  <div class="row">
+    <div class="col-12 col-xl-6 mb-3">
+      <div class="card tarjeta-sacramento h-100">
+        <div class="card-header bg-white border-0 cabecera-grafico d-flex justify-content-between align-items-center">
+          <h3 class="card-title font-weight-bold mb-0">Sacramentos por Mes (Último Año)</h3>
+          <select id="filtro-series" class="form-control form-control-sm filtro-series"
+                  aria-label="Filtrar las series del gráfico">
+            <option value="TODOS" selected>Todos</option>
+            <option value="BAUTISMO">Bautismos</option>
+            <option value="PRIMERA_COMUNION">Primera Comunión</option>
+            <option value="CONFIRMACION">Confirmación</option>
+            <option value="MATRIMONIO">Matrimonios</option>
+          </select>
+        </div>
+        <div class="card-body">
+          <div class="contenedor-grafico">
+            <canvas id="grafico-sacramentos" role="img"
+                    aria-label="Gráfico de barras con los sacramentos registrados por mes"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12 col-md-6 col-xl-3 mb-3">
+      <div class="card tarjeta-sacramento h-100">
+        <div class="card-header bg-white border-0">
+          <h3 class="card-title font-weight-bold mb-0">Acceso Rápido</h3>
+        </div>
+        <div class="card-body">
+          {# TODO: enlazar al crear bautismo #}
+          <button type="button" class="boton-acceso boton-acceso--azul" disabled>
+            <span class="d-flex align-items-center">
+              <span class="icono-boton mr-2">{% include "core/iconos/gota.svg" %}</span>
+              <span class="boton-acceso-texto">
+                <span>Crear Bautismo</span>
+                <small>Disponible pronto</small>
+              </span>
+            </span>
+            <i class="fas fa-arrow-right" aria-hidden="true"></i>
+          </button>
+          <a href="{% url 'parroquias:libro_lista' %}" class="boton-acceso boton-acceso--verde">
+            <span class="d-flex align-items-center">
+              <span class="icono-boton mr-2"><i class="fas fa-book" aria-hidden="true"></i></span>
+              <span class="boton-acceso-texto"><span>Ver Libros</span></span>
+            </span>
+            <i class="fas fa-arrow-right" aria-hidden="true"></i>
+          </a>
+          <a href="{% url 'personas:consultar' %}" class="boton-acceso boton-acceso--morado">
+            <span class="d-flex align-items-center">
+              <span class="icono-boton mr-2"><i class="fas fa-search" aria-hidden="true"></i></span>
+              <span class="boton-acceso-texto"><span>Buscar Persona</span></span>
+            </span>
+            <i class="fas fa-arrow-right" aria-hidden="true"></i>
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12 col-md-6 col-xl-3 mb-3">
+      <div class="card tarjeta-sacramento h-100">
+        <div class="card-header bg-white border-0 d-flex justify-content-between align-items-center">
+          <h3 class="card-title font-weight-bold mb-0">Últimas Actividades (Historial)</h3>
+          {# TODO: enlace "Ver todo" cuando exista la pantalla de historial #}
+        </div>
+        <div class="card-body p-0">
+          <ul class="lista-actividades">
+            {% for actividad in actividades %}
+              <li>
+                <span class="punto punto--{{ actividad.tipo_css }}"></span>
+                <div>
+                  <p class="actividad-texto">{{ actividad.texto }}</p>
+                  <span class="actividad-fecha">{{ actividad.fecha|fecha_relativa }}</span>
+                </div>
+              </li>
+            {% empty %}
+              <li class="actividad-vacia">Aún no hay actividad registrada</li>
+            {% endfor %}
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
 </div>
+{{ datos_grafico|json_script:"datos-grafico" }}
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.5.1/chart.umd.min.js"></script>
+<script src="{% static 'js/dashboard.js' %}"></script>
 {% endblock %}

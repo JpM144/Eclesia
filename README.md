@@ -63,26 +63,22 @@ Bloques disponibles en `base.html`:
 | `extra_css` | CSS adicional, se inserta después de AdminLTE         |
 | `extra_js`  | JavaScript adicional, se inserta al final del `body`  |
 
-`base.html` ya incluye la barra superior (nombre completo y rol del usuario, más el botón
-**Cerrar sesión**), el sidebar con Inicio, Bautismos, Confirmaciones, Matrimonios, la sección **Catálogos**,
-el desplegable **Parroquias** con Parroquias, Ministros y Libros, y el ítem **Consultar personas**,
-y el pie de página. El ítem del sidebar queda activo automáticamente comparando
-`request.resolver_match.url_name` con el nombre de la ruta:
+`base.html` incluye la barra superior (botón hamburguesa con el título de la página, la
+campana de anotaciones y el menú de usuario con avatar, nombre y cierre de sesión), el
+sidebar con **Inicio**, los cuatro sacramentos (Bautismos, Primera Comunión, Confirmaciones
+y Matrimonios, aún sin pantalla), el desplegable **Parroquias** (Parroquias, Ministros y
+Libros), el desplegable **Ubicación** (Países, Departamentos y Municipios), el ítem
+**Consultar personas** y el pie de página. El ítem del sidebar queda activo automáticamente
+comparando `request.resolver_match.url_name` con el nombre de la ruta:
 
 ```html
 <a href="{% url 'dashboard' %}" class="nav-link{% if actual == 'dashboard' %} active{% endif %}">
 ```
 
-Cuando se agregue una ruta nueva se reemplaza `href="#"` por su `{% url %}` y se usa el
-mismo patrón con el nombre de esa ruta. Las rutas aún inexistentes llevan el comentario
-`{# TODO: ruta pendiente #}`. Los ítems del sidebar que tienen CRUD (Países,
-Departamentos y Municipios) guardan la URL en una variable y se marcan activos cuando el
-`request.path` empieza por ella, de modo que también quedan resaltados al crear o editar:
-
-```html
-{% url 'ubicacion:pais_lista' as url_paises %}
-<a href="{{ url_paises }}" class="nav-link{% if url_paises in request.path %} active{% endif %}">
-```
+Cuando se agregue una ruta nueva se usa el mismo patrón con el nombre de esa ruta. Los
+cuatro sacramentos no tienen pantalla todavía: aparecen atenuados (clase `deshabilitado`,
+`aria-disabled="true"`, sin `href`), con la etiqueta **Pronto** y con los mismos íconos SVG
+del dashboard; llevan el comentario `{# TODO: enlazar cuando exista la pantalla #}`.
 
 ### Ítems desplegables (treeview)
 
@@ -119,10 +115,13 @@ Reglas:
 - El desplegable "Parroquias" agrupa solo el namespace `parroquias` (Parroquias,
   Ministros y Libros), por lo que su condición es `ns == 'parroquias'`. Los folios de un
   libro activan "Libros" (`'folio_' in actual`).
+- El desplegable "Ubicación" agrupa el namespace `ubicacion` (Países, Departamentos y
+  Municipios) y marca sus subenlaces por prefijo del nombre de la ruta:
+  `'pais_' in actual`, `'departamento_' in actual` y `'municipio_' in actual`.
 - "Consultar personas" es un ítem propio del sidebar, fuera del desplegable, que enlaza
   `/personas/consultar/` y se marca activo en cualquier página del namespace `personas`
   (`ns == 'personas'`), incluidas las vistas de edición de personas.
-- En cualquier otra página (Inicio, Países, Bautismos…) los controles arrancan cerrados.
+- En cualquier otra página (Inicio, Parroquias, Personas…) los controles arrancan cerrados.
 
 ### Mensajes
 
@@ -145,6 +144,70 @@ decorado adicional.
 
 Los archivos estáticos propios van en `static/` (configurado con `STATICFILES_DIRS`);
 los de terceros se cargan por CDN.
+
+### Dashboard
+
+La pantalla de inicio (`core/views.py`, `templates/core/dashboard.html`) se apoya en
+`core.services.resumen_dashboard`, que concentra los datos con pocas consultas: un
+agregado para los totales, una sola consulta agrupada por mes (`TruncMonth` + `values` +
+`Count`, excluyendo los sacramentos anulados) para la serie de los últimos 12 meses y una
+lista con el historial. La variación mensual se deriva de la misma serie (si el mes
+anterior tiene 0 muestra **Nuevo** o **Sin cambios** según haya registros este mes).
+
+- Colores por sacramento (clases `.tarjeta-*` y `.punto-*`):
+
+| Sacramento       | Color   | Suave   | Ícono (`templates/core/iconos/`) |
+| ---------------- | ------- | ------- | -------------------------------- |
+| Bautismo         | #2563EB | #E3EEFF | `gota.svg`                       |
+| Primera Comunión | #16A34A | #DCFCE7 | `caliz.svg`                      |
+| Confirmación     | #7C3AED | #EDE9FE | `paloma.svg`                     |
+| Matrimonio       | #E11D48 | #FFE4E6 | `anillos.svg`                    |
+
+- Los íconos son SVG propios (trazo uniforme de 2.5 en el `viewBox` de 48, sin texto,
+  heredan el color con `currentColor`). Se insertan en línea con
+  `{% include "core/iconos/<nombre>.svg" %}` para poder colorearlos con CSS y llevan
+  `aria-hidden="true"`. La cruz del pie es `cruz.svg`. Varias partes llevan relleno con
+  opacidad baja (el agua de la gota, la copa del cáliz, el ala de la paloma) para dar peso
+  visual. Los mismos SVG se usan en el sidebar, a tamaño de ícono de menú (clase
+  `nav-icon icono-menu`).
+- Cada tarjeta muestra el ícono en un círculo de **84 px** con el color suave del
+  sacramento (`.icono-circulo`) y el SVG a **44 px**; el total va en `.tarjeta-total`.
+  Las tarjetas usan `col-12 col-md-6 col-lg-3`: una columna en móvil, dos en tablet y
+  cuatro en escritorio.
+- Los estilos propios del dashboard viven en `static/css/dashboard.css`, cargado solo en
+  esa pantalla con `{% block extra_css %}`. La barra superior (título, campana y menú de
+  usuario), el sidebar y el pie de página se estilan dentro de `base.html`.
+- El gráfico usa **Chart.js 4.5.1** desde cdnjs
+  (`https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.5.1/chart.umd.min.js`). Los datos se
+  pasan al navegador con `{{ datos_grafico|json_script:"datos-grafico" }}` (nunca
+  concatenados en JS) y el filtro por tipo muestra u oculta series sin recargar
+  (`static/js/dashboard.js`).
+- La campana muestra las anotaciones marginales `POR_COMUNICAR` con el context processor
+  `core.context_processors.anotaciones_pendientes` (dos consultas: el total y las cinco
+  más recientes; solo para usuarios autenticados).
+
+### Barra superior y menú de usuario
+
+- A la izquierda, el botón hamburguesa de AdminLTE (`data-widget="pushmenu"`, ícono
+  `fa-bars`, con `aria-label="Mostrar u ocultar el menú"`), que permite abrir y cerrar el
+  menú lateral, especialmente en móvil. Junto a él, el título de la página actual, que cada
+  vista define con el bloque `{% block heading %}` (p. ej. **Inicio** en el dashboard).
+- A la derecha, la campana de anotaciones y el menú de usuario: avatar circular con las
+  iniciales del usuario (filtro `iniciales` de `core/templatetags/interfaz_extras.py`, que
+  toma la primera letra de la primera y la última palabra del nombre) sobre fondo azul, el
+  texto **Hola, {nombre}** y una flecha. El desplegable muestra el nombre completo, el rol
+  (del `PerfilUsuario`, o "Administrador" si no hay perfil) y un formulario **POST** hacia
+  `{% url 'logout' %}` para cerrar sesión.
+- En móvil el texto "Hola, {nombre}" se oculta (`d-none d-md-inline`) y queda solo el avatar.
+
+### Cita del encabezado y pie de página
+
+- La cita del dashboard no lleva fondo ni recuadro: estilizada en cursiva, alineada a la
+  derecha, con la línea vertical dorada a su **derecha** (`border-right`), y "Colosenses
+  3:23" en gris debajo.
+- El pie usa el layout fijo de AdminLTE y un `min-height` en `.content-wrapper`
+  (`calc(100vh - 3.5rem - 3.4rem)` en `base.html`) para que quede visible al fondo incluso
+  en páginas cortas.
 
 ## Patrón CRUD
 

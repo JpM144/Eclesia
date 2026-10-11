@@ -99,7 +99,8 @@ class RegistroTests(TestCase):
         PerfilUsuario.objects.create(usuario=usuario, rol=RolUsuario.SECRETARIO)
         self.client.force_login(usuario)
         respuesta = self.client.get(reverse("dashboard"))
-        self.assertContains(respuesta, "María Pérez · Secretario(a)")
+        self.assertContains(respuesta, "María Pérez")
+        self.assertContains(respuesta, "Secretario(a)")
 
     def test_barra_muestra_administrador_para_usuario_sin_perfil(self):
         usuario = User.objects.create_user(username="sinperfil", password=CLAVE)

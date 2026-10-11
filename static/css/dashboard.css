@@ -1,0 +1,364 @@
+/*
+ * Estilos del dashboard (AdminLTE 3). Se carga solo en la pantalla de inicio
+ * mediante {% block extra_css %}.
+ *
+ * Colores por sacramento:
+ *   - Bautismo:          azul   #2563EB / suave #E3EEFF
+ *   - Primera Comunión:  verde  #16A34A / suave #DCFCE7
+ *   - Confirmación:      morado #7C3AED / suave #EDE9FE
+ *   - Matrimonio:        rosa   #E11D48 / suave #FFE4E6
+ */
+
+body {
+  background: #f5f7fb;
+}
+
+.content-wrapper {
+  background: #f5f7fb !important;
+}
+
+/* ------------------------------------------------------------------ */
+/* Encabezado                                                          */
+/* ------------------------------------------------------------------ */
+
+.dashboard-encabezado {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 2rem;
+  margin-bottom: 1.5rem;
+}
+
+.encabezado-pequeno {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #6b7280;
+}
+
+.encabezado-titulo {
+  margin: 0.15rem 0 0;
+  font-size: 2rem;
+  font-weight: 800;
+  color: #111827;
+}
+
+.encabezado-descripcion {
+  margin: 0.5rem 0 0;
+  color: #4b5563;
+  max-width: 34rem;
+}
+
+.encabezado-cita {
+  margin: 0;
+  border-right: 3px solid #d4af37;
+  padding-right: 1rem;
+  font-style: italic;
+  color: #4b5563;
+  max-width: 22rem;
+  text-align: right;
+}
+
+.encabezado-cita p {
+  margin: 0;
+}
+
+.encabezado-cita cite {
+  display: block;
+  margin-top: 0.35rem;
+  font-style: normal;
+  font-weight: 600;
+  color: #4b5563;
+}
+
+@media (max-width: 767.98px) {
+  .dashboard-encabezado {
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .encabezado-cita {
+    max-width: none;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Tarjetas de sacramentos                                             */
+/* ------------------------------------------------------------------ */
+
+.tarjeta-sacramento {
+  border: none;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(16, 24, 40, 0.08), 0 1px 2px rgba(16, 24, 40, 0.04);
+}
+
+.tarjeta-sacramento .card-body {
+  position: relative;
+}
+
+.tarjeta-cabecera {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.icono-circulo {
+  width: 84px;
+  height: 84px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+}
+
+.icono-circulo svg {
+  width: 44px;
+  height: 44px;
+}
+
+.tarjeta-titulo {
+  margin: 0 0 0.15rem;
+  text-transform: uppercase;
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  font-weight: 700;
+  color: #6b7280;
+}
+
+.tarjeta-total {
+  margin: 0;
+  font-size: 2.3rem;
+  font-weight: 800;
+  line-height: 1;
+  color: #111827;
+}
+
+.tarjeta-flecha {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  color: #c7cdd8;
+}
+
+.tarjeta-bautismo .icono-circulo {
+  background: #e3eeff;
+  color: #2563eb;
+}
+
+.tarjeta-primera-comunion .icono-circulo {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.tarjeta-confirmacion .icono-circulo {
+  background: #ede9fe;
+  color: #7c3aed;
+}
+
+.tarjeta-matrimonio .icono-circulo {
+  background: #ffe4e6;
+  color: #e11d48;
+}
+
+.tarjeta-variacion {
+  display: flex;
+  flex-direction: column;
+  margin-top: 1rem;
+  font-size: 0.8rem;
+}
+
+.variacion-valor {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-weight: 700;
+}
+
+.variacion-etiqueta {
+  color: #6b7280;
+}
+
+.tarjeta-variacion--sube .variacion-valor {
+  color: #15803d;
+}
+
+.tarjeta-variacion--baja .variacion-valor {
+  color: #dc2626;
+}
+
+.tarjeta-variacion--igual .variacion-valor {
+  color: #6b7280;
+}
+
+/* ------------------------------------------------------------------ */
+/* Gráfico                                                             */
+/* ------------------------------------------------------------------ */
+
+.contenedor-grafico {
+  position: relative;
+  height: 320px;
+}
+
+.filtro-series {
+  width: auto;
+}
+
+@media (max-width: 575.98px) {
+  .cabecera-grafico {
+    flex-direction: column;
+    align-items: stretch !important;
+  }
+
+  .cabecera-grafico .card-title {
+    margin-bottom: 0.6rem;
+  }
+
+  .cabecera-grafico .filtro-series {
+    width: 100% !important;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Acceso rápido                                                       */
+/* ------------------------------------------------------------------ */
+
+.boton-acceso {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  margin-bottom: 0.85rem;
+  padding: 1rem 1.15rem;
+  border: none;
+  border-radius: 12px;
+  color: #fff;
+  font-weight: 600;
+  text-align: left;
+}
+
+.boton-acceso:last-child {
+  margin-bottom: 0;
+}
+
+.boton-acceso:hover,
+.boton-acceso:focus {
+  color: #fff;
+  filter: brightness(0.94);
+}
+
+.boton-acceso-texto {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
+}
+
+.icono-boton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+}
+
+.icono-boton svg {
+  width: 22px;
+  height: 22px;
+}
+
+.boton-acceso small {
+  font-weight: 400;
+  font-size: 0.72rem;
+  opacity: 0.9;
+}
+
+.boton-acceso--azul {
+  background: #1d4ed8;
+}
+
+.boton-acceso--verde {
+  background: #15803d;
+}
+
+.boton-acceso--morado {
+  background: #6d28d9;
+}
+
+.boton-acceso:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+/* ------------------------------------------------------------------ */
+/* Últimas actividades                                                 */
+/* ------------------------------------------------------------------ */
+
+.lista-actividades {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.lista-actividades li {
+  display: flex;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid #f1f3f7;
+}
+
+.lista-actividades li:last-child {
+  border-bottom: none;
+}
+
+.punto {
+  width: 10px;
+  height: 10px;
+  margin-top: 0.35rem;
+  border-radius: 50%;
+  flex: 0 0 auto;
+}
+
+.punto--bautismo {
+  background: #2563eb;
+}
+
+.punto--primera-comunion {
+  background: #16a34a;
+}
+
+.punto--confirmacion {
+  background: #7c3aed;
+}
+
+.punto--matrimonio {
+  background: #e11d48;
+}
+
+.punto--otro {
+  background: #6b7280;
+}
+
+.actividad-texto {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #1f2937;
+}
+
+.actividad-fecha {
+  font-size: 0.78rem;
+  color: #6b7280;
+}
+
+.actividad-vacia {
+  justify-content: center;
+  color: #6b7280;
+}
+
+/* ------------------------------------------------------------------ */
+/* Accesibilidad                                                       */
+/* ------------------------------------------------------------------ */
+
+.dashboard a:focus-visible,
+.dashboard button:focus-visible {
+  outline: 3px solid #1d4ed8;
+  outline-offset: 2px;
+}
