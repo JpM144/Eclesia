@@ -64,11 +64,8 @@ Bloques disponibles en `base.html`:
 | `extra_js`  | JavaScript adicional, se inserta al final del `body`  |
 
 `base.html` incluye la barra superior (botón hamburguesa con el título de la página, la
-campana de anotaciones y el menú de usuario con avatar, nombre y cierre de sesión), el
-sidebar con **Inicio**, los cuatro sacramentos (Bautismos, Primera Comunión, Confirmaciones
-y Matrimonios, aún sin pantalla), el desplegable **Parroquias** (Parroquias, Ministros y
-Libros), el desplegable **Ubicación** (Países, Departamentos y Municipios), el ítem
-**Consultar personas** y el pie de página. El ítem del sidebar queda activo automáticamente
+campana de anotaciones y el menú de usuario con avatar, nombre, rol y cierre de sesión), el
+sidebar (ver más abajo) y el pie de página. El ítem del sidebar queda activo automáticamente
 comparando `request.resolver_match.url_name` con el nombre de la ruta:
 
 ```html
@@ -79,6 +76,11 @@ Cuando se agregue una ruta nueva se usa el mismo patrón con el nombre de esa ru
 cuatro sacramentos no tienen pantalla todavía: aparecen atenuados (clase `deshabilitado`,
 `aria-disabled="true"`, sin `href`), con la etiqueta **Pronto** y con los mismos íconos SVG
 del dashboard; llevan el comentario `{# TODO: enlazar cuando exista la pantalla #}`.
+
+El orden del menú es: **Inicio**, Bautismos, Primera Comunión, Confirmaciones, Matrimonios,
+**Libros**, **Consultar personas** y el desplegable **Catálogos** (Parroquias, Ministros,
+Países, Departamentos y Municipios). **Libros** queda activo también en los folios, el cierre
+y el índice de un libro (`'libro_' in actual or 'folio_' in actual`).
 
 ### Ítems desplegables (treeview)
 
@@ -112,16 +114,26 @@ Reglas:
   comparando el prefijo del nombre de la ruta (p. ej. `'entidad_' in actual`). **No** se usa
   `in request.path` dentro del árbol: la URL corta de la lista (p. ej. `/parroquias/`) es
   prefijo de las demás y marcaría varios subenlaces a la vez.
-- El desplegable "Parroquias" agrupa solo el namespace `parroquias` (Parroquias,
-  Ministros y Libros), por lo que su condición es `ns == 'parroquias'`. Los folios de un
-  libro activan "Libros" (`'folio_' in actual`).
-- El desplegable "Ubicación" agrupa el namespace `ubicacion` (Países, Departamentos y
-  Municipios) y marca sus subenlaces por prefijo del nombre de la ruta:
-  `'pais_' in actual`, `'departamento_' in actual` y `'municipio_' in actual`.
+- El desplegable "Catálogos" se abre cuando una de sus páginas está activa; su condición
+  comprueba los prefijos de las rutas de sus cinco entradas:
+  `'parroquia_' in actual or 'ministro_' in actual or 'pais_' in actual or
+  'departamento_' in actual or 'municipio_' in actual`.
+- Cada subenlace se marca activo por el prefijo de su nombre de ruta: `'parroquia_' in
+  actual` (Parroquias), `'ministro_' in actual` (Ministros), `'pais_' in actual` (Países),
+  `'departamento_' in actual` (Departamentos) y `'municipio_' in actual` (Municipios).
+- "Libros" es un ítem propio del sidebar, fuera del desplegable, activo con `'libro_' in
+  actual or 'folio_' in actual`, de modo que se resalta en la lista, el formulario, el
+  índice, el cierre y los folios.
 - "Consultar personas" es un ítem propio del sidebar, fuera del desplegable, que enlaza
   `/personas/consultar/` y se marca activo en cualquier página del namespace `personas`
   (`ns == 'personas'`), incluidas las vistas de edición de personas.
 - En cualquier otra página (Inicio, Parroquias, Personas…) los controles arrancan cerrados.
+
+El menú se abre sobre el contenido con un fondo oscuro (el `#sidebar-overlay` que crea
+AdminLTE) en pantallas menores de 992 px y se cierra al tocar ese fondo, con `Escape` o al
+elegir un ítem (`static/js/tema.js`). Al fondo del menú hay una cruz fina, la frase en
+cursiva *«La Iglesia es familia, y todos somos parte de ella»* y una línea corta; se oculta
+con el menú colapsado o en pantallas de menos de 700 px de alto.
 
 ### Mensajes
 
@@ -156,31 +168,40 @@ anterior tiene 0 muestra **Nuevo** o **Sin cambios** según haya registros este 
 
 - Colores por sacramento (clases `.tarjeta-*` y `.punto-*`):
 
-| Sacramento       | Color   | Suave   | Ícono (`templates/core/iconos/`) |
+| Sacramento       | Color   | Pastel  | Ícono (`templates/core/iconos/`) |
 | ---------------- | ------- | ------- | -------------------------------- |
-| Bautismo         | #2563EB | #E3EEFF | `gota.svg`                       |
-| Primera Comunión | #16A34A | #DCFCE7 | `caliz.svg`                      |
-| Confirmación     | #7C3AED | #EDE9FE | `paloma.svg`                     |
-| Matrimonio       | #E11D48 | #FFE4E6 | `anillos.svg`                    |
+| Bautismo         | #4A78B5 | #E4EDF8 | `gota.svg`                       |
+| Primera Comunión | #4E8A6E | #E3F0EA | `caliz.svg`                      |
+| Confirmación     | #7650B0 | #ECE6F6 | `paloma.svg`                     |
+| Matrimonio       | #D04A5C | #F9E4E7 | `anillos.svg`                    |
 
 - Los íconos son SVG propios (trazo uniforme de 2.5 en el `viewBox` de 48, sin texto,
   heredan el color con `currentColor`). Se insertan en línea con
   `{% include "core/iconos/<nombre>.svg" %}` para poder colorearlos con CSS y llevan
-  `aria-hidden="true"`. La cruz del pie es `cruz.svg`. Varias partes llevan relleno con
-  opacidad baja (el agua de la gota, la copa del cáliz, el ala de la paloma) para dar peso
-  visual. Los mismos SVG se usan en el sidebar, a tamaño de ícono de menú (clase
+  `aria-hidden="true"`. El ícono de la iglesia del menú es `iglesia.svg`, la cruz del menú es
+  `cruz.svg` y el estado vacío de actividades usa `documento-reloj.svg`. Varias partes llevan
+  relleno con opacidad baja (el agua de la gota, la copa del cáliz, el ala de la paloma) para
+  dar peso visual. Los mismos SVG se usan en el sidebar, a tamaño de ícono de menú (clase
   `nav-icon icono-menu`).
-- Cada tarjeta muestra el ícono en un círculo de **84 px** con el color suave del
-  sacramento (`.icono-circulo`) y el SVG a **44 px**; el total va en `.tarjeta-total`.
-  Las tarjetas usan `col-12 col-md-6 col-lg-3`: una columna en móvil, dos en tablet y
-  cuatro en escritorio.
+- Cada tarjeta muestra el ícono en un círculo pastel de **64 px** con el color del
+  sacramento (`.icono-circulo`) y el SVG a **40 px**; la etiqueta en mayúsculas grises va
+  sobre el total grande (`.tarjeta-total`) y debajo, centrado, el indicador de variación
+  (guion gris «Sin cambios», flecha verde/roja con porcentaje o «Nuevo») y «vs. mes
+  anterior». Las tarjetas usan `col-12 col-md-6 col-xl-3`: una columna en móvil, dos en
+  tablet y cuatro a partir de 1200 px.
+- La fila inferior coloca la gráfica, el acceso rápido (tres botones a todo el ancho en
+  azul pizarra, verde salvia y morado grisáceo) y las últimas actividades: a partir de
+  1200 px la gráfica ocupa el 50 % y cada columna lateral el 25 %; entre 992 y 1199 px la
+  gráfica va a todo el ancho y las dos columnas al 50 %; por debajo se apilan.
 - Los estilos propios del dashboard viven en `static/css/dashboard.css`, cargado solo en
-  esa pantalla con `{% block extra_css %}`. La barra superior (título, campana y menú de
-  usuario), el sidebar y el pie de página se estilan dentro de `base.html`.
+  esa pantalla con `{% block extra_css %}`. La paleta, la tipografía y los estilos globales
+  viven en `static/css/tema.css`.
 - El gráfico usa **Chart.js 4.5.1** desde cdnjs
   (`https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.5.1/chart.umd.min.js`). Los datos se
   pasan al navegador con `{{ datos_grafico|json_script:"datos-grafico" }}` (nunca
-  concatenados en JS) y el filtro por tipo muestra u oculta series sin recargar
+  concatenados en JS). El selector de periodo («Último año», «Últimos 6 meses», «Este año»)
+  filtra en el navegador los 12 meses que entrega el servidor y la leyenda muestra u oculta
+  series; si todos los valores son cero el eje Y usa `suggestedMax` de 10
   (`static/js/dashboard.js`).
 - La campana muestra las anotaciones marginales `POR_COMUNICAR` con el context processor
   `core.context_processors.anotaciones_pendientes` (dos consultas: el total y las cinco
@@ -189,25 +210,59 @@ anterior tiene 0 muestra **Nuevo** o **Sin cambios** según haya registros este 
 ### Barra superior y menú de usuario
 
 - A la izquierda, el botón hamburguesa de AdminLTE (`data-widget="pushmenu"`, ícono
-  `fa-bars`, con `aria-label="Mostrar u ocultar el menú"`), que permite abrir y cerrar el
-  menú lateral, especialmente en móvil. Junto a él, el título de la página actual, que cada
-  vista define con el bloque `{% block heading %}` (p. ej. **Inicio** en el dashboard).
-- A la derecha, la campana de anotaciones y el menú de usuario: avatar circular con las
-  iniciales del usuario (filtro `iniciales` de `core/templatetags/interfaz_extras.py`, que
-  toma la primera letra de la primera y la última palabra del nombre) sobre fondo azul, el
-  texto **Hola, {nombre}** y una flecha. El desplegable muestra el nombre completo, el rol
-  (del `PerfilUsuario`, o "Administrador" si no hay perfil) y un formulario **POST** hacia
-  `{% url 'logout' %}` para cerrar sesión.
-- En móvil el texto "Hola, {nombre}" se oculta (`d-none d-md-inline`) y queda solo el avatar.
+  `fa-bars`, con `aria-label="Mostrar u ocultar el menú"`), una línea vertical divisoria y
+  el título de la página actual, que cada vista define con el bloque `{% block heading %}`
+  (p. ej. **Inicio** en el dashboard).
+- A la derecha, la campana de anotaciones, un separador y el menú de usuario: avatar
+  circular oscuro con ícono de persona (sin iniciales), el nombre en negrita y el rol en
+  gris debajo (del `PerfilUsuario`, o "Administrador" si no hay perfil) y una flecha que
+  abre el desplegable con el nombre completo, el rol y un formulario **POST** hacia
+  `{% url 'logout' %}`. Además, a la derecha del todo, hay un enlace **Cerrar sesión** con
+  su ícono que envía el mismo formulario POST.
+- En móvil se ocultan el nombre y el texto "Cerrar sesión" (quedan el avatar y el ícono),
+  mediante las reglas de `tema.css`.
 
-### Cita del encabezado y pie de página
+### Encabezado y pie del dashboard
 
-- La cita del dashboard no lleva fondo ni recuadro: estilizada en cursiva, alineada a la
-  derecha, con la línea vertical dorada a su **derecha** (`border-right`), y "Colosenses
-  3:23" en gris debajo.
+- El encabezado muestra "Bienvenido al" en mayúsculas pequeñas y gris con espaciado de
+  letras, el título grande en negrita azul oscuro y el subtítulo gris. A su derecha hay una
+  tarjeta blanca con una línea vertical azul a la izquierda (`border-left`), la cita en
+  cursiva y "Colosenses 3:23" en gris debajo. En móvil la cita pasa debajo del título.
 - El pie usa el layout fijo de AdminLTE y un `min-height` en `.content-wrapper`
-  (`calc(100vh - 3.5rem - 3.4rem)` en `base.html`) para que quede visible al fondo incluso
-  en páginas cortas.
+  (`calc(100vh - 3.5rem - 3.4rem)`, con las variables `--gp-alto-barra` y `--gp-alto-pie`)
+  para que quede visible al fondo incluso en páginas cortas. Muestra solo el copyright; la
+  cruz está ahora al fondo del menú lateral.
+
+### Paleta, tipografía y responsive
+
+- Los colores y las medidas se definen como variables CSS en `static/css/tema.css` (cargado
+  después de AdminLTE): superficies (`--gp-marino`, `--gp-activo`, `--gp-contenido`), texto
+  (`--gp-texto`, `--gp-texto-suave`), colores por sacramento y sus pasteles, radio, sombra y
+  ancho máximo.
+- La tipografía es **Inter** desde Google Fonts (pesos 400, 500, 600 y 700) con respaldo
+  `system-ui, -apple-system, "Segoe UI", Roboto, sans-serif`, de modo que se ve bien incluso
+  sin conexión.
+- Puntos de corte: a partir de 1200 px (y hasta 2K/4K) el menú es fijo, hay cuatro tarjetas
+  por fila y el contenido se centra con un ancho máximo de 1600 px; entre 992 y 1199 px el
+  menú puede colapsarse a íconos (`sidebar-mini`), las tarjetas van en 2 × 2, la gráfica a
+  todo el ancho y el acceso rápido y las actividades al 50 %; entre 768 y 991 px el menú se
+  abre encima del contenido con un fondo oscuro (`#sidebar-overlay` de AdminLTE); por debajo
+  de 768 px las
+  tarjetas van en una columna, la cita pasa debajo del título, se ocultan el nombre y el
+  texto de cierre de sesión, la gráfica baja a 260 px y el selector de periodo ocupa todo el
+  ancho.
+- En cualquier tamaño no hay scroll horizontal: las tablas de las listas van dentro de
+  `.table-responsive`, los formularios ocupan todo el ancho en móvil y los controles
+  táctiles mantienen al menos 44 × 44 px.
+
+### NOMBRE_PARROQUIA
+
+La variable de entorno `NOMBRE_PARROQUIA` (leída con `python-decouple`, con default vacío)
+se muestra en gris claro, en una línea más pequeña, bajo "Gestión Parroquial" en el
+encabezado del menú lateral. Si queda vacía no se muestra nada. Se expone a las plantillas
+con el context processor `core.context_processors.nombre_parroquia`, que no consulta la base
+de datos; en los tests se fija con `override_settings(NOMBRE_PARROQUIA=...)`. La línea de
+ejemplo está en `.env.example` con un comentario.
 
 ## Patrón CRUD
 
@@ -473,3 +528,13 @@ En los tests, el valor se fija con `override_settings(CODIGO_REGISTRO=...)`.
 .\.venv\Scripts\ruff format .
 .\.venv\Scripts\python manage.py test
 ```
+
+**Menú lateral:**
+- Alto de encabezado: 64 px. Logo 32 px, título 16 px semibold, parroquia 12 px con 12 px entre logo y texto.
+- Ítem: 44 px alto, radio 8 px, separación 4 px, padding horizontal 12 px. Ícono 24x24 centrado (~20px), gap 12 px con texto (15 px, 1 línea, ellipsis).
+- Pronto: píldora 10 px mayúsculas, padding 2px 8px, margin-left auto.
+- Activo: #34405A, ícono/texto blancos.
+- Deshabilitado: #8B95A7.
+- Colapsado (sidebar-mini sidebar-collapse): 72 px, solo íconos; textos ocultos; ítem activo 48x44 centrado.
+- Subítems: sangría 36 px, alto 40 px. Flecha gira.
+- Frase fondo: margin-top auto, centrada, padding 24 px; cruz 20 px, texto 12.5 px cursiva #94A3B8.

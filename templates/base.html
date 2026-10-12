@@ -1,4 +1,4 @@
-{% load interfaz_extras %}<!DOCTYPE html>
+{% load static %}<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="utf-8">
@@ -10,159 +10,16 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@5.15.4/css/all.min.css">
   <!-- AdminLTE 3 -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/admin-lte@3.2.0/dist/css/adminlte.min.css">
+  <!-- Tema propio -->
+  <link rel="stylesheet" href="{% static 'css/tema.css' %}">
   {% block extra_css %}{% endblock %}
-  <style>
-    /* Campana de notificaciones y pie de página (comunes a todas las pantallas). */
-    .navbar-nav .notificaciones .nav-link {
-      position: relative;
-    }
-
-    .navbar-nav .notificaciones .navbar-badge {
-      position: absolute;
-      top: 0.35rem;
-      right: 0.15rem;
-      font-size: 0.66rem;
-      font-weight: 700;
-      padding: 0.15rem 0.35rem;
-      border-radius: 10px;
-    }
-
-    .navbar-nav .notificaciones .dropdown-header {
-      font-weight: 700;
-      color: #1f2937;
-    }
-
-    .navbar-nav .notificaciones .dropdown-item {
-      white-space: normal;
-    }
-
-    .footer-parroquial {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      flex-wrap: wrap;
-      gap: 0.75rem;
-    }
-
-    .footer-parroquial-texto {
-      color: #4b5563;
-    }
-
-    .footer-parroquial-cruz {
-      display: flex;
-      align-items: center;
-      gap: 0.6rem;
-      color: #d4af37;
-    }
-
-    .footer-parroquial-cruz .linea {
-      display: block;
-      width: 48px;
-      height: 1px;
-      background: #d4af37;
-      opacity: 0.6;
-    }
-
-    .footer-parroquial-cruz svg {
-      width: 18px;
-      height: 18px;
-    }
-
-    /* Barra superior: título de página y menú de usuario. */
-    .titulo-pagina {
-      font-weight: 600;
-      color: #1f2937;
-      max-width: 60vw;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
-    .usuario-menu .nav-link {
-      color: #1f2937;
-    }
-
-    .usuario-avatar {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 34px;
-      height: 34px;
-      border-radius: 50%;
-      background: #2563eb;
-      color: #fff;
-      font-size: 0.8rem;
-      font-weight: 700;
-      letter-spacing: 0.02em;
-      flex: 0 0 auto;
-    }
-
-    .usuario-chevron {
-      font-size: 0.7rem;
-      color: #6b7280;
-    }
-
-    /* Menú lateral: íconos SVG a tamaño de ícono de menú y ítems "Pronto". */
-    .nav-sidebar .nav-icon.icono-menu {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 1.6rem;
-      vertical-align: middle;
-    }
-
-    .nav-sidebar .nav-icon.icono-menu svg {
-      width: 1.25rem;
-      height: 1.25rem;
-    }
-
-    .nav-sidebar .nav-link.deshabilitado {
-      opacity: 0.55;
-      cursor: not-allowed;
-    }
-
-    .nav-sidebar .nav-link.deshabilitado:hover {
-      color: #c2c7d0;
-    }
-
-    .etiqueta-pronto {
-      float: right;
-      margin-top: 0.1rem;
-      padding: 0.06rem 0.45rem;
-      border-radius: 8px;
-      background: rgba(255, 255, 255, 0.22);
-      color: #fff;
-      font-size: 0.6rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-    }
-
-    /* Pie de página siempre visible al fondo de la pantalla. */
-    .wrapper {
-      min-height: 100vh;
-    }
-
-    .content-wrapper {
-      min-height: calc(100vh - 3.5rem - 3.4rem);
-    }
-
-    .main-sidebar .nav-link:focus-visible,
-    .main-header .nav-link:focus-visible,
-    .navbar .dropdown-item:focus-visible,
-    .navbar button:focus-visible,
-    .main-footer a:focus-visible {
-      outline: 3px solid #1d4ed8;
-      outline-offset: 2px;
-    }
-  </style>
 </head>
 <body class="hold-transition sidebar-mini layout-fixed">
 <div class="wrapper">
 
   <!-- Barra superior -->
   <nav class="main-header navbar navbar-expand navbar-white navbar-light">
-    <ul class="navbar-nav">
+    <ul class="navbar-nav navbar-cabecera-izquierda">
       <li class="nav-item">
         <a class="nav-link" data-widget="pushmenu" href="#" role="button"
            aria-label="Mostrar u ocultar el menú">
@@ -170,10 +27,11 @@
         </a>
       </li>
       <li class="nav-item d-flex align-items-center">
+        <span class="divisor-barra" aria-hidden="true"></span>
         <span class="titulo-pagina">{% block heading %}{% endblock %}</span>
       </li>
     </ul>
-    <ul class="navbar-nav ml-auto">
+    <ul class="navbar-nav ml-auto align-items-center">
       <li class="nav-item dropdown notificaciones">
         <a class="nav-link" data-toggle="dropdown" href="#" role="button"
            aria-haspopup="true" aria-expanded="false" aria-label="Anotaciones por comunicar">
@@ -202,14 +60,18 @@
           {% endfor %}
         </div>
       </li>
+
       <li class="nav-item dropdown usuario-menu">
         <a class="nav-link d-flex align-items-center" data-toggle="dropdown" href="#"
            role="button" aria-haspopup="true" aria-expanded="false" aria-label="Menú de usuario">
-          <span class="usuario-avatar" aria-hidden="true">{{ request.user|iniciales }}</span>
-          <span class="d-none d-md-inline ml-2">
-            Hola, {{ request.user.first_name|default:request.user.username }}
+          <span class="usuario-avatar" aria-hidden="true"><i class="fas fa-user"></i></span>
+          <span class="usuario-datos">
+            <span class="usuario-nombre">{{ request.user.first_name|default:request.user.username }}</span>
+            <span class="usuario-rol">
+              {% if request.user.perfil %}{{ request.user.perfil.get_rol_display }}{% else %}Administrador{% endif %}
+            </span>
           </span>
-          <i class="fas fa-chevron-down ml-2 usuario-chevron" aria-hidden="true"></i>
+          <i class="fas fa-chevron-down usuario-chevron" aria-hidden="true"></i>
         </a>
         <div class="dropdown-menu dropdown-menu-right">
           <span class="dropdown-header">
@@ -226,6 +88,18 @@
             </button>
           </form>
         </div>
+      </li>
+      <li class="nav-item d-none d-md-flex align-items-center">
+        <span class="separador-usuario" aria-hidden="true"></span>
+      </li>
+      <li class="nav-item d-flex align-items-center">
+        <form method="post" action="{% url 'logout' %}">
+          {% csrf_token %}
+          <button type="submit" class="nav-link btn-logout" aria-label="Cerrar sesión">
+            <i class="fas fa-sign-out-alt" aria-hidden="true"></i>
+            <span class="btn-logout-texto">Cerrar sesión</span>
+          </button>
+        </form>
       </li>
     </ul>
   </nav>
@@ -251,15 +125,8 @@
     </section>
   </div>
 
-  <footer class="main-footer footer-parroquial">
-    <div class="footer-parroquial-texto">
-      © {% now "Y" %} Sistema de Gestión Parroquial · Desarrollado con Django y PostgreSQL
-    </div>
-    <div class="footer-parroquial-cruz" aria-hidden="true">
-      <span class="linea"></span>
-      {% include "core/iconos/cruz.svg" %}
-      <span class="linea"></span>
-    </div>
+  <footer class="main-footer">
+    © {% now "Y" %} Sistema de Gestión Parroquial · Desarrollado con Django y PostgreSQL
   </footer>
 </div>
 
@@ -269,6 +136,7 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
 <!-- AdminLTE 3 -->
 <script src="https://cdn.jsdelivr.net/npm/admin-lte@3.2.0/dist/js/adminlte.min.js"></script>
+<script src="{% static 'js/tema.js' %}"></script>
 {% block extra_js %}{% endblock %}
 </body>
 </html>

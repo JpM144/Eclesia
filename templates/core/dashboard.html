@@ -13,30 +13,30 @@
 <div class="dashboard">
 
   {# Encabezado #}
-  <div class="dashboard-encabezado">
-    <div class="encabezado-texto">
+  <div class="row dashboard-encabezado">
+    <div class="col-12 col-lg-8">
       <p class="encabezado-pequeno">Bienvenido al</p>
       <h1 class="encabezado-titulo">Sistema de Gestión Parroquial</h1>
       <p class="encabezado-descripcion">
         Gestiona y administra la información de tu parroquia de forma rápida y segura.
       </p>
     </div>
-    <blockquote class="encabezado-cita">
-      <p>Todo lo que hagan, háganlo de corazón, como para el Señor y no para los hombres.</p>
-      <cite>Colosenses 3:23</cite>
-    </blockquote>
+    <div class="col-12 col-lg-4">
+      <blockquote class="encabezado-cita">
+        <p>“Todo lo que hagan, háganlo de corazón, como para el Señor y no para los hombres.”</p>
+        <cite>Colosenses 3:23</cite>
+      </blockquote>
+    </div>
   </div>
 
   {# Tarjetas por sacramento #}
   <div class="row">
-    <div class="col-12 col-md-6 col-lg-3 mb-3">
+    <div class="col-12 col-md-6 col-xl-3 mb-3">
       <div class="card tarjeta-sacramento tarjeta-bautismo h-100">
         <div class="card-body">
-          <span class="tarjeta-flecha" aria-hidden="true"><i class="fas fa-chevron-right"></i></span>
-          {# TODO: enlace a la lista de partidas #}
           <div class="tarjeta-cabecera">
             <span class="icono-circulo">{% include "core/iconos/gota.svg" %}</span>
-            <div>
+            <div class="tarjeta-textos">
               <p class="tarjeta-titulo">Bautismos</p>
               <p class="tarjeta-total">{{ totales.bautismos }}</p>
             </div>
@@ -60,14 +60,12 @@
       </div>
     </div>
 
-    <div class="col-12 col-md-6 col-lg-3 mb-3">
+    <div class="col-12 col-md-6 col-xl-3 mb-3">
       <div class="card tarjeta-sacramento tarjeta-primera-comunion h-100">
         <div class="card-body">
-          <span class="tarjeta-flecha" aria-hidden="true"><i class="fas fa-chevron-right"></i></span>
-          {# TODO: enlace a la lista de partidas #}
           <div class="tarjeta-cabecera">
             <span class="icono-circulo">{% include "core/iconos/caliz.svg" %}</span>
-            <div>
+            <div class="tarjeta-textos">
               <p class="tarjeta-titulo">Primera Comunión</p>
               <p class="tarjeta-total">{{ totales.primeras_comuniones }}</p>
             </div>
@@ -91,14 +89,12 @@
       </div>
     </div>
 
-    <div class="col-12 col-md-6 col-lg-3 mb-3">
+    <div class="col-12 col-md-6 col-xl-3 mb-3">
       <div class="card tarjeta-sacramento tarjeta-confirmacion h-100">
         <div class="card-body">
-          <span class="tarjeta-flecha" aria-hidden="true"><i class="fas fa-chevron-right"></i></span>
-          {# TODO: enlace a la lista de partidas #}
           <div class="tarjeta-cabecera">
             <span class="icono-circulo">{% include "core/iconos/paloma.svg" %}</span>
-            <div>
+            <div class="tarjeta-textos">
               <p class="tarjeta-titulo">Confirmación</p>
               <p class="tarjeta-total">{{ totales.confirmaciones }}</p>
             </div>
@@ -122,14 +118,12 @@
       </div>
     </div>
 
-    <div class="col-12 col-md-6 col-lg-3 mb-3">
+    <div class="col-12 col-md-6 col-xl-3 mb-3">
       <div class="card tarjeta-sacramento tarjeta-matrimonio h-100">
         <div class="card-body">
-          <span class="tarjeta-flecha" aria-hidden="true"><i class="fas fa-chevron-right"></i></span>
-          {# TODO: enlace a la lista de partidas #}
           <div class="tarjeta-cabecera">
             <span class="icono-circulo">{% include "core/iconos/anillos.svg" %}</span>
-            <div>
+            <div class="tarjeta-textos">
               <p class="tarjeta-titulo">Matrimonios</p>
               <p class="tarjeta-total">{{ totales.matrimonios }}</p>
             </div>
@@ -157,16 +151,14 @@
   {# Fila inferior #}
   <div class="row">
     <div class="col-12 col-xl-6 mb-3">
-      <div class="card tarjeta-sacramento h-100">
-        <div class="card-header bg-white border-0 cabecera-grafico d-flex justify-content-between align-items-center">
-          <h3 class="card-title font-weight-bold mb-0">Sacramentos por Mes (Último Año)</h3>
-          <select id="filtro-series" class="form-control form-control-sm filtro-series"
-                  aria-label="Filtrar las series del gráfico">
-            <option value="TODOS" selected>Todos</option>
-            <option value="BAUTISMO">Bautismos</option>
-            <option value="PRIMERA_COMUNION">Primera Comunión</option>
-            <option value="CONFIRMACION">Confirmación</option>
-            <option value="MATRIMONIO">Matrimonios</option>
+      <div class="card h-100">
+        <div class="card-header bg-white border-0 cabecera-grafico">
+          <h3 class="card-title">Sacramentos por Mes (Último Año)</h3>
+          <select id="periodo-grafico" class="form-control form-control-sm filtro-periodo"
+                  aria-label="Filtrar el periodo del gráfico">
+            <option value="anio" selected>Último año</option>
+            <option value="seis">Últimos 6 meses</option>
+            <option value="este">Este año</option>
           </select>
         </div>
         <div class="card-body">
@@ -178,12 +170,12 @@
       </div>
     </div>
 
-    <div class="col-12 col-md-6 col-xl-3 mb-3">
-      <div class="card tarjeta-sacramento h-100">
+    <div class="col-12 col-lg-6 col-xl-3 mb-3">
+      <div class="card h-100">
         <div class="card-header bg-white border-0">
-          <h3 class="card-title font-weight-bold mb-0">Acceso Rápido</h3>
+          <h3 class="card-title">Acceso Rápido</h3>
         </div>
-        <div class="card-body">
+        <div class="card-body d-flex flex-column">
           {# TODO: enlazar al crear bautismo #}
           <button type="button" class="boton-acceso boton-acceso--azul" disabled>
             <span class="d-flex align-items-center">
@@ -213,14 +205,15 @@
       </div>
     </div>
 
-    <div class="col-12 col-md-6 col-xl-3 mb-3">
-      <div class="card tarjeta-sacramento h-100">
-        <div class="card-header bg-white border-0 d-flex justify-content-between align-items-center">
-          <h3 class="card-title font-weight-bold mb-0">Últimas Actividades (Historial)</h3>
-          {# TODO: enlace "Ver todo" cuando exista la pantalla de historial #}
+    <div class="col-12 col-lg-6 col-xl-3 mb-3">
+      <div class="card h-100">
+        <div class="card-header bg-white border-0">
+          <h3 class="card-title">
+            <i class="far fa-clock mr-2" aria-hidden="true"></i>Últimas Actividades (Historial)
+          </h3>
         </div>
-        <div class="card-body p-0">
-          <ul class="lista-actividades">
+        <div class="card-body p-0 d-flex flex-column">
+          <ul class="lista-actividades flex-fill">
             {% for actividad in actividades %}
               <li>
                 <span class="punto punto--{{ actividad.tipo_css }}"></span>
@@ -230,7 +223,11 @@
                 </div>
               </li>
             {% empty %}
-              <li class="actividad-vacia">Aún no hay actividad registrada</li>
+              <li class="actividad-vacia">
+                <span class="vacio-circulo">{% include "core/iconos/documento-reloj.svg" %}</span>
+                <p class="vacio-titulo">Aún no hay actividad registrada</p>
+                <p class="vacio-texto">Las últimas acciones aparecerán aquí.</p>
+              </li>
             {% endfor %}
           </ul>
         </div>

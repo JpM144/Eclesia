@@ -3,6 +3,10 @@
  *
  * Los datos llegan desde la plantilla con {{ datos_grafico|json_script }} y
  * nunca se concatenan aquí. Chart.js se carga antes, desde cdnjs.
+ *
+ * El selector de periodo ("Último año", "Últimos 6 meses", "Este año") filtra
+ * en el navegador los 12 meses que ya entrega el servidor; la leyenda permite
+ * ocultar o mostrar series (comportamiento propio de Chart.js).
  */
 (function () {
   "use strict";
@@ -16,10 +20,10 @@
   var datos = JSON.parse(origen.textContent);
 
   var COLORES = {
-    BAUTISMO: { borde: "#1d4ed8", fondo: "rgba(37, 99, 235, 0.65)" },
-    PRIMERA_COMUNION: { borde: "#15803d", fondo: "rgba(22, 163, 74, 0.65)" },
-    CONFIRMACION: { borde: "#6d28d9", fondo: "rgba(124, 58, 237, 0.65)" },
-    MATRIMONIO: { borde: "#be123c", fondo: "rgba(225, 29, 72, 0.65)" }
+    BAUTISMO: { borde: "#4A78B5", fondo: "rgba(74, 120, 181, 0.7)" },
+    PRIMERA_COMUNION: { borde: "#4E8A6E", fondo: "rgba(78, 138, 110, 0.7)" },
+    CONFIRMACION: { borde: "#7650B0", fondo: "rgba(118, 80, 176, 0.7)" },
+    MATRIMONIO: { borde: "#D04A5C", fondo: "rgba(208, 74, 92, 0.7)" }
   };
 
   var ETIQUETAS = {
@@ -30,7 +34,7 @@
   };
 
   var conjuntos = Object.keys(datos.series).map(function (tipo) {
-    var color = COLORES[tipo] || { borde: "#6b7280", fondo: "rgba(107, 114, 128, 0.6)" };
+    var color = COLORES[tipo] || { borde: "#64748B", fondo: "rgba(100, 116, 139, 0.6)" };
     return {
       label: ETIQUETAS[tipo] || tipo,
       tipo: tipo,
@@ -43,9 +47,15 @@
     };
   });
 
+  var todoEnCero = conjuntos.every(function (conjunto) {
+    return conjunto.data.every(function (valor) {
+      return !valor;
+    });
+  });
+
   var grafico = new Chart(lienzo, {
     type: "bar",
-    data: { labels: datos.etiquetas, datasets: conjuntos },
+    data: { labels: datos.etiquetas.slice(), datasets: conjuntos },
     options: {
       responsive: true,
       maintainAspectRatio: false,
@@ -55,25 +65,62 @@
         tooltip: { mode: "index", intersect: false }
       },
       scales: {
-        x: { grid: { display: false } },
+        x: {
+          grid: { display: false },
+          ticks: { autoSkip: true, maxRotation: 0, minRotation: 0 }
+        },
         y: {
           beginAtZero: true,
           ticks: { precision: 0 },
-          grid: { color: "rgba(0, 0, 0, 0.05)" }
+          suggestedMax: todoEnCero ? 10 : undefined,
+          grid: { color: "rgba(15, 23, 42, 0.06)" }
         }
       }
     }
   });
 
-  var filtro = document.getElementById("filtro-series");
-  if (filtro) {
-    filtro.addEventListener("change", function () {
-      var seleccion = filtro.value;
-      grafico.data.datasets.forEach(function (conjunto, indice) {
-        var visible = seleccion === "TODOS" || seleccion === conjunto.tipo;
-        grafico.setDatasetVisibility(indice, visible);
+  function todosLosIndices() {
+    return datos.etiquetas.map(function (_, indice) {
+      return indice;
+    });
+  }
+
+  function indicesPeriodo(periodo) {
+    var total = datos.etiquetas.length;
+    if (periodo === "seis") {
+      return todosLosIndices().slice(Math.max(0, total - 6));
+    }
+    if (periodo === "este") {
+      var ultima = datos.etiquetas[total - 1] || "";
+      var coincidencia = ultima.match(/(\d{4})\s*$/);
+      if (!coincidencia) {
+        return todosLosIndices();
+      }
+      var anio = coincidencia[1];
+      return todosLosIndices().filter(function (indice) {
+        return datos.etiquetas[indice].indexOf(anio) !== -1;
       });
-      grafico.update();
+    }
+    return todosLosIndices();
+  }
+
+  function aplicarPeriodo(periodo) {
+    var indices = indicesPeriodo(periodo);
+    grafico.data.labels = indices.map(function (indice) {
+      return datos.etiquetas[indice];
+    });
+    conjuntos.forEach(function (conjunto, posicion) {
+      grafico.data.datasets[posicion].data = indices.map(function (indice) {
+        return conjunto.data[indice];
+      });
+    });
+    grafico.update();
+  }
+
+  var selector = document.getElementById("periodo-grafico");
+  if (selector) {
+    selector.addEventListener("change", function () {
+      aplicarPeriodo(selector.value);
     });
   }
 })();

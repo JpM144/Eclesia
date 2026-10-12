@@ -1,0 +1,691 @@
+/*
+ * Tema global del Sistema de Gestión Parroquial (AdminLTE 3).
+ *
+ * Se carga en templates/base.html después de AdminLTE y define la paleta, la
+ * tipografía, el menú lateral, la barra superior, el pie y los puntos de corte
+ * responsive. Los estilos propios del dashboard viven en dashboard.css.
+ */
+
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
+
+/* ------------------------------------------------------------------ */
+/* Variables de tema                                                   */
+/* ------------------------------------------------------------------ */
+
+:root {
+  /* Superficies */
+  --gp-marino: #1e2433;
+  --gp-marino-hover: #2a3245;
+  --gp-activo: #34405a;
+  --gp-contenido: #f4f6fa;
+  --gp-blanco: #ffffff;
+  --gp-borde: #e6e9f0;
+
+  /* Texto */
+  --gp-texto: #1e293b;
+  --gp-texto-suave: #64748b;
+  --gp-menu-texto: #c7cedb;
+  --gp-menu-suave: #8892a6;
+  --gp-menu-texto-deshabilitado: #8b95a7;
+
+  /* Sacramento: color y fondo pastel */
+  --gp-bautismo: #4a78b5;
+  --gp-bautismo-fondo: #e4edf8;
+  --gp-comunion: #4e8a6e;
+  --gp-comunion-fondo: #e3f0ea;
+  --gp-confirmacion: #7650b0;
+  --gp-confirmacion-fondo: #ece6f6;
+  --gp-matrimonio: #d04a5c;
+  --gp-matrimonio-fondo: #f9e4e7;
+
+  /* Métricas */
+  --gp-radio: 10px;
+  --gp-radio-sm: 8px;
+  --gp-sombra: 0 1px 2px rgba(16, 24, 40, 0.05), 0 1px 3px rgba(16, 24, 40, 0.06);
+  --gp-ancho-max: 1600px;
+  --gp-alto-barra: 64px;
+  --gp-alto-pie: 3.4rem;
+
+  /* Escala de espacios (múltiplos de 8px) */
+  --esp-1: 8px;
+  --esp-2: 16px;
+  --esp-3: 24px;
+  --esp-4: 32px;
+}
+
+/* ------------------------------------------------------------------ */
+/* Tipografía                                                          */
+/* ------------------------------------------------------------------ */
+
+html {
+  font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+body,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+.nav,
+.btn,
+.form-control,
+.dropdown-menu,
+input,
+select,
+textarea {
+  font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+body {
+  background: var(--gp-contenido);
+  color: var(--gp-texto);
+}
+
+.text-muted,
+small.text-muted {
+  color: var(--gp-texto-suave) !important;
+}
+
+a {
+  color: var(--gp-bautismo);
+}
+
+/* ------------------------------------------------------------------ */
+/* Estructura y contenido                                              */
+/* ------------------------------------------------------------------ */
+
+.wrapper {
+  min-height: 100vh;
+}
+
+.content-wrapper {
+  background: var(--gp-contenido) !important;
+  min-height: calc(100vh - var(--gp-alto-barra) - var(--gp-alto-pie));
+}
+
+.content > .container-fluid {
+  max-width: var(--gp-ancho-max);
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: var(--esp-3);
+  padding-right: var(--esp-3);
+  padding-top: var(--esp-3);
+}
+
+@media (max-width: 767.98px) {
+  .content > .container-fluid {
+    padding-left: var(--esp-2);
+    padding-right: var(--esp-2);
+    padding-top: var(--esp-2);
+  }
+}
+
+.card {
+  border: 1px solid var(--gp-borde);
+  border-radius: var(--gp-radio);
+  box-shadow: var(--gp-sombra);
+}
+
+/* ------------------------------------------------------------------ */
+/* Menú lateral                                                        */
+/* ------------------------------------------------------------------ */
+
+.main-sidebar,
+.main-sidebar .sidebar {
+  background: var(--gp-marino);
+}
+
+.main-sidebar .brand-link {
+  display: flex;
+  align-items: center;
+  height: var(--gp-alto-barra);
+  padding: 0 var(--esp-2);
+  color: #fff;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.main-sidebar .brand-link:hover,
+.main-sidebar .brand-link:focus {
+  color: #fff;
+}
+
+.marca-icono {
+  flex: 0 0 auto;
+  width: 32px;
+  height: 32px;
+  color: #fff;
+}
+
+.marca-icono svg {
+  width: 32px;
+  height: 32px;
+}
+
+.marca-textos {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  margin-left: var(--esp-2);
+  line-height: 1.15;
+}
+
+.brand-text {
+  display: block;
+  min-width: 0;
+}
+
+.marca-titulo {
+  display: block;
+  color: #fff;
+  font-size: 16px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.marca-parroquia {
+  display: block;
+  color: var(--gp-menu-suave);
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.main-sidebar .nav-sidebar {
+  padding: var(--esp-1) var(--esp-2) 0;
+}
+
+.main-sidebar .nav-sidebar > .nav-item {
+  margin-bottom: var(--esp-1);
+}
+
+.main-sidebar .nav-sidebar .nav-link {
+  display: flex;
+  align-items: center;
+  height: 44px;
+  padding: 0 var(--esp-1);
+  color: var(--gp-menu-texto);
+  border-radius: var(--gp-radio-sm);
+  gap: var(--esp-2);
+}
+
+.main-sidebar .nav-sidebar .nav-link:hover,
+.main-sidebar .nav-sidebar .nav-link:focus {
+  background: var(--gp-marino-hover);
+  color: #fff;
+}
+
+.main-sidebar .nav-sidebar .nav-link.active {
+  background: #34405a !important;
+  color: #fff;
+  margin-left: var(--esp-1);
+  margin-right: var(--esp-1);
+  border-radius: var(--gp-radio-sm);
+}
+
+.main-sidebar .nav-sidebar .nav-link p {
+  margin: 0;
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 15px;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.main-sidebar .nav-sidebar .nav-link .nav-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  flex: 0 0 24px;
+  text-align: center;
+}
+
+.nav-sidebar .nav-icon.icono-menu {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  flex: 0 0 24px;
+}
+
+.nav-sidebar .nav-icon.icono-menu svg {
+  width: 20px;
+  height: 20px;
+}
+
+.nav-sidebar .nav-icon.fas,
+.nav-sidebar .nav-icon.far {
+  font-size: 18px;
+}
+
+.main-sidebar .nav-treeview {
+  margin: var(--esp-1) 0 var(--esp-1);
+}
+
+.main-sidebar .nav-treeview .nav-item {
+  margin-bottom: var(--esp-1);
+}
+
+.main-sidebar .nav-treeview .nav-link {
+  padding-left: 36px;
+  color: var(--gp-menu-suave);
+  height: 40px;
+  gap: var(--esp-2);
+}
+
+.main-sidebar .nav-treeview .nav-link.active {
+  background: #34405a !important;
+  color: #fff;
+  font-weight: 600;
+  margin-left: var(--esp-1);
+  margin-right: var(--esp-1);
+  padding-left: 28px;
+  border-radius: var(--gp-radio-sm);
+}
+
+.main-sidebar .nav-treeview .nav-icon {
+  font-size: 8px;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 24px;
+  margin-top: 0;
+}
+
+.etiqueta-pronto {
+  margin-left: auto;
+  padding: 2px 8px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #94a3b8;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+
+.nav-sidebar .nav-link.deshabilitado {
+  color: var(--gp-menu-texto-deshabilitado);
+  cursor: not-allowed;
+  opacity: 1;
+}
+
+.nav-sidebar .nav-link.deshabilitado:hover,
+.nav-sidebar .nav-link.deshabilitado:focus {
+  background: transparent;
+  color: var(--gp-menu-texto-deshabilitado);
+}
+
+/* Cita al fondo del menú */
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - var(--gp-alto-barra));
+}
+
+.sidebar nav {
+  flex: 1 1 auto;
+}
+
+.menu-cita {
+  margin-top: auto;
+  padding: var(--esp-3);
+  color: var(--gp-menu-suave);
+  text-align: center;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.menu-cita svg {
+  width: 20px;
+  height: 20px;
+  opacity: 0.75;
+  display: block;
+  margin: 0 auto;
+}
+
+.menu-cita p {
+  margin: var(--esp-1) 0 0;
+  font-size: 12.5px;
+  font-style: italic;
+  line-height: 1.4;
+  color: #94a3b8;
+}
+
+.menu-cita .linea {
+  display: block;
+  width: 40px;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.2);
+  margin: var(--esp-1) auto 0;
+}
+
+body.sidebar-collapse .menu-cita {
+  display: none;
+}
+
+@media (max-height: 699px) {
+  .menu-cita {
+    display: none;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Barra superior                                                      */
+/* ------------------------------------------------------------------ */
+
+.main-header.navbar {
+  min-height: var(--gp-alto-barra);
+  padding: 0 var(--esp-2);
+  background: var(--gp-blanco);
+  border-bottom: 1px solid var(--gp-borde);
+}
+
+.main-header .navbar-nav .nav-link {
+  color: var(--gp-texto);
+}
+
+.navbar-cabecera-izquierda {
+  display: flex;
+  align-items: center;
+}
+
+.divisor-barra {
+  display: inline-block;
+  width: 1px;
+  height: 28px;
+  margin: 0 var(--esp-2);
+  background: var(--gp-borde);
+}
+
+.titulo-pagina {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--gp-texto);
+  max-width: 50vw;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Campana */
+.navbar-nav .notificaciones .nav-link {
+  position: relative;
+}
+
+.navbar-nav .notificaciones .navbar-badge {
+  position: absolute;
+  top: 0.3rem;
+  right: 0.1rem;
+  padding: 0.15rem 0.35rem;
+  border-radius: 10px;
+  font-size: 0.66rem;
+  font-weight: 700;
+}
+
+.navbar-nav .notificaciones .dropdown-header {
+  color: var(--gp-texto);
+  font-weight: 700;
+}
+
+.navbar-nav .notificaciones .dropdown-item {
+  white-space: normal;
+}
+
+/* Menú de usuario */
+.usuario-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--gp-marino);
+  color: #fff;
+}
+
+.usuario-avatar i {
+  font-size: 0.9rem;
+}
+
+.usuario-datos {
+  display: flex;
+  flex-direction: column;
+  margin-left: 0.6rem;
+  line-height: 1.15;
+  text-align: left;
+}
+
+.usuario-nombre {
+  color: var(--gp-texto);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.usuario-rol {
+  color: var(--gp-texto-suave);
+  font-size: 12px;
+}
+
+.usuario-chevron {
+  margin-left: 0.5rem;
+  color: var(--gp-texto-suave);
+  font-size: 0.65rem;
+}
+
+.separador-usuario {
+  width: 1px;
+  height: 28px;
+  margin: 0 var(--esp-1);
+  background: var(--gp-borde);
+}
+
+.btn-logout {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--esp-1);
+  padding: 0;
+  background: none;
+  border: 0;
+  color: var(--gp-texto);
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.btn-logout:hover {
+  color: var(--gp-bautismo);
+}
+
+/* ------------------------------------------------------------------ */
+/* Pie de página                                                       */
+/* ------------------------------------------------------------------ */
+
+.main-footer {
+  padding: var(--esp-2) var(--esp-3);
+  background: var(--gp-blanco);
+  border-top: 1px solid var(--gp-borde) !important;
+  color: var(--gp-texto-suave);
+  font-size: 0.78rem;
+  max-width: var(--gp-ancho-max);
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* ------------------------------------------------------------------ */
+/* Fondo oscuro del menú en pantallas pequeñas                         */
+/* ------------------------------------------------------------------ */
+
+/* AdminLTE crea su propio #sidebar-overlay al abrir el menú; solo le damos
+   el tono oscuro del tema. */
+#sidebar-overlay {
+  background: rgba(15, 23, 42, 0.5);
+}
+
+/* ------------------------------------------------------------------ */
+/* Tablas, formularios y accesibilidad                                 */
+/* ------------------------------------------------------------------ */
+
+.table-responsive {
+  -webkit-overflow-scrolling: touch;
+}
+
+.dashboard a:focus-visible,
+.dashboard button:focus-visible,
+.main-sidebar .nav-link:focus-visible,
+.main-header .nav-link:focus-visible,
+.navbar .dropdown-item:focus-visible,
+.navbar button:focus-visible,
+.main-footer a:focus-visible {
+  outline: 3px solid #1d4ed8;
+  outline-offset: 2px;
+}
+
+/* ------------------------------------------------------------------ */
+/* Puntos de corte                                                     */
+/* ------------------------------------------------------------------ */
+
+/* Tablet vertical (768-991): el menú se abre sobre el contenido. */
+@media (max-width: 991.98px) {
+  body.sidebar-open .content-wrapper,
+  body.sidebar-open .main-footer {
+    margin-left: 0;
+  }
+}
+
+/* Móvil (menos de 768 px). */
+@media (max-width: 767.98px) {
+  body {
+    font-size: 0.875rem;
+  }
+
+  .main-header.navbar {
+    padding: 0.25rem 0.4rem;
+  }
+
+  .main-header .navbar-nav .nav-link {
+    padding-left: 0.45rem;
+    padding-right: 0.45rem;
+  }
+
+  .titulo-pagina {
+    max-width: 30vw;
+  }
+
+  .usuario-datos {
+    display: none;
+  }
+
+  .btn-logout .btn-logout-texto {
+    display: none;
+  }
+
+  .btn-logout i {
+    font-size: 1.05rem;
+  }
+
+  .divisor-barra {
+    margin: 0 0.5rem;
+  }
+}
+
+/* Sidebar collapsed (sidebar-mini / sidebar-collapse) */
+body.sidebar-mini.sidebar-collapse .main-sidebar,
+body.sidebar-collapse .main-sidebar {
+  width: 72px;
+}
+
+body.sidebar-mini.sidebar-collapse .content-wrapper,
+body.sidebar-mini.sidebar-collapse .main-footer,
+body.sidebar-collapse .content-wrapper,
+body.sidebar-collapse .main-footer {
+  margin-left: 72px;
+}
+
+body.sidebar-mini.sidebar-collapse .main-sidebar .brand-link {
+  padding: 0;
+  justify-content: center;
+}
+
+body.sidebar-mini.sidebar-collapse .main-sidebar .brand-text,
+body.sidebar-mini.sidebar-collapse .main-sidebar .marca-textos,
+body.sidebar-mini.sidebar-collapse .main-sidebar .marca-parroquia,
+body.sidebar-mini.sidebar-collapse .main-sidebar .marca-titulo {
+  display: none;
+}
+
+body.sidebar-mini.sidebar-collapse .main-sidebar .nav-sidebar {
+  padding: var(--esp-1) var(--esp-1) 0;
+}
+
+body.sidebar-mini.sidebar-collapse .main-sidebar .nav-sidebar .nav-item {
+  margin-bottom: var(--esp-1);
+}
+
+body.sidebar-mini.sidebar-collapse .main-sidebar .nav-sidebar .nav-link {
+  justify-content: center;
+  padding: 0;
+  height: 44px;
+  width: 48px;
+  margin: 0 auto;
+  border-radius: var(--gp-radio-sm);
+  gap: 0;
+}
+
+body.sidebar-mini.sidebar-collapse .main-sidebar .nav-sidebar .nav-link p,
+body.sidebar-mini.sidebar-collapse .main-sidebar .nav-sidebar .nav-link .etiqueta-pronto,
+body.sidebar-mini.sidebar-collapse .main-sidebar .nav-treeview,
+body.sidebar-mini.sidebar-collapse .main-sidebar .menu-cita,
+body.sidebar-mini.sidebar-collapse .main-sidebar .nav-link > .right,
+body.sidebar-mini.sidebar-collapse .main-sidebar .brand-link .brand-text {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+}
+
+body.sidebar-mini.sidebar-collapse .main-sidebar .nav-sidebar .nav-link .nav-icon {
+  margin-right: 0;
+}
+
+body.sidebar-mini.sidebar-collapse .main-sidebar .nav-sidebar .nav-link.active {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+body.sidebar-mini:not(.sidebar-open) .main-sidebar .nav-sidebar .nav-link {
+  position: relative;
+}
+
+/* Área táctil mínima en pantallas táctiles. */
+@media (pointer: coarse) {
+  .main-sidebar .nav-sidebar .nav-link,
+  .main-header .nav-link,
+  .btn {
+    min-height: 44px;
+  }
+
+  .main-sidebar .nav-sidebar .nav-link {
+    align-items: center;
+  }
+}
+
+.main-sidebar .nav-link .right {
+  transition: transform 0.2s ease-in-out;
+  margin-left: auto;
+}
+.nav-item.menu-open .nav-link .right {
+  transform: rotate(90deg);
+}

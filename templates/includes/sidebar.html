@@ -1,111 +1,116 @@
 <!-- Menú lateral -->
 <aside class="main-sidebar sidebar-dark-primary elevation-4">
   <a href="{% url 'dashboard' %}" class="brand-link">
-    <i class="fas fa-church nav-icon ml-2 mr-2"></i>
-    <span class="brand-text font-weight-light">Gestión Parroquial</span>
+    <span class="marca-icono">{% include "core/iconos/iglesia.svg" %}</span>
+    <span class="brand-text">
+      <span class="marca-textos">
+        <span class="marca-titulo">Gestión Parroquial</span>
+        {% if nombre_parroquia %}
+          <span class="marca-parroquia">{{ nombre_parroquia }}</span>
+        {% endif %}
+      </span>
+    </span>
   </a>
   <div class="sidebar">
     <nav>
       {% with actual=request.resolver_match.url_name ns=request.resolver_match.namespace %}
       <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
         <li class="nav-item">
-          <a href="{% url 'dashboard' %}" class="nav-link{% if actual == 'dashboard' %} active{% endif %}">
-            <i class="nav-icon fas fa-tachometer-alt"></i>
+          <a href="{% url 'dashboard' %}" class="nav-link{% if actual == 'dashboard' %} active{% endif %}" title="Inicio">
+            <i class="nav-icon fas fa-home"></i>
             <p>Inicio</p>
           </a>
         </li>
 
         <li class="nav-item">
           {# TODO: enlazar cuando exista la pantalla #}
-          <a class="nav-link deshabilitado" aria-disabled="true">
+          <a class="nav-link deshabilitado" aria-disabled="true" title="Bautismos">
             <span class="nav-icon icono-menu">{% include "core/iconos/gota.svg" %}</span>
             <p>Bautismos <span class="etiqueta-pronto">Pronto</span></p>
           </a>
         </li>
         <li class="nav-item">
           {# TODO: enlazar cuando exista la pantalla #}
-          <a class="nav-link deshabilitado" aria-disabled="true">
+          <a class="nav-link deshabilitado" aria-disabled="true" title="Primera Comunión">
             <span class="nav-icon icono-menu">{% include "core/iconos/caliz.svg" %}</span>
             <p>Primera Comunión <span class="etiqueta-pronto">Pronto</span></p>
           </a>
         </li>
         <li class="nav-item">
           {# TODO: enlazar cuando exista la pantalla #}
-          <a class="nav-link deshabilitado" aria-disabled="true">
+          <a class="nav-link deshabilitado" aria-disabled="true" title="Confirmaciones">
             <span class="nav-icon icono-menu">{% include "core/iconos/paloma.svg" %}</span>
             <p>Confirmaciones <span class="etiqueta-pronto">Pronto</span></p>
           </a>
         </li>
         <li class="nav-item">
           {# TODO: enlazar cuando exista la pantalla #}
-          <a class="nav-link deshabilitado" aria-disabled="true">
+          <a class="nav-link deshabilitado" aria-disabled="true" title="Matrimonios">
             <span class="nav-icon icono-menu">{% include "core/iconos/anillos.svg" %}</span>
             <p>Matrimonios <span class="etiqueta-pronto">Pronto</span></p>
           </a>
         </li>
 
-        <li class="nav-item{% if ns == 'parroquias' %} menu-open active{% endif %}">
-          <a href="#" class="nav-link{% if ns == 'parroquias' %} active{% endif %}">
-            <i class="nav-icon fas fa-church"></i>
-            <p>Parroquias<i class="right fas fa-angle-left"></i></p>
+        <li class="nav-item">
+          <a href="{% url 'parroquias:libro_lista' %}" class="nav-link{% if 'libro_' in actual or 'folio_' in actual %} active{% endif %}" title="Libros">
+            <i class="nav-icon fas fa-book"></i>
+            <p>Libros</p>
           </a>
-          <ul class="nav nav-treeview">
-            <li class="nav-item">
-              <a href="{% url 'parroquias:parroquia_lista' %}" class="nav-link{% if 'parroquia_' in actual %} active{% endif %}">
-                <i class="far fa-circle nav-icon"></i>
-                <p>Parroquias</p>
-              </a>
-            </li>
-            <li class="nav-item">
-              <a href="{% url 'parroquias:ministro_lista' %}" class="nav-link{% if 'ministro_' in actual %} active{% endif %}">
-                <i class="far fa-circle nav-icon"></i>
-                <p>Ministros</p>
-              </a>
-            </li>
-            <li class="nav-item">
-              <a href="{% url 'parroquias:libro_lista' %}" class="nav-link{% if 'libro_' in actual or 'folio_' in actual %} active{% endif %}">
-                <i class="far fa-circle nav-icon"></i>
-                <p>Libros</p>
-              </a>
-            </li>
-          </ul>
-        </li>
-
-        <li class="nav-item{% if ns == 'ubicacion' %} menu-open active{% endif %}">
-          <a href="#" class="nav-link{% if ns == 'ubicacion' %} active{% endif %}">
-            <i class="nav-icon fas fa-globe-americas"></i>
-            <p>Ubicación<i class="right fas fa-angle-left"></i></p>
-          </a>
-          <ul class="nav nav-treeview">
-            <li class="nav-item">
-              <a href="{% url 'ubicacion:pais_lista' %}" class="nav-link{% if 'pais_' in actual %} active{% endif %}">
-                <i class="far fa-circle nav-icon"></i>
-                <p>Países</p>
-              </a>
-            </li>
-            <li class="nav-item">
-              <a href="{% url 'ubicacion:departamento_lista' %}" class="nav-link{% if 'departamento_' in actual %} active{% endif %}">
-                <i class="far fa-circle nav-icon"></i>
-                <p>Departamentos</p>
-              </a>
-            </li>
-            <li class="nav-item">
-              <a href="{% url 'ubicacion:municipio_lista' %}" class="nav-link{% if 'municipio_' in actual %} active{% endif %}">
-                <i class="far fa-circle nav-icon"></i>
-                <p>Municipios</p>
-              </a>
-            </li>
-          </ul>
         </li>
 
         <li class="nav-item">
-          <a href="{% url 'personas:consultar' %}" class="nav-link{% if ns == 'personas' %} active{% endif %}">
+          <a href="{% url 'personas:consultar' %}" class="nav-link{% if ns == 'personas' %} active{% endif %}" title="Consultar personas">
             <i class="nav-icon fas fa-search"></i>
             <p>Consultar personas</p>
           </a>
         </li>
+
+        <li class="nav-item{% if 'parroquia_' in actual or 'ministro_' in actual or 'pais_' in actual or 'departamento_' in actual or 'municipio_' in actual %} menu-open active{% endif %}">
+          <a href="#" class="nav-link{% if 'parroquia_' in actual or 'ministro_' in actual or 'pais_' in actual or 'departamento_' in actual or 'municipio_' in actual %} active{% endif %}" title="Catálogos">
+            <i class="nav-icon fas fa-folder-open"></i>
+            <p>Catálogos<i class="right fas fa-angle-left"></i></p>
+          </a>
+          <ul class="nav nav-treeview">
+            <li class="nav-item">
+          <a href="{% url 'parroquias:parroquia_lista' %}" class="nav-link{% if 'parroquia_' in actual %} active{% endif %}" title="Parroquias">
+            <i class="far fa-circle nav-icon"></i>
+            <p>Parroquias</p>
+          </a>
+            </li>
+            <li class="nav-item">
+          <a href="{% url 'parroquias:ministro_lista' %}" class="nav-link{% if 'ministro_' in actual %} active{% endif %}" title="Ministros">
+            <i class="far fa-circle nav-icon"></i>
+            <p>Ministros</p>
+          </a>
+            </li>
+            <li class="nav-item">
+          <a href="{% url 'ubicacion:pais_lista' %}" class="nav-link{% if 'pais_' in actual %} active{% endif %}" title="Países">
+            <i class="far fa-circle nav-icon"></i>
+            <p>Países</p>
+          </a>
+            </li>
+            <li class="nav-item">
+          <a href="{% url 'ubicacion:departamento_lista' %}" class="nav-link{% if 'departamento_' in actual %} active{% endif %}" title="Departamentos">
+            <i class="far fa-circle nav-icon"></i>
+            <p>Departamentos</p>
+          </a>
+            </li>
+            <li class="nav-item">
+          <a href="{% url 'ubicacion:municipio_lista' %}" class="nav-link{% if 'municipio_' in actual %} active{% endif %}" title="Municipios">
+            <i class="far fa-circle nav-icon"></i>
+            <p>Municipios</p>
+          </a>
+            </li>
+          </ul>
+        </li>
       </ul>
       {% endwith %}
     </nav>
+
+    <div class="menu-cita" aria-hidden="true">
+      {% include "core/iconos/cruz.svg" %}
+      <p>La Iglesia es familia, y todos somos parte de ella</p>
+      <span class="linea"></span>
+    </div>
   </div>
 </aside>

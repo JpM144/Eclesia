@@ -74,6 +74,7 @@ TEMPLATES = [
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
                 "core.context_processors.anotaciones_pendientes",
+                "core.context_processors.nombre_parroquia",
             ],
         },
     },
@@ -148,6 +149,10 @@ LOGOUT_REDIRECT_URL = "/login/"
 # Código que se pide en el registro público de cuentas. Si queda vacío, el
 # registro queda deshabilitado y solo el administrador puede crear usuarios.
 CODIGO_REGISTRO = config("CODIGO_REGISTRO", default="")
+
+# Nombre de la parroquia que aparece bajo "Gestión Parroquial" en el menú
+# lateral. Si queda vacío, la línea no se muestra.
+NOMBRE_PARROQUIA = config("NOMBRE_PARROQUIA", default="")
 
 # Map the message levels to Bootstrap alert classes
 MESSAGE_TAGS = {

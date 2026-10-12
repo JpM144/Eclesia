@@ -1,10 +1,11 @@
 import json
+import os
 import re
 from datetime import date, datetime, timedelta
 
-from django.contrib.auth.models import AnonymousUser, User
+from django.contrib.auth.models import User
 from django.db import connection
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 from django.utils import timezone
@@ -22,7 +23,6 @@ from core.choices import (
 )
 from core.services import resumen_dashboard
 from core.templatetags.dashboard_extras import fecha_relativa
-from core.templatetags.interfaz_extras import iniciales
 from cuentas.models import PerfilUsuario
 from parroquias.models import Folio, Libro, Ministro, Parroquia
 from personas.models import Documento, Fiel, Madre, Padre, Padrino
@@ -366,10 +366,9 @@ class LoginTests(EscenarioBase):
 
 
 class SidebarTreeviewTests(EscenarioBase):
-    """El desplegable "Parroquias" reúne los catálogos del sistema."""
+    """El desplegable "Catálogos" reúne los catálogos del sistema."""
 
-    ETIQUETAS = ["Parroquias", "Ministros", "Libros"]
-    AJENAS = ["Países", "Departamentos", "Municipios"]
+    CATALOGOS = ["Parroquias", "Ministros", "Países", "Departamentos", "Municipios"]
 
     def _contenido(self, url):
         respuesta = self.client.get(url)
@@ -408,9 +407,11 @@ class SidebarTreeviewTests(EscenarioBase):
         self.client.force_login(self.usuario)
         self.assertNotIn("menu-open", self._contenido(reverse("dashboard")))
 
-    def test_ubicacion_abre_y_marca_sus_enlaces(self):
+    def test_catalogos_abre_y_marca_sus_enlaces(self):
         self.client.force_login(self.usuario)
         casos = [
+            (reverse("parroquias:parroquia_lista"), "Parroquias"),
+            (reverse("parroquias:ministro_lista"), "Ministros"),
             (reverse("ubicacion:pais_lista"), "Países"),
             (reverse("ubicacion:departamento_lista"), "Departamentos"),
             (reverse("ubicacion:municipio_lista"), "Municipios"),
@@ -420,31 +421,27 @@ class SidebarTreeviewTests(EscenarioBase):
                 contenido = self._contenido(url)
                 self.assertIn("menu-open", contenido)
                 self.assertIn('class="nav-item menu-open active"', contenido)
-                self.assertIn('<a href="#" class="nav-link active">', contenido)
+                self.assertIn('<a href="#" class="nav-link active"', contenido)
                 bloques = self._bloques_treeview(contenido)
                 activos = [
                     etiqueta for bloque in bloques for etiqueta in self._subenlaces_activos(bloque)
                 ]
                 self.assertEqual(activos, [esperado])
-                self.assertNotIn("Catálogos", contenido)
 
-    def test_paginas_propias_abren_y_marcan_el_subenlace(self):
+    def test_libros_activo_en_lista_folios_cierre_e_indice(self):
         self.client.force_login(self.usuario)
+        enlace_libros = reverse("parroquias:libro_lista")
         casos = [
-            (reverse("parroquias:parroquia_lista"), "Parroquias"),
-            (reverse("parroquias:ministro_lista"), "Ministros"),
-            (reverse("parroquias:libro_lista"), "Libros"),
-            (reverse("parroquias:folio_lista", args=[self.folio.libro_id]), "Libros"),
+            reverse("parroquias:libro_lista"),
+            reverse("parroquias:libro_indice", args=[self.libro.pk]),
+            reverse("parroquias:libro_cerrar", args=[self.libro.pk]),
+            reverse("parroquias:folio_lista", args=[self.libro.pk]),
         ]
-        for url, esperado in casos:
+        for url in casos:
             with self.subTest(url=url):
                 contenido = self._contenido(url)
-                self.assertIn("menu-open", contenido)
-                self.assertIn('class="nav-item menu-open active"', contenido)
-                self.assertIn('<a href="#" class="nav-link active">', contenido)
-                self.assertEqual(
-                    self._subenlaces_activos(self._bloque_treeview(contenido)), [esperado]
-                )
+                self.assertNotIn("menu-open", contenido)
+                self.assertIn("active", self._clases_del_enlace(contenido, enlace_libros))
 
     @staticmethod
     def _clases_del_enlace(contenido, url):
@@ -464,16 +461,16 @@ class SidebarTreeviewTests(EscenarioBase):
                 self.assertNotIn("menu-open", contenido)
                 self.assertIn("active", self._clases_del_enlace(contenido, consultar))
 
-    def test_subenlaces_dentro_del_treeview_y_ubicacion_fuera(self):
+    def test_subenlaces_del_treeview(self):
         self.client.force_login(self.usuario)
         bloque = self._bloque_treeview(self._contenido(reverse("dashboard")))
         self.assertTrue(bloque, "No se encontró el <ul class='nav nav-treeview'>")
-        for etiqueta in self.ETIQUETAS:
+        for etiqueta in self.CATALOGOS:
             with self.subTest(etiqueta=etiqueta):
                 self.assertIn(f"<p>{etiqueta}</p>", bloque)
-        for etiqueta in self.AJENAS:
+        for etiqueta in ("Inicio", "Libros", "Consultar personas"):
             with self.subTest(etiqueta=etiqueta):
-                self.assertNotIn(etiqueta, bloque)
+                self.assertNotIn(f"<p>{etiqueta}</p>", bloque)
 
 
 class BarraSuperiorTests(EscenarioBase):
@@ -516,36 +513,27 @@ class MenuUsuarioTests(EscenarioBase):
         self.assertEqual(respuesta.status_code, 200)
         return respuesta.content.decode()
 
-    def test_avatar_con_iniciales_nombre_y_rol(self):
+    def test_avatar_con_icono_nombre_y_rol(self):
         contenido = self._contenido()
-        self.assertIn('<span class="usuario-avatar" aria-hidden="true">AP</span>', contenido)
-        self.assertIn("Hola, Ana", contenido)
+        self.assertIn(
+            '<span class="usuario-avatar" aria-hidden="true"><i class="fas fa-user"></i></span>',
+            contenido,
+        )
+        self.assertIn('<span class="usuario-nombre">Ana</span>', contenido)
         self.assertIn("Ana Pérez", contenido)
         self.assertIn("Administrador", contenido)
 
-    def test_formulario_post_de_cierre_de_sesion(self):
+    def test_dos_formularios_post_de_cierre_de_sesion(self):
         contenido = self._contenido()
-        self.assertIn(f'action="{reverse("logout")}"', contenido)
-        self.assertIn('method="post"', contenido)
-        self.assertIn("Cerrar sesión", contenido)
-        self.assertIn("csrfmiddlewaretoken", contenido)
-
-    def test_en_movil_el_nombre_se_oculta(self):
-        contenido = self._contenido()
-        self.assertIn('<span class="d-none d-md-inline ml-2">', contenido)
+        self.assertEqual(contenido.count(f'action="{reverse("logout")}"'), 2)
+        self.assertEqual(contenido.count('method="post"'), 2)
+        self.assertGreaterEqual(contenido.count("Cerrar sesión"), 2)
+        self.assertGreaterEqual(contenido.count("csrfmiddlewaretoken"), 2)
 
     def test_muestra_el_rol_del_perfil(self):
         PerfilUsuario.objects.create(usuario=self.usuario, rol=RolUsuario.SACERDOTE)
         contenido = self._contenido()
         self.assertIn("Sacerdote", contenido)
-
-    def test_iniciales_del_filtro(self):
-        self.assertEqual(iniciales(self.usuario), "AP")
-        self.usuario.last_name = ""
-        self.usuario.save()
-        self.assertEqual(iniciales(self.usuario), "AN")
-        self.assertEqual(iniciales(AnonymousUser()), "")
-        self.assertEqual(iniciales(None), "")
 
 
 class MenuLateralSacramentosTests(EscenarioBase):
@@ -566,7 +554,7 @@ class MenuLateralSacramentosTests(EscenarioBase):
 
     def test_items_de_sacramentos_atenuados_sin_href_con_pronto(self):
         self.assertEqual(
-            self.contenido.count('<a class="nav-link deshabilitado" aria-disabled="true">'),
+            self.contenido.count('<a class="nav-link deshabilitado" aria-disabled="true"'),
             4,
         )
         self.assertEqual(self.contenido.count('class="etiqueta-pronto"'), 4)
@@ -577,4 +565,118 @@ class MenuLateralSacramentosTests(EscenarioBase):
         self.assertNotIn("fas fa-water", self.contenido)
         self.assertNotIn("fas fa-dove", self.contenido)
         self.assertNotIn("fas fa-ring", self.contenido)
-        self.assertNotIn("Catálogos", self.contenido)
+
+    def test_menu_items_tienen_texto_en_p_y_title_con_nombre(self):
+        self.client.force_login(self.usuario)
+        contenido = self._contenido(reverse("dashboard"))
+        for etiqueta in ("Inicio", "Libros", "Consultar personas"):
+            with self.subTest(etiqueta=etiqueta):
+                self.assertRegex(contenido, rf"<p>\s*{re.escape(etiqueta)}\s*</p>")
+                self.assertRegex(contenido, rf'title="{re.escape(etiqueta)}"')
+        for etiqueta in ("Bautismos", "Primera Comunión", "Confirmaciones", "Matrimonios"):
+            with self.subTest(etiqueta=etiqueta):
+                self.assertRegex(
+                    contenido, rf'<p>\s*{re.escape(etiqueta)}\s*<span class="etiqueta-pronto"'
+                )
+                self.assertRegex(contenido, rf'title="{re.escape(etiqueta)}"')
+
+    def test_marca_usa_brand_text(self):
+        self.client.force_login(self.usuario)
+        contenido = self._contenido(reverse("dashboard"))
+        self.assertIn('class="brand-text"', contenido)
+
+    def test_etiquetas_pronto_sin_href(self):
+        self.client.force_login(self.usuario)
+        contenido = self._contenido(reverse("dashboard"))
+        inicio = r'<a[^>]+class="[^"]*deshabilitado[^"]*"'
+        pat = re.compile(inicio + r"[^>]*>.*?etiqueta-pronto", re.S)
+        self.assertTrue(pat.search(contenido))
+        self.assertEqual(contenido.count('class="etiqueta-pronto"'), 4)
+        self.assertNotIn('<a href="#" class="nav-link deshabilitado"', contenido)
+
+    def test_tema_css_define_variables_espaciado(self):
+        base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        ruta = os.path.join(base, "static", "css", "tema.css")
+        with open(ruta, encoding="utf-8") as f:
+            css = f.read()
+        self.assertIn("--esp-1: 8px", css)
+        self.assertIn("--esp-2: 16px", css)
+        self.assertIn("--esp-3: 24px", css)
+        self.assertIn("--esp-4: 32px", css)
+
+    def test_orden_de_los_items_del_menu(self):
+        etiquetas = [
+            "<p>Inicio</p>",
+            "<p>Bautismos",
+            "<p>Primera Comunión",
+            "<p>Confirmaciones",
+            "<p>Matrimonios",
+            "<p>Libros</p>",
+            "<p>Consultar personas</p>",
+        ]
+        posiciones = [self.contenido.index(etiqueta) for etiqueta in etiquetas]
+        self.assertEqual(posiciones, sorted(posiciones))
+
+
+class NombreParroquiaMenuTests(EscenarioBase):
+    def setUp(self):
+        super().setUp()
+        self.client.force_login(self.usuario)
+
+    @override_settings(NOMBRE_PARROQUIA="San José Obrero")
+    def test_muestra_el_nombre_configurado(self):
+        respuesta = self.client.get(reverse("dashboard"))
+        self.assertContains(respuesta, '<span class="marca-parroquia">San José Obrero</span>')
+
+    @override_settings(NOMBRE_PARROQUIA="")
+    def test_oculta_el_nombre_si_esta_vacio(self):
+        respuesta = self.client.get(reverse("dashboard"))
+        self.assertNotContains(respuesta, "marca-parroquia")
+
+
+class DashboardPeriodoTests(EscenarioBase):
+    def setUp(self):
+        super().setUp()
+        self.client.force_login(self.usuario)
+
+    def test_select_de_periodo_con_tres_opciones(self):
+        respuesta = self.client.get(reverse("dashboard"))
+        self.assertContains(respuesta, 'id="periodo-grafico"')
+        contenido = respuesta.content.decode()
+        for etiqueta in ("Último año", "Últimos 6 meses", "Este año"):
+            with self.subTest(etiqueta=etiqueta):
+                self.assertIn(f">{etiqueta}</option>", contenido)
+
+    def test_estado_vacio_de_actividades(self):
+        respuesta = self.client.get(reverse("dashboard"))
+        self.assertContains(respuesta, "Aún no hay actividad registrada")
+        self.assertContains(respuesta, "Las últimas acciones aparecerán aquí.")
+
+
+class TablaResponsiveTests(EscenarioBase):
+    def setUp(self):
+        super().setUp()
+        self.client.force_login(self.usuario)
+
+    def test_las_listas_usan_table_responsive(self):
+        urls = [
+            reverse("parroquias:parroquia_lista"),
+            reverse("parroquias:ministro_lista"),
+            reverse("parroquias:libro_lista"),
+            reverse("parroquias:folio_lista", args=[self.libro.pk]),
+            reverse("parroquias:libro_indice", args=[self.libro.pk]),
+            reverse("ubicacion:pais_lista"),
+            reverse("ubicacion:departamento_lista"),
+            reverse("ubicacion:municipio_lista"),
+        ]
+        for url in urls:
+            with self.subTest(url=url):
+                respuesta = self.client.get(url)
+                self.assertEqual(respuesta.status_code, 200)
+                self.assertContains(respuesta, 'class="table-responsive"')
+
+    def test_consultar_personas_usa_table_responsive(self):
+        self._crear_sacramento(TipoSacramento.BAUTISMO, 1, self._fiel())
+        respuesta = self.client.get(reverse("personas:consultar"), {"q": "Ana"})
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertContains(respuesta, 'class="table-responsive"')

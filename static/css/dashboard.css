@@ -1,98 +1,95 @@
 /*
- * Estilos del dashboard (AdminLTE 3). Se carga solo en la pantalla de inicio
- * mediante {% block extra_css %}.
+ * Estilos del dashboard. Se cargan solo en la pantalla de inicio mediante
+ * {% block extra_css %}. La paleta y los estilos globales viven en tema.css.
  *
  * Colores por sacramento:
- *   - Bautismo:          azul   #2563EB / suave #E3EEFF
- *   - Primera Comunión:  verde  #16A34A / suave #DCFCE7
- *   - Confirmación:      morado #7C3AED / suave #EDE9FE
- *   - Matrimonio:        rosa   #E11D48 / suave #FFE4E6
+ *   - Bautismo:          azul   #4A78B5 / pastel #E4EDF8
+ *   - Primera Comunión:  verde  #4E8A6E / pastel #E3F0EA
+ *   - Confirmación:      morado #7650B0 / pastel #ECE6F6
+ *   - Matrimonio:        rojo   #D04A5C / pastel #F9E4E7
  */
-
-body {
-  background: #f5f7fb;
-}
-
-.content-wrapper {
-  background: #f5f7fb !important;
-}
 
 /* ------------------------------------------------------------------ */
 /* Encabezado                                                          */
 /* ------------------------------------------------------------------ */
 
-.dashboard-encabezado {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 2rem;
-  margin-bottom: 1.5rem;
-}
-
 .encabezado-pequeno {
   margin: 0;
-  font-size: 0.9rem;
-  color: #6b7280;
+  color: var(--gp-texto-suave);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
 }
 
 .encabezado-titulo {
-  margin: 0.15rem 0 0;
-  font-size: 2rem;
-  font-weight: 800;
-  color: #111827;
+  margin: 0.25rem 0 0;
+  color: var(--gp-texto);
+  font-size: 1.75rem;
+  font-weight: 700;
 }
 
 .encabezado-descripcion {
-  margin: 0.5rem 0 0;
-  color: #4b5563;
   max-width: 34rem;
+  margin: 0.5rem 0 0;
+  color: var(--gp-texto-suave);
+}
+
+.dashboard-encabezado {
+  align-items: center;
+  margin-bottom: var(--esp-4);
 }
 
 .encabezado-cita {
+  height: 100%;
   margin: 0;
-  border-right: 3px solid #d4af37;
-  padding-right: 1rem;
-  font-style: italic;
-  color: #4b5563;
-  max-width: 22rem;
-  text-align: right;
+  padding: 1rem 1.15rem;
+  background: var(--gp-blanco);
+  border: 1px solid var(--gp-borde);
+  border-left: 3px solid var(--gp-bautismo);
+  border-radius: var(--gp-radio);
+  box-shadow: var(--gp-sombra);
+}
+
+.encabezado-descripcion {
+  max-width: 640px;
+}
+
+@media (max-width: 991.98px) {
+  .dashboard-encabezado .col-lg-4 {
+    margin-top: var(--esp-2);
+  }
 }
 
 .encabezado-cita p {
   margin: 0;
+  color: var(--gp-texto);
+  font-style: italic;
 }
 
 .encabezado-cita cite {
   display: block;
-  margin-top: 0.35rem;
+  margin-top: 0.5rem;
+  color: var(--gp-texto-suave);
+  font-size: 0.85rem;
   font-style: normal;
   font-weight: 600;
-  color: #4b5563;
-}
-
-@media (max-width: 767.98px) {
-  .dashboard-encabezado {
-    flex-direction: column;
-    gap: 1rem;
-  }
-
-  .encabezado-cita {
-    max-width: none;
-  }
 }
 
 /* ------------------------------------------------------------------ */
 /* Tarjetas de sacramentos                                             */
 /* ------------------------------------------------------------------ */
 
-.tarjeta-sacramento {
-  border: none;
-  border-radius: 12px;
-  box-shadow: 0 1px 3px rgba(16, 24, 40, 0.08), 0 1px 2px rgba(16, 24, 40, 0.04);
+.tarjeta-sacramento .card-body {
+  display: flex;
+  flex-direction: column;
+  padding: var(--esp-3);
 }
 
-.tarjeta-sacramento .card-body {
-  position: relative;
+@media (max-width: 767.98px) {
+  .tarjeta-sacramento .card-body {
+    padding: var(--esp-2);
+  }
 }
 
 .tarjeta-cabecera {
@@ -102,80 +99,55 @@ body {
 }
 
 .icono-circulo {
-  width: 84px;
-  height: 84px;
-  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   flex: 0 0 auto;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
 }
 
 .icono-circulo svg {
-  width: 44px;
-  height: 44px;
+  width: 40px;
+  height: 40px;
 }
 
 .tarjeta-titulo {
-  margin: 0 0 0.15rem;
-  text-transform: uppercase;
+  margin: 0 0 0.2rem;
+  color: var(--gp-texto-suave);
   font-size: 0.72rem;
-  letter-spacing: 0.06em;
   font-weight: 700;
-  color: #6b7280;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 
 .tarjeta-total {
   margin: 0;
-  font-size: 2.3rem;
-  font-weight: 800;
+  color: var(--gp-texto);
+  font-size: 2rem;
+  font-weight: 700;
   line-height: 1;
-  color: #111827;
-}
-
-.tarjeta-flecha {
-  position: absolute;
-  top: 1rem;
-  right: 1rem;
-  color: #c7cdd8;
-}
-
-.tarjeta-bautismo .icono-circulo {
-  background: #e3eeff;
-  color: #2563eb;
-}
-
-.tarjeta-primera-comunion .icono-circulo {
-  background: #dcfce7;
-  color: #16a34a;
-}
-
-.tarjeta-confirmacion .icono-circulo {
-  background: #ede9fe;
-  color: #7c3aed;
-}
-
-.tarjeta-matrimonio .icono-circulo {
-  background: #ffe4e6;
-  color: #e11d48;
 }
 
 .tarjeta-variacion {
-  display: flex;
-  flex-direction: column;
   margin-top: 1rem;
-  font-size: 0.8rem;
+  text-align: center;
 }
 
 .variacion-valor {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 0.35rem;
+  font-size: 0.82rem;
   font-weight: 700;
 }
 
 .variacion-etiqueta {
-  color: #6b7280;
+  display: block;
+  margin-top: 0.15rem;
+  color: var(--gp-texto-suave);
+  font-size: 0.75rem;
 }
 
 .tarjeta-variacion--sube .variacion-valor {
@@ -187,35 +159,67 @@ body {
 }
 
 .tarjeta-variacion--igual .variacion-valor {
-  color: #6b7280;
+  color: var(--gp-texto-suave);
+}
+
+.tarjeta-bautismo .icono-circulo {
+  color: var(--gp-bautismo);
+  background: var(--gp-bautismo-fondo);
+}
+
+.tarjeta-primera-comunion .icono-circulo {
+  color: var(--gp-comunion);
+  background: var(--gp-comunion-fondo);
+}
+
+.tarjeta-confirmacion .icono-circulo {
+  color: var(--gp-confirmacion);
+  background: var(--gp-confirmacion-fondo);
+}
+
+.tarjeta-matrimonio .icono-circulo {
+  color: var(--gp-matrimonio);
+  background: var(--gp-matrimonio-fondo);
 }
 
 /* ------------------------------------------------------------------ */
 /* Gráfico                                                             */
 /* ------------------------------------------------------------------ */
 
-.contenedor-grafico {
-  position: relative;
-  height: 320px;
+.cabecera-grafico {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--esp-2);
+  padding: var(--esp-2) var(--esp-3);
 }
 
-.filtro-series {
+.cabecera-grafico .card-title {
+  margin-bottom: 0;
+  color: var(--gp-texto);
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.filtro-periodo {
+  width: auto;
+  min-width: 160px;
+}
+
+.cabecera-grafico .card-title {
+  margin-bottom: 0;
+  color: var(--gp-texto);
+  font-weight: 700;
+}
+
+.filtro-periodo {
   width: auto;
 }
 
-@media (max-width: 575.98px) {
-  .cabecera-grafico {
-    flex-direction: column;
-    align-items: stretch !important;
-  }
-
-  .cabecera-grafico .card-title {
-    margin-bottom: 0.6rem;
-  }
-
-  .cabecera-grafico .filtro-series {
-    width: 100% !important;
-  }
+.contenedor-grafico {
+  position: relative;
+  height: 300px;
 }
 
 /* ------------------------------------------------------------------ */
@@ -230,7 +234,7 @@ body {
   margin-bottom: 0.85rem;
   padding: 1rem 1.15rem;
   border: none;
-  border-radius: 12px;
+  border-radius: var(--gp-radio);
   color: #fff;
   font-weight: 600;
   text-align: left;
@@ -266,21 +270,21 @@ body {
 }
 
 .boton-acceso small {
-  font-weight: 400;
   font-size: 0.72rem;
+  font-weight: 400;
   opacity: 0.9;
 }
 
 .boton-acceso--azul {
-  background: #1d4ed8;
+  background: var(--gp-bautismo);
 }
 
 .boton-acceso--verde {
-  background: #15803d;
+  background: var(--gp-comunion);
 }
 
 .boton-acceso--morado {
-  background: #6d28d9;
+  background: var(--gp-confirmacion);
 }
 
 .boton-acceso:disabled {
@@ -293,16 +297,18 @@ body {
 /* ------------------------------------------------------------------ */
 
 .lista-actividades {
-  list-style: none;
   margin: 0;
   padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
 }
 
 .lista-actividades li {
   display: flex;
   gap: 0.75rem;
   padding: 0.85rem 1rem;
-  border-bottom: 1px solid #f1f3f7;
+  border-bottom: 1px solid var(--gp-borde);
 }
 
 .lista-actividades li:last-child {
@@ -310,55 +316,130 @@ body {
 }
 
 .punto {
+  flex: 0 0 auto;
   width: 10px;
   height: 10px;
   margin-top: 0.35rem;
   border-radius: 50%;
-  flex: 0 0 auto;
 }
 
 .punto--bautismo {
-  background: #2563eb;
+  background: var(--gp-bautismo);
 }
 
 .punto--primera-comunion {
-  background: #16a34a;
+  background: var(--gp-comunion);
 }
 
 .punto--confirmacion {
-  background: #7c3aed;
+  background: var(--gp-confirmacion);
 }
 
 .punto--matrimonio {
-  background: #e11d48;
+  background: var(--gp-matrimonio);
 }
 
 .punto--otro {
-  background: #6b7280;
+  background: var(--gp-texto-suave);
 }
 
 .actividad-texto {
   margin: 0;
+  color: var(--gp-texto);
   font-size: 0.9rem;
-  color: #1f2937;
 }
 
 .actividad-fecha {
+  color: var(--gp-texto-suave);
   font-size: 0.78rem;
-  color: #6b7280;
 }
 
 .actividad-vacia {
+  flex-direction: column;
+  align-items: center;
   justify-content: center;
-  color: #6b7280;
+  padding: 2rem 1rem;
+  text-align: center;
+}
+
+.vacio-circulo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  margin-bottom: 0.75rem;
+  border-radius: 50%;
+  color: var(--gp-texto-suave);
+  background: var(--gp-contenido);
+}
+
+.vacio-circulo svg {
+  width: 28px;
+  height: 28px;
+}
+
+.vacio-titulo {
+  margin: 0;
+  color: var(--gp-texto);
+  font-weight: 700;
+}
+
+.vacio-texto {
+  margin: 0.15rem 0 0;
+  color: var(--gp-texto-suave);
+  font-size: 0.85rem;
 }
 
 /* ------------------------------------------------------------------ */
-/* Accesibilidad                                                       */
+/* Puntos de corte                                                     */
 /* ------------------------------------------------------------------ */
 
-.dashboard a:focus-visible,
-.dashboard button:focus-visible {
-  outline: 3px solid #1d4ed8;
-  outline-offset: 2px;
+.dashboard .row {
+  margin-left: -12px;
+  margin-right: -12px;
+}
+
+.dashboard .row > [class*="col-"] {
+  padding-left: 12px;
+  padding-right: 12px;
+}
+
+.card-body {
+  padding: var(--esp-3);
+}
+
+@media (max-width: 767.98px) {
+  .card-body {
+    padding: var(--esp-2);
+  }
+
+  .contenedor-grafico {
+    height: 260px;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .encabezado-titulo {
+    font-size: 1.5rem;
+  }
+}
+
+@media (max-width: 767.98px) {
+  .cabecera-grafico {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .cabecera-grafico .card-title {
+    margin-bottom: 0.6rem;
+  }
+
+  .cabecera-grafico .filtro-periodo {
+    width: 100%;
+  }
+
+  .contenedor-grafico {
+    height: 260px;
+  }
 }

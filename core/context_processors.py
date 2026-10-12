@@ -1,5 +1,7 @@
 """Procesadores de contexto globales."""
 
+from django.conf import settings
+
 from core.choices import EstadoAnotacion
 from sacramentos.models import AnotacionMarginal
 
@@ -20,3 +22,12 @@ def anotaciones_pendientes(request):
         "anotaciones_pendientes_total": pendientes.count(),
         "anotaciones_pendientes_recientes": list(recientes),
     }
+
+
+def nombre_parroquia(request):
+    """Nombre de la parroquia para las plantillas, sin consultar la base.
+
+    Se lee de la configuración en cada petición para que ``override_settings``
+    funcione en los tests.
+    """
+    return {"nombre_parroquia": settings.NOMBRE_PARROQUIA}
