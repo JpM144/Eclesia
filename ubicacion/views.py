@@ -20,6 +20,9 @@ class PaisListView(CrudListView):
     url_crear = "ubicacion:pais_crear"
     url_editar = "ubicacion:pais_editar"
     url_eliminar = "ubicacion:pais_eliminar"
+    titulo_vacio = "Aún no hay países registrados"
+    texto_vacio = "Registra un país para poder ubicar sus departamentos y municipios."
+    texto_boton_vacio = "Crear país"
 
 
 class PaisCreateView(CrudCreateView):
@@ -64,6 +67,9 @@ class DepartamentoListView(CrudListView):
     url_crear = "ubicacion:departamento_crear"
     url_editar = "ubicacion:departamento_editar"
     url_eliminar = "ubicacion:departamento_eliminar"
+    titulo_vacio = "Aún no hay departamentos registrados"
+    texto_vacio = "Registra un departamento dentro de un país."
+    texto_boton_vacio = "Crear departamento"
 
 
 class DepartamentoCreateView(CrudCreateView):
@@ -109,6 +115,9 @@ class MunicipioListView(CrudListView):
     url_crear = "ubicacion:municipio_crear"
     url_editar = "ubicacion:municipio_editar"
     url_eliminar = "ubicacion:municipio_eliminar"
+    titulo_vacio = "Aún no hay municipios registrados"
+    texto_vacio = "Registra un municipio dentro de un departamento."
+    texto_boton_vacio = "Crear municipio"
 
 
 class MunicipioCreateView(CrudCreateView):

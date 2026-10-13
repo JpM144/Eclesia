@@ -33,6 +33,9 @@ class ParroquiaListView(CrudListView):
     url_crear = "parroquias:parroquia_crear"
     url_editar = "parroquias:parroquia_editar"
     url_eliminar = "parroquias:parroquia_eliminar"
+    titulo_vacio = "Aún no hay parroquias registradas"
+    texto_vacio = "Crea la primera parroquia para organizar sus libros y ministros."
+    texto_boton_vacio = "Crear parroquia"
 
 
 class ParroquiaCreateView(CrudCreateView):
@@ -82,6 +85,9 @@ class MinistroListView(CrudListView):
     url_crear = "parroquias:ministro_crear"
     url_editar = "parroquias:ministro_editar"
     url_eliminar = "parroquias:ministro_eliminar"
+    titulo_vacio = "Aún no hay ministros registrados"
+    texto_vacio = "Registra a los ministros que firman las partidas para poder asignarlos."
+    texto_boton_vacio = "Crear ministro"
 
 
 class MinistroCreateView(CrudCreateView):
@@ -132,6 +138,17 @@ class LibroListView(CrudListView):
     url_crear = "parroquias:libro_crear"
     url_editar = "parroquias:libro_editar"
     url_eliminar = "parroquias:libro_eliminar"
+    titulo_vacio = "Aún no hay libros registrados"
+    texto_vacio = "Abre el primer libro de la parroquia para empezar a inscribir partidas."
+    texto_boton_vacio = "Crear libro"
+
+    def hay_filtros_activos(self):
+        return bool(
+            self.request.GET.get("q", "").strip()
+            or self.request.GET.get("parroquia", "")
+            or self.request.GET.get("tipo", "")
+            or self.request.GET.get("estado", "")
+        )
 
     def get_queryset(self):
         queryset = (
@@ -309,9 +326,15 @@ class FolioListView(FolioBaseMixin, CrudListView):
     url_crear = "parroquias:folio_crear"
     url_editar = "parroquias:folio_editar"
     url_eliminar = "parroquias:folio_eliminar"
+    titulo_vacio = "Este libro todavía no tiene folios"
+    texto_vacio = "Crea el primer folio para repartir las partidas del libro."
+    texto_boton_vacio = "Crear folio"
 
     def get_queryset(self):
         return super().get_queryset().filter(libro=self.libro)
+
+    def get_url_crear_vacio(self):
+        return reverse(self.url_crear, kwargs={"libro_id": self.libro.pk})
 
 
 class FolioCreateView(FolioBaseMixin, CrudCreateView):

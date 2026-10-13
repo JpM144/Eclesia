@@ -222,6 +222,37 @@
   height: 300px;
 }
 
+/* Esqueleto gris que ocupa el lugar de la gráfica mientras Chart.js dibuja.
+   static/js/dashboard.js lo retira al terminar la animación. */
+.esqueleto-grafico {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: var(--gp-radio-sm);
+  background: #e9edf3;
+}
+
+.esqueleto-grafico::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.65), transparent);
+  animation: esqueleto-brillo 1.4s ease-in-out infinite;
+}
+
+@keyframes esqueleto-brillo {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .esqueleto-grafico::after {
+    animation: none;
+  }
+}
+
 /* ------------------------------------------------------------------ */
 /* Acceso rápido                                                       */
 /* ------------------------------------------------------------------ */
@@ -354,41 +385,11 @@
   font-size: 0.78rem;
 }
 
+/* El estado vacío reutilizable (includes/estado_vacio.html) aporta el ícono,
+   el título y el texto centrados; aquí solo se anula el patrón de fila. */
 .actividad-vacia {
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 2rem 1rem;
-  text-align: center;
-}
-
-.vacio-circulo {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 56px;
-  height: 56px;
-  margin-bottom: 0.75rem;
-  border-radius: 50%;
-  color: var(--gp-texto-suave);
-  background: var(--gp-contenido);
-}
-
-.vacio-circulo svg {
-  width: 28px;
-  height: 28px;
-}
-
-.vacio-titulo {
-  margin: 0;
-  color: var(--gp-texto);
-  font-weight: 700;
-}
-
-.vacio-texto {
-  margin: 0.15rem 0 0;
-  color: var(--gp-texto-suave);
-  font-size: 0.85rem;
+  display: block;
+  padding: 0;
 }
 
 /* ------------------------------------------------------------------ */

@@ -75,7 +75,10 @@ comparando `request.resolver_match.url_name` con el nombre de la ruta:
 Cuando se agregue una ruta nueva se usa el mismo patrón con el nombre de esa ruta. Los
 cuatro sacramentos no tienen pantalla todavía: aparecen atenuados (clase `deshabilitado`,
 `aria-disabled="true"`, sin `href`), con la etiqueta **Pronto** y con los mismos íconos SVG
-del dashboard; llevan el comentario `{# TODO: enlazar cuando exista la pantalla #}`.
+del dashboard; llevan el comentario `{# TODO: enlazar cuando exista la pantalla #}`. Su
+etiqueta se maqueta como `<p class="p-con-etiqueta"><span class="texto-item">…</span>
+<span class="etiqueta-pronto">Pronto</span></p>`: el texto se recorta con puntos y la
+píldora **Pronto** nunca se comprime ni se corta, aun en ítems largos como "Primera Comunión".
 
 El orden del menú es: **Inicio**, Bautismos, Primera Comunión, Confirmaciones, Matrimonios,
 **Libros**, **Consultar personas** y el desplegable **Catálogos** (Parroquias, Ministros,
@@ -254,6 +257,47 @@ anterior tiene 0 muestra **Nuevo** o **Sin cambios** según haya registros este 
 - En cualquier tamaño no hay scroll horizontal: las tablas de las listas van dentro de
   `.table-responsive`, los formularios ocupan todo el ancho en móvil y los controles
   táctiles mantienen al menos 44 × 44 px.
+
+### Estados de interfaz
+
+La interfaz trata de forma consistente el vacío, la carga, la interacción de botones y los
+errores.
+
+**Botones y enlaces.** Las reglas viven en `static/css/tema.css`. `.btn` y `.btn-tema`
+tienen `transition` de 0.18 s; `.btn-tema:hover` y `.btn-tema:active` oscurecen el fondo,
+los botones de Bootstrap aclaran u oscurecen con `filter: brightness()`, los botones
+deshabilitados (`:disabled`/`.disabled`) se pintan en gris y con `cursor: not-allowed`, y
+`:focus-visible` dibuja un contorno azul accesible. Con `prefers-reduced-motion` se anulan
+las transiciones.
+
+**Estado vacío.** El parcial `core/templates/includes/estado_vacio.html` dibuja un ícono en
+un círculo, un título, un texto y un botón opcional. Se incluye con parámetros:
+
+```html
+{% include "includes/estado_vacio.html" with icono="core/iconos/documento-reloj.svg" titulo="Aún no hay registros" texto="..." boton_texto="Crear registro" boton_url=url_crear %}
+```
+
+En las listas del patrón CRUD (`core/templates/crud/lista.html`) se distingue el caso de
+**lista vacía** (con el botón de creación) del de **filtro sin resultados** ("No hay
+resultados con estos filtros" y un botón **Limpiar filtros**). Los textos por defecto salen
+de `CrudListView` (`titulo_vacio`, `texto_vacio`, `texto_boton_vacio`, `icono_vacio`) y cada
+vista puede sobrescribir `get_texto_vacio`, `get_texto_boton_vacio` y `get_url_crear_vacio`;
+`hay_filtros_activos` decide cuál rama se muestra. El dashboard usa el mismo parcial para la
+actividad reciente y para la gráfica.
+
+**Carga.** Los formularios marcados con `data-evitar-doble-envio` (los del CRUD, el de
+cuentas y el de eliminación; el registro de usuarios lo añade a mano) usan
+`static/js/formularios.js`: al enviar un formulario válido se deshabilitan sus botones y se
+muestra un spinner con "Guardando…", y al volver con el botón atrás se restaura el estado.
+Mientras Chart.js dibuja la gráfica del dashboard se muestra un esqueleto
+(`.esqueleto-grafico`, con brillo animado y respeto por `prefers-reduced-motion`) que se
+retira al terminar la animación; si no hay partidas se muestra el estado vacío en su lugar.
+
+**Errores.** `templates/404.html`, `templates/403.html` y `templates/500.html` son páginas
+autónomas (sin `base.html` ni barra lateral) con la paleta del sistema y un botón para
+volver al inicio. La 500 no usa context processors ni consultas a la base de datos y lleva
+sus estilos dentro de la misma página. No muestran trazas, rutas del servidor ni detalles
+internos.
 
 ### NOMBRE_PARROQUIA
 
@@ -465,11 +509,28 @@ individual de una persona.
   documento o por nombre con el parámetro GET `q`. Si `q` son solo dígitos (se permiten
   puntos y espacios), busca por número de documento (coincidencia exacta primero y, si no
   hay, por contenido); si no, cada palabra de `q` debe aparecer en nombres o apellidos
-  (`icontains`). Con menos de 3 caracteres no busca y muestra un aviso. Busca en `Fiel`,
-  `Padre`, `Madre`, `Padrino`, `TestigoMatrimonio` y `PadrinoMatrimonio`; por cada persona
-  muestra su nombre, documento, tipo y las partidas en que aparece (rol, sacramento, fecha,
-  libro, folio y número). Limita el resultado a 50 personas (con aviso si hay más) y carga las
-  partidas por lote (`select_related`), sin consultas N+1.
+  (`icontains`). Con menos de 3 caracteres no busca y muestra un aviso.
+- Cada resultado es una **persona agrupada por su `Documento`** con todos sus papeles:
+  `Fiel`, `Padre`, `Madre`, `Padrino`, `Ministro`, `TestigoMatrimonio` y
+  `PadrinoMatrimonio` (estos dos últimos se asocian al documento por su par
+  `tipo_documento` + cédula). La tarjeta muestra el nombre principal (con prioridad
+  Fiel > Padre > Madre > Ministro > Padrino > Testigo > PadrinoMatrimonio), los registros
+  alternativos con otro nombre, el documento, una insignia por papel, el total de partidas
+  en que aparece y la línea de ministro. Limita a 50 personas (con aviso si hay más) y carga
+  las partidas por lote (`select_related` y `__in`), con un número de consultas fijo.
+- **Menciones sin documento**: además de las personas, al buscar por nombre aparecen los
+  textos libres que la mencionan dentro de una partida sin que exista persona con ese
+  documento: abuelos, testigos y padres biológicos del bautismo, y testigos o padrinos de
+  matrimonio cuya cédula no corresponde a ningún `Documento`. Se muestran en una tabla
+  (`rol`, sacramento, fecha, libro, folio y número).
+- **Ficha de persona** (`/personas/<documento_id>/`, ruta `personas:ficha`): reúne los
+  papeles e insignias (con botones "Editar datos como …" para los que son editables), los
+  datos personales, los sacramentos recibidos (con sus anotaciones marginales), la familia
+  y relaciones (padres, cónyuges, hijos, ahijados y matrimonios apadrinados), sus
+  actuaciones como ministro o testigo de matrimonio y el **historial**: las 10 entradas de
+  `HistorialSacramento` más recientes de las partidas donde aparece (fecha, partida, acción
+  y quién: nombre con su rol, o Administrador). Las secciones vacías se ocultan y el
+  documento sin ninguna persona registrada responde 404.
 - **Editar persona** (`personas:padre_editar`, `personas:madre_editar`,
   `personas:padrino_editar`, `personas:fiel_editar`): corrige la ficha de una persona creada
   desde una partida. Arriba del formulario avisa en cuántas partidas se verá el cambio y, al
@@ -478,11 +539,8 @@ individual de una persona.
   y, si el documento o la cédula ya pertenecen a otra persona, el error se muestra en el campo
   (nunca un error 500).
 
-Los testigos y padrinos propios de un matrimonio (`TestigoMatrimonio` y
-`PadrinoMatrimonio`) aparecen en la consulta con sus partidas, pero se corrigen desde la
-partida de matrimonio: no tienen botón "Editar". `Contrayente` no se lista por separado porque
-no guarda documento ni nombre propios: usa el `Fiel` asociado, que aparece con el rol
-"contrayente".
+`Contrayente` no se lista por separado porque no guarda documento ni nombre propios: usa el
+`Fiel` asociado, que aparece con el rol "contrayente" en sus partidas y sacramentos recibidos.
 
 ## Cuentas y registro
 
@@ -520,6 +578,40 @@ de ejemplo está en `.env.example` con un comentario). Se compara con
   admin.
 
 En los tests, el valor se fija con `override_settings(CODIGO_REGISTRO=...)`.
+
+## Datos de demostración
+
+`cargar_datos_demo` crea un conjunto completo de datos de ejemplo en la base de **desarrollo**
+para probar el dashboard, los libros y la consulta de personas. Solo funciona con `DEBUG=True`;
+si no, avisa y no toca nada. Cada modelo se valida con `full_clean()` antes de guardarse y todo
+el proceso va en una transacción: si algo no es válido, no queda ningún dato a medias.
+
+```powershell
+.\.venv\Scripts\python manage.py cargar_datos_demo
+.\.venv\Scripts\python manage.py cargar_datos_demo --borrar
+```
+
+- La carga crea una parroquia con su ubicación (reutiliza un municipio existente y, si no hay
+  ninguno, crea Colombia / Cundinamarca / Bogotá), tres ministros (párroco, vicario y diácono)
+  y un **libro abierto por tipo** de sacramento, con la apertura 13 meses atrás.
+- Personas y partidas: 40 fieles, 6 padres, 6 madres y 8 padrinos; 26 bautismos (uno
+  **anulado**, para ver la diferencia en el dashboard) de los que salen 8 primeras comuniones,
+  6 confirmaciones (incluida una persona bautizada en otra parroquia) y 3 matrimonios con sus
+  contrayentes, testigos y proclamas.
+- La parroquia demo toma el nombre de `NOMBRE_PARROQUIA` de `.env` (si no está vacío y no ya
+  existe otra con ese nombre) y, si no, usa "Parroquia Demo". Todas las personas y ministros
+  del demo tienen documentos que empiezan por **9990**.
+- Las **anotaciones marginales** quedan en los tres estados (11 anotadas, 2 por comunicar y 1
+  comunicada), y el **historial** de cada partida registra su creación con la fecha de la
+  partida (no la de hoy), más cinco correcciones y una anulación: así el dashboard muestra
+  actividad con fechas variadas.
+- Si ya hay datos de demostración, un segundo `cargar_datos_demo` avisa y no crea nada. Sin
+  `DEBUG=True`, o si el nombre de la parroquia ya existe, también avisa y no modifica la base.
+
+`--borrar` elimina **solo** los datos de demostración (identificados por la parroquia de los
+ministros con documento `9990` y por los documentos `9990`), siguiendo el orden que exigen las
+protecciones (`on_delete=PROTECT`), y deja intactos los datos reales. Si la ubicación creada
+por el demo queda sin uso, también la borra.
 
 ## Calidad de código
 

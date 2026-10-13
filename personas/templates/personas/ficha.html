@@ -1,0 +1,336 @@
+{% extends "base.html" %}
+
+{% block title %}{{ ficha.nombre }} - Sistema de Gestión Parroquial{% endblock %}
+{% block heading %}{{ ficha.nombre }}{% endblock %}
+
+{% block content %}
+<div class="print-encabezado">
+  <div class="print-linea-superior">
+    <span>Ficha de persona · {{ parroquia_nombre }}</span>
+    <span>Impreso el {{ ahora|date:"d/m/Y H:i" }}</span>
+  </div>
+  <div class="print-persona">
+    <h1 class="print-nombre">{{ ficha.nombre }}</h1>
+    <p class="print-documento">{{ ficha.documento }}</p>
+  </div>
+  {% if ficha.papeles %}
+    <div class="insignias" aria-label="Papeles de la persona">
+      {% for papel in ficha.papeles %}
+        <span class="insignia insignia--{{ papel.tipo }}" title="{{ papel.etiqueta_tipo }}">
+          {{ papel.etiqueta_tipo }}
+        </span>
+      {% endfor %}
+    </div>
+  {% endif %}
+</div>
+
+<div class="no-print d-flex flex-wrap align-items-center justify-content-between mb-3">
+  <div>
+    <h1 class="h4 mb-1">{{ ficha.nombre }}</h1>
+    <p class="text-muted mb-0">{{ ficha.documento }}</p>
+  </div>
+  <div class="mt-2 mt-md-0">
+    <button type="button" class="btn btn-default btn-sm no-print" onclick="window.print()" title="Imprimir">
+      <i class="fas fa-print"></i> Imprimir
+    </button>
+  </div>
+</div>
+
+{% if ficha.registros %}
+  <p class="text-muted small">
+    También registrado como
+    {% for registro in ficha.registros %}
+      «{{ registro.nombre }}» ({{ registro.etiqueta_tipo }}){% if not forloop.last %}, {% endif %}
+    {% endfor %}.
+  </p>
+{% endif %}
+
+<div class="row">
+  <div class="col-lg-6">
+
+    {% if ficha.papeles %}
+      <div class="card mb-3">
+        <div class="card-header">
+          <h2 class="card-title h6 mb-0">Papeles de la persona</h2>
+        </div>
+        <div class="card-body">
+          <div class="insignias" aria-label="Papeles de la persona">
+            {% for papel in ficha.papeles %}
+              <span class="insignia insignia--{{ papel.tipo }}" title="{{ papel.etiqueta_tipo }}">
+                {{ papel.etiqueta_tipo }}
+              </span>
+            {% endfor %}
+          </div>
+          {% if ficha.ministro %}
+            <p class="linea-ministro">
+              Ministro{% if ficha.ministro.ministro_cargo %} – {{ ficha.ministro.ministro_cargo }}{% endif %}
+              {% if ficha.ministro.ministro_parroquia %} de {{ ficha.ministro.ministro_parroquia }}{% endif %}
+            </p>
+          {% endif %}
+          <div class="insignias-acciones">
+            {% for papel in ficha.papeles %}
+              {% if papel.editable %}
+                <a class="btn btn-tema btn-sm no-print"
+                   href="{{ papel.url_editar }}?next={{ request.get_full_path|urlencode }}"
+                   title="Corregir sus datos">
+                  <i class="fas fa-pencil-alt" aria-hidden="true"></i>
+                  Editar datos como {{ papel.etiqueta_tipo|lower }}
+                </a>
+              {% endif %}
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    {% endif %}
+
+    {% if ficha.datos_personales %}
+      <div class="card mb-3">
+        <div class="card-header">
+          <h2 class="card-title h6 mb-0">Datos personales</h2>
+        </div>
+        <div class="card-body">
+          <dl class="row mb-0">
+            {% for dato in ficha.datos_personales %}
+              <dt class="col-sm-5">{{ dato.etiqueta }}</dt>
+              <dd class="col-sm-7 mb-1">{{ dato.valor|default:"—" }}</dd>
+            {% endfor %}
+          </dl>
+        </div>
+      </div>
+    {% endif %}
+
+    {% if ficha.sacramentos %}
+      <div class="card mb-3">
+        <div class="card-header">
+          <h2 class="card-title h6 mb-0">Sacramentos recibidos</h2>
+        </div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-striped table-sm mb-0">
+              <thead>
+                <tr>
+                  <th>Rol</th>
+                  <th>Sacramento</th>
+                  <th>Fecha</th>
+                  <th>Parroquia</th>
+                  <th>Libro</th>
+                  <th>Folio</th>
+                  <th>N.°</th>
+                  <th>Estado</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for sacramento in ficha.sacramentos %}
+                  <tr>
+                    <td>{{ sacramento.rol|capfirst }}</td>
+                    <td>{{ sacramento.tipo_sacramento }}</td>
+                    <td>{{ sacramento.fecha|date:"d/m/Y" }}</td>
+                    <td>{{ sacramento.parroquia|default:"—" }}</td>
+                    <td>{{ sacramento.libro }}</td>
+                    <td>{{ sacramento.folio }}</td>
+                    <td>{{ sacramento.numero }}</td>
+                    <td>{{ sacramento.estado }}</td>
+                  </tr>
+                  {% for anotacion in sacramento.anotaciones %}
+                    <tr class="anotacion-fila">
+                      <td colspan="8">
+                        <span class="anotacion-etiqueta">
+                          Anotación marginal ({{ anotacion.estado }}):
+                        </span>
+                        {{ anotacion.tipo }} · {{ anotacion.fecha|date:"d/m/Y" }}
+                        {% if anotacion.destino %} → {{ anotacion.destino }}{% endif %}
+                      </td>
+                    </tr>
+                  {% endfor %}
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    {% endif %}
+
+    {% if ficha.familia.padres or ficha.familia.hijos or ficha.familia.conyuges or ficha.familia.ahijados or ficha.familia.parejas %}
+      <div class="card mb-3">
+        <div class="card-header">
+          <h2 class="card-title h6 mb-0">Familia y relaciones</h2>
+        </div>
+        <div class="card-body">
+          {% if ficha.familia.padres %}
+            <p class="mb-2"><strong>Padres:</strong>
+              {% for padre in ficha.familia.padres %}
+                {% if padre.url_ficha %}<a href="{{ padre.url_ficha }}">{{ padre.nombre }}</a>
+                {% else %}{{ padre.nombre }}{% endif %}{% if not forloop.last %}, {% endif %}
+              {% endfor %}
+            </p>
+          {% endif %}
+          {% if ficha.familia.conyuges %}
+            <p class="mb-2"><strong>Cónyuge(s):</strong>
+              {% for conyuge in ficha.familia.conyuges %}
+                {% if conyuge.url_ficha %}<a href="{{ conyuge.url_ficha }}">{{ conyuge.nombre }}</a>
+                {% else %}{{ conyuge.nombre }}{% endif %}{% if not forloop.last %}, {% endif %}
+              {% endfor %}
+            </p>
+          {% endif %}
+          {% if ficha.familia.hijos %}
+            <p class="mb-2"><strong>Hijos:</strong>
+              {% for hijo in ficha.familia.hijos %}
+                {% if hijo.url_ficha %}<a href="{{ hijo.url_ficha }}">{{ hijo.nombre }}</a>
+                {% else %}{{ hijo.nombre }}{% endif %}
+                ({{ hijo.tipo_sacramento|lower }}){% if not forloop.last %}, {% endif %}
+              {% endfor %}
+            </p>
+          {% endif %}
+          {% if ficha.familia.ahijados %}
+            <p class="mb-2"><strong>Ahijados:</strong>
+              {% for ahijado in ficha.familia.ahijados %}
+                {% if ahijado.url_ficha %}<a href="{{ ahijado.url_ficha }}">{{ ahijado.nombre }}</a>
+                {% else %}{{ ahijado.nombre }}{% endif %}
+                ({{ ahijado.tipo_sacramento|lower }}){% if not forloop.last %}, {% endif %}
+              {% endfor %}
+            </p>
+          {% endif %}
+          {% if ficha.familia.parejas %}
+            <p class="mb-0"><strong>Matrimonios apadrinados:</strong>
+              {% for pareja in ficha.familia.parejas %}
+                {% if pareja.url_ficha %}<a href="{{ pareja.url_ficha }}">{{ pareja.nombre }}</a>
+                {% else %}{{ pareja.nombre }}{% endif %}
+                ({{ pareja.fecha_matrimonio|date:"d/m/Y" }}){% if not forloop.last %}, {% endif %}
+              {% endfor %}
+            </p>
+          {% endif %}
+        </div>
+      </div>
+    {% endif %}
+
+  </div>
+
+  <div class="col-lg-6">
+
+    {% if ficha.como_ministro %}
+      <div class="card mb-3">
+        <div class="card-header">
+          <h2 class="card-title h6 mb-0">Como ministro</h2>
+        </div>
+        <div class="card-body">
+          {% if ficha.como_ministro.cargo or ficha.como_ministro.parroquia %}
+            <p class="mb-2">
+              {{ ficha.como_ministro.cargo }}
+              {% if ficha.como_ministro.parroquia %} de {{ ficha.como_ministro.parroquia }}{% endif %}
+            </p>
+          {% endif %}
+          {% if ficha.como_ministro.celebro %}
+            <p class="mb-1"><strong>Celebró</strong></p>
+            <ul class="relaciones-lista">
+              {% for fila in ficha.como_ministro.celebro %}
+                <li>{{ fila.tipo_sacramento }} · {{ fila.fecha|date:"d/m/Y" }} ·
+                    libro {{ fila.libro }} · folio {{ fila.folio }} · n.° {{ fila.numero }}</li>
+              {% endfor %}
+            </ul>
+          {% endif %}
+          {% if ficha.como_ministro.dio_fe %}
+            <p class="mb-1"><strong>Dio fe</strong></p>
+            <ul class="relaciones-lista">
+              {% for fila in ficha.como_ministro.dio_fe %}
+                <li>{{ fila.tipo_sacramento }} · {{ fila.fecha|date:"d/m/Y" }} ·
+                    folio {{ fila.folio }} · n.° {{ fila.numero }}</li>
+              {% endfor %}
+            </ul>
+          {% endif %}
+          {% if ficha.como_ministro.libros %}
+            <p class="mb-1"><strong>Libros</strong></p>
+            <ul class="relaciones-lista">
+              {% for libro in ficha.como_ministro.libros %}
+                <li>{{ libro.evento|lower }} del libro «{{ libro.nombre }}»
+                    ({{ libro.tipo_libro }}) · {{ libro.fecha|date:"d/m/Y" }}</li>
+              {% endfor %}
+            </ul>
+          {% endif %}
+          {% if ficha.como_ministro.parroquias %}
+            <p class="mb-0"><strong>Párroco de:</strong> {{ ficha.como_ministro.parroquias|join:", " }}</p>
+          {% endif %}
+        </div>
+      </div>
+    {% endif %}
+
+    {% if ficha.testigos or ficha.padrinos_matrimonio %}
+      <div class="card mb-3">
+        <div class="card-header">
+          <h2 class="card-title h6 mb-0">Testimonios en matrimonios</h2>
+        </div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-sm mb-0">
+              <thead>
+                <tr>
+                  <th>Rol</th>
+                  <th>Sacramento</th>
+                  <th>Fecha</th>
+                  <th>Libro</th>
+                  <th>Folio</th>
+                  <th>N.°</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for fila in ficha.testigos %}
+                  <tr>
+                    <td>{{ fila.rol }}</td>
+                    <td>{{ fila.tipo_sacramento }}</td>
+                    <td>{{ fila.fecha|date:"d/m/Y" }}</td>
+                    <td>{{ fila.libro }}</td>
+                    <td>{{ fila.folio }}</td>
+                    <td>{{ fila.numero }}</td>
+                  </tr>
+                {% endfor %}
+                {% for fila in ficha.padrinos_matrimonio %}
+                  <tr>
+                    <td>{{ fila.rol }}</td>
+                    <td>{{ fila.tipo_sacramento }}</td>
+                    <td>{{ fila.fecha|date:"d/m/Y" }}</td>
+                    <td>{{ fila.libro }}</td>
+                    <td>{{ fila.folio }}</td>
+                    <td>{{ fila.numero }}</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    {% endif %}
+
+    {% if ficha.historial %}
+      <div class="card mb-3">
+        <div class="card-header">
+          <h2 class="card-title h6 mb-0">Historial</h2>
+        </div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-sm mb-0">
+              <thead>
+                <tr>
+                  <th>Fecha</th>
+                  <th>Partida</th>
+                  <th>Acción</th>
+                  <th>Quién</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for entrada in ficha.historial %}
+                  <tr>
+                    <td>{{ entrada.fecha|date:"d/m/Y H:i" }}</td>
+                    <td>{{ entrada.partida }}</td>
+                    <td>{{ entrada.accion }}</td>
+                    <td>{% if entrada.quien %}{{ entrada.quien }} ({{ entrada.rol }}){% else %}{{ entrada.fallback }}{% endif %}</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    {% endif %}
+
+  </div>
+</div>
+{% endblock %}

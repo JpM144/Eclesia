@@ -16,7 +16,7 @@
       </div>
     {% endif %}
 
-    <form method="post" novalidate>
+    <form method="post" novalidate data-evitar-doble-envio>
       {% csrf_token %}
       {% for campo in form %}
         <div class="form-group">

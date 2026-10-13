@@ -59,6 +59,7 @@
 
     <h5>Índice alfabético</h5>
     <div class="table-responsive">
+    {% if entradas %}
     <table class="table table-sm table-striped">
       <thead>
         <tr>
@@ -80,15 +81,12 @@
             <td>{{ entrada.fecha }}</td>
             <td>{{ entrada.tipo_display }}</td>
           </tr>
-        {% empty %}
-          <tr>
-            <td colspan="6" class="text-center text-muted py-3">
-              Este libro todavía no tiene partidas.
-            </td>
-          </tr>
         {% endfor %}
       </tbody>
     </table>
+    {% else %}
+      {% include "includes/estado_vacio.html" with icono="core/iconos/documento-reloj.svg" titulo="Este libro todavía no tiene partidas" texto="Las partidas que se inscriban aparecerán aquí, ordenadas alfabéticamente." %}
+    {% endif %}
     </div>
   </div>
 </div>

@@ -1,0 +1,9 @@
+{% firstof icono "core/iconos/documento-reloj.svg" as icono_vacio %}
+<div class="estado-vacio">
+  <span class="vacio-circulo" aria-hidden="true">{% include icono_vacio %}</span>
+  {% if titulo %}<p class="vacio-titulo">{{ titulo }}</p>{% endif %}
+  {% if texto %}<p class="vacio-texto">{{ texto }}</p>{% endif %}
+  {% if boton_texto and boton_url %}
+    <a href="{{ boton_url }}" class="btn btn-tema btn-sm vacio-boton">{{ boton_texto }}</a>
+  {% endif %}
+</div>

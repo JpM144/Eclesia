@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+{% load static %}<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="utf-8">
@@ -31,7 +31,7 @@
           </div>
         {% endif %}
 
-        <form method="post" action="{% url 'cuentas:registro' %}">
+        <form method="post" action="{% url 'cuentas:registro' %}" data-evitar-doble-envio>
           {% csrf_token %}
           {% for field in form %}
             <div class="form-group">
@@ -62,5 +62,6 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
 <!-- AdminLTE 3 -->
 <script src="https://cdn.jsdelivr.net/npm/admin-lte@3.2.0/dist/js/adminlte.min.js"></script>
+<script src="{% static 'js/formularios.js' %}"></script>
 </body>
 </html>

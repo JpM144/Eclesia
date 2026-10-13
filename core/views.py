@@ -1,7 +1,7 @@
 from django.contrib import messages
 from django.db.models import ProtectedError, Q
 from django.shortcuts import redirect, render
-from django.urls import reverse
+from django.urls import NoReverseMatch, reverse
 from django.views.generic import CreateView, DeleteView, ListView, UpdateView
 
 from core.services import resumen_dashboard
@@ -64,6 +64,10 @@ class CrudListView(CrudBaseMixin, ListView):
 
     Atributos adicionales:
         url_crear, url_editar, url_eliminar: nombres de ruta de esas acciones.
+        icono_vacio:        ícono del estado vacío (ver includes/estado_vacio.html).
+        titulo_vacio:       título cuando la lista no tiene registros.
+        texto_vacio:        texto de ayuda cuando la lista no tiene registros.
+        texto_boton_vacio:  etiqueta del botón de crear del estado vacío.
     """
 
     template_name = "crud/lista.html"
@@ -71,6 +75,10 @@ class CrudListView(CrudBaseMixin, ListView):
     url_crear = ""
     url_editar = ""
     url_eliminar = ""
+    icono_vacio = "core/iconos/documento-reloj.svg"
+    titulo_vacio = ""
+    texto_vacio = ""
+    texto_boton_vacio = ""
 
     def get_queryset(self):
         queryset = super().get_queryset()
@@ -84,6 +92,28 @@ class CrudListView(CrudBaseMixin, ListView):
             queryset = queryset.filter(condiciones)
         return queryset
 
+    def get_titulo_vacio(self):
+        return self.titulo_vacio or f"Aún no hay {self.get_nombre_plural()} registrados"
+
+    def get_texto_vacio(self):
+        return self.texto_vacio
+
+    def get_texto_boton_vacio(self):
+        return self.texto_boton_vacio or f"Crear {self.get_nombre_singular()}"
+
+    def get_url_crear_vacio(self):
+        """URL del botón de crear del estado vacío ("" si no se puede resolver)."""
+        if not self.url_crear:
+            return ""
+        try:
+            return reverse(self.url_crear)
+        except NoReverseMatch:
+            return ""
+
+    def hay_filtros_activos(self):
+        """Indica si la lista se está filtrando (para distinguir el vacío real)."""
+        return bool(self.request.GET.get("q", "").strip())
+
     def get_context_data(self, **kwargs):
         contexto = super().get_context_data(**kwargs)
         contexto.update(
@@ -93,6 +123,12 @@ class CrudListView(CrudBaseMixin, ListView):
             url_crear=self.url_crear,
             url_editar=self.url_editar,
             url_eliminar=self.url_eliminar,
+            icono_vacio=self.icono_vacio,
+            titulo_vacio=self.get_titulo_vacio(),
+            texto_vacio=self.get_texto_vacio(),
+            texto_boton_vacio=self.get_texto_boton_vacio(),
+            url_crear_vacio=self.get_url_crear_vacio(),
+            filtro_activo=self.hay_filtros_activos(),
         )
         return contexto
 

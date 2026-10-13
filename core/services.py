@@ -157,4 +157,5 @@ def resumen_dashboard(hoy=None):
         "variaciones": variaciones,
         "actividades": _ultimas_actividades(),
         "datos_grafico": {"etiquetas": etiquetas, "series": series},
+        "hay_datos_grafico": any(any(valores) for valores in series.values()),
     }

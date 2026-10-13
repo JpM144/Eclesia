@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Error del servidor - Sistema de Gestión Parroquial</title>
+  <style>
+    html {
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    }
+    body {
+      margin: 0;
+      background: #f4f6fa;
+      color: #1e293b;
+    }
+    .pagina-error {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 24px;
+    }
+    .tarjeta {
+      width: 100%;
+      max-width: 520px;
+      padding: 32px;
+      text-align: center;
+      background: #ffffff;
+      border: 1px solid #e6e9f0;
+      border-radius: 10px;
+      box-shadow: 0 1px 2px rgba(16, 24, 40, 0.05), 0 1px 3px rgba(16, 24, 40, 0.06);
+    }
+    .error-codigo {
+      margin: 0;
+      color: #d04a5c;
+      font-size: 3.5rem;
+      font-weight: 700;
+      line-height: 1;
+    }
+    .error-titulo {
+      margin: 16px 0 8px;
+      font-size: 1.4rem;
+      font-weight: 700;
+    }
+    .error-texto {
+      margin: 0 0 24px;
+      color: #64748b;
+    }
+    .boton-inicio {
+      display: inline-block;
+      padding: 10px 18px;
+      background: #34405a;
+      color: #ffffff;
+      font-weight: 600;
+      text-decoration: none;
+      border-radius: 8px;
+    }
+    .boton-inicio:hover {
+      background: #1e2433;
+    }
+  </style>
+</head>
+<body>
+  <main class="pagina-error">
+    <div class="tarjeta">
+      <p class="error-codigo">500</p>
+      <h1 class="error-titulo">Algo salió mal</h1>
+      <p class="error-texto">Ocurrió un error inesperado. Inténtalo de nuevo en unos minutos.</p>
+      <a href="/" class="boton-inicio">Volver al inicio</a>
+    </div>
+  </main>
+</body>
+</html>

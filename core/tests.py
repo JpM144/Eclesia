@@ -1,9 +1,11 @@
+import io
 import json
 import os
 import re
 from datetime import date, datetime, timedelta
 
 from django.contrib.auth.models import User
+from django.core.management import call_command
 from django.db import connection
 from django.test import TestCase, override_settings
 from django.test.utils import CaptureQueriesContext
@@ -18,6 +20,7 @@ from core.choices import (
     RolUsuario,
     TipoAnotacionMarginal,
     TipoDocumento,
+    TipoHijo,
     TipoLibro,
     TipoSacramento,
 )
@@ -26,7 +29,18 @@ from core.templatetags.dashboard_extras import fecha_relativa
 from cuentas.models import PerfilUsuario
 from parroquias.models import Folio, Libro, Ministro, Parroquia
 from personas.models import Documento, Fiel, Madre, Padre, Padrino
-from sacramentos.models import AnotacionMarginal, HistorialSacramento, Sacramento
+from sacramentos.models import (
+    AnotacionMarginal,
+    Bautismo,
+    Confirmacion,
+    Contrayente,
+    HistorialSacramento,
+    Matrimonio,
+    PrimeraComunion,
+    ProclamaMatrimonio,
+    Sacramento,
+    TestigoMatrimonio,
+)
 from ubicacion.models import Departamento, Municipio, Pais
 
 
@@ -263,7 +277,7 @@ class DashboardCampanaTests(EscenarioBase):
     def test_sin_anotaciones_pendientes_no_muestra_badge(self):
         respuesta = self.client.get(reverse("dashboard"))
         self.assertEqual(respuesta.context["anotaciones_pendientes_total"], 0)
-        self.assertNotIn('class="badge badge-warning navbar-badge"', respuesta.content.decode())
+        self.assertNotIn('class="badge badge-campana navbar-badge"', respuesta.content.decode())
         self.assertContains(respuesta, "Sin anotaciones pendientes")
 
     def test_con_anotaciones_pendientes_muestra_badge_y_lista(self):
@@ -279,7 +293,7 @@ class DashboardCampanaTests(EscenarioBase):
         respuesta = self.client.get(reverse("dashboard"))
         self.assertEqual(respuesta.context["anotaciones_pendientes_total"], 1)
         self.assertEqual(len(respuesta.context["anotaciones_pendientes_recientes"]), 1)
-        self.assertIn('class="badge badge-warning navbar-badge"', respuesta.content.decode())
+        self.assertIn('class="badge badge-campana navbar-badge"', respuesta.content.decode())
         self.assertContains(respuesta, "Comunicar confirmación a")
         self.assertContains(respuesta, "Parroquia San Juan")
 
@@ -549,7 +563,8 @@ class MenuLateralSacramentosTests(EscenarioBase):
 
     def test_primera_comunion_entre_bautismos_y_confirmaciones(self):
         etiquetas = ["Bautismos", "Primera Comunión", "Confirmaciones", "Matrimonios"]
-        posiciones = [self.contenido.index(f"<p>{etiqueta} <span") for etiqueta in etiquetas]
+        inicio = '<p class="p-con-etiqueta"><span class="texto-item">'
+        posiciones = [self.contenido.index(f"{inicio}{etiqueta}</span>") for etiqueta in etiquetas]
         self.assertEqual(posiciones, sorted(posiciones))
 
     def test_items_de_sacramentos_atenuados_sin_href_con_pronto(self):
@@ -576,7 +591,10 @@ class MenuLateralSacramentosTests(EscenarioBase):
         for etiqueta in ("Bautismos", "Primera Comunión", "Confirmaciones", "Matrimonios"):
             with self.subTest(etiqueta=etiqueta):
                 self.assertRegex(
-                    contenido, rf'<p>\s*{re.escape(etiqueta)}\s*<span class="etiqueta-pronto"'
+                    contenido,
+                    rf'<p class="p-con-etiqueta"><span class="texto-item">'
+                    rf"{re.escape(etiqueta)}</span>"
+                    rf'<span class="etiqueta-pronto"',
                 )
                 self.assertRegex(contenido, rf'title="{re.escape(etiqueta)}"')
 
@@ -607,10 +625,10 @@ class MenuLateralSacramentosTests(EscenarioBase):
     def test_orden_de_los_items_del_menu(self):
         etiquetas = [
             "<p>Inicio</p>",
-            "<p>Bautismos",
-            "<p>Primera Comunión",
-            "<p>Confirmaciones",
-            "<p>Matrimonios",
+            '<p class="p-con-etiqueta"><span class="texto-item">Bautismos</span>',
+            '<p class="p-con-etiqueta"><span class="texto-item">Primera Comunión</span>',
+            '<p class="p-con-etiqueta"><span class="texto-item">Confirmaciones</span>',
+            '<p class="p-con-etiqueta"><span class="texto-item">Matrimonios</span>',
             "<p>Libros</p>",
             "<p>Consultar personas</p>",
         ]
@@ -676,7 +694,143 @@ class TablaResponsiveTests(EscenarioBase):
                 self.assertContains(respuesta, 'class="table-responsive"')
 
     def test_consultar_personas_usa_table_responsive(self):
-        self._crear_sacramento(TipoSacramento.BAUTISMO, 1, self._fiel())
-        respuesta = self.client.get(reverse("personas:consultar"), {"q": "Ana"})
+        sacramento = self._crear_sacramento(TipoSacramento.BAUTISMO, 1, self._fiel())
+        Bautismo.objects.create(
+            sacramento=sacramento,
+            tipo_hijo=TipoHijo.BIOLOGICO,
+            abuelo_paterno="Anacleto Suárez",
+            quien_firma=self.ministro,
+            doy_fe=self.ministro,
+        )
+        respuesta = self.client.get(reverse("personas:consultar"), {"q": "Anacleto"})
         self.assertEqual(respuesta.status_code, 200)
         self.assertContains(respuesta, 'class="table-responsive"')
+
+
+class CargarDatosDemoTests(TestCase):
+    """El comando ``cargar_datos_demo`` carga y borra datos de demostración."""
+
+    @override_settings(DEBUG=True)
+    def test_carga_crea_el_escenario_completo(self):
+        call_command("cargar_datos_demo")
+        self.assertEqual(Documento.objects.filter(numero_documento__startswith="9990").count(), 43)
+        self.assertEqual(Fiel.objects.count(), 40)
+        self.assertEqual(Padre.objects.count(), 6)
+        self.assertEqual(Madre.objects.count(), 6)
+        self.assertEqual(Padrino.objects.count(), 8)
+        self.assertEqual(Ministro.objects.count(), 3)
+        self.assertEqual(Parroquia.objects.count(), 1)
+        self.assertEqual(Libro.objects.count(), 4)
+        self.assertEqual(Folio.objects.count(), 16)
+
+        bautismos = Sacramento.objects.filter(tipo=TipoSacramento.BAUTISMO)
+        self.assertEqual(bautismos.count(), 26)
+        self.assertEqual(bautismos.filter(estado=EstadoRegistro.ACTIVO).count(), 25)
+        self.assertEqual(bautismos.filter(estado=EstadoRegistro.ANULADO).count(), 1)
+        self.assertEqual(Bautismo.objects.count(), 26)
+        self.assertEqual(Sacramento.objects.filter(tipo=TipoSacramento.PRIMERA_COMUNION).count(), 8)
+        self.assertEqual(PrimeraComunion.objects.count(), 8)
+        self.assertEqual(Sacramento.objects.filter(tipo=TipoSacramento.CONFIRMACION).count(), 6)
+        self.assertEqual(Confirmacion.objects.count(), 6)
+        self.assertEqual(Sacramento.objects.filter(tipo=TipoSacramento.MATRIMONIO).count(), 3)
+        self.assertEqual(Matrimonio.objects.count(), 3)
+        self.assertEqual(Contrayente.objects.count(), 6)
+        self.assertEqual(TestigoMatrimonio.objects.count(), 6)
+        self.assertEqual(ProclamaMatrimonio.objects.count(), 6)
+
+        self.assertEqual(AnotacionMarginal.objects.count(), 14)
+        self.assertEqual(
+            AnotacionMarginal.objects.filter(estado=EstadoAnotacion.ANOTADA).count(), 11
+        )
+        self.assertEqual(
+            AnotacionMarginal.objects.filter(estado=EstadoAnotacion.POR_COMUNICAR).count(), 2
+        )
+        self.assertEqual(
+            AnotacionMarginal.objects.filter(estado=EstadoAnotacion.COMUNICADA).count(), 1
+        )
+
+        self.assertEqual(HistorialSacramento.objects.count(), 49)
+        self.assertEqual(
+            HistorialSacramento.objects.filter(accion=AccionHistorial.CREACION).count(), 43
+        )
+        self.assertEqual(
+            HistorialSacramento.objects.filter(accion=AccionHistorial.MODIFICACION).count(), 5
+        )
+        self.assertEqual(
+            HistorialSacramento.objects.filter(accion=AccionHistorial.ANULACION).count(), 1
+        )
+
+    @override_settings(DEBUG=True)
+    def test_doble_ejecucion_no_duplica(self):
+        call_command("cargar_datos_demo")
+        salida = io.StringIO()
+        call_command("cargar_datos_demo", stdout=salida)
+        self.assertIn("no se crea nada", salida.getvalue())
+        self.assertEqual(Documento.objects.filter(numero_documento__startswith="9990").count(), 43)
+        self.assertEqual(Sacramento.objects.count(), 43)
+
+    @override_settings(DEBUG=True)
+    def test_borrar_elimina_lo_demo_y_respeta_lo_existente(self):
+        pais = Pais.objects.create(nombre="Colombia")
+        departamento = Departamento.objects.create(nombre="Cundinamarca", pais=pais)
+        municipio = Municipio.objects.create(nombre="Bogotá", departamento=departamento)
+        parroquia = Parroquia.objects.create(
+            nombre="San Pedro Claver", municipio=municipio, direccion="Calle 1 # 2-34"
+        )
+        libro = Libro.objects.create(
+            nombre="Bautismos 2026",
+            tipo_libro=TipoLibro.BAUTISMOS,
+            detalle="Registro de bautismos",
+            fecha_apertura=date(2026, 1, 1),
+            parroquia=parroquia,
+        )
+        folio = Folio.objects.create(libro=libro, numero_folio=1)
+        documento_previo = Documento.objects.create(
+            tipo_documento=TipoDocumento.CC, numero_documento="1234567890"
+        )
+        fiel_previo = Fiel.objects.create(
+            documento=documento_previo,
+            nombres="Ana",
+            apellidos="López",
+            fecha_nacimiento=date(1990, 1, 1),
+        )
+        Sacramento.objects.create(
+            tipo=TipoSacramento.BAUTISMO,
+            fiel=fiel_previo,
+            libro=libro,
+            folio=folio,
+            numero=1,
+            fecha=date(2026, 2, 1),
+            fecha_registro=date(2026, 2, 1),
+            parroquia=parroquia,
+        )
+
+        call_command("cargar_datos_demo")
+        self.assertEqual(Parroquia.objects.count(), 2)
+        self.assertEqual(Sacramento.objects.count(), 44)
+
+        call_command("cargar_datos_demo", borrar=True)
+        self.assertEqual(Parroquia.objects.count(), 1)
+        self.assertTrue(Parroquia.objects.filter(nombre="San Pedro Claver").exists())
+        self.assertEqual(Sacramento.objects.count(), 1)
+        self.assertEqual(Documento.objects.filter(numero_documento__startswith="9990").count(), 0)
+        self.assertTrue(Documento.objects.filter(numero_documento="1234567890").exists())
+        self.assertTrue(Municipio.objects.filter(pk=municipio.pk).exists())
+
+    @override_settings(DEBUG=True)
+    def test_sin_ubicacion_crea_y_borra_ubicacion(self):
+        self.assertEqual(Municipio.objects.count(), 0)
+        call_command("cargar_datos_demo")
+        self.assertTrue(Municipio.objects.filter(nombre="Bogotá").exists())
+        call_command("cargar_datos_demo", borrar=True)
+        self.assertEqual(Municipio.objects.count(), 0)
+        self.assertEqual(Departamento.objects.count(), 0)
+        self.assertEqual(Pais.objects.count(), 0)
+
+    @override_settings(DEBUG=False)
+    def test_debug_false_no_crea_nada(self):
+        salida = io.StringIO()
+        call_command("cargar_datos_demo", stdout=salida)
+        self.assertIn("DEBUG=True", salida.getvalue())
+        self.assertEqual(Documento.objects.count(), 0)
+        self.assertEqual(Sacramento.objects.count(), 0)

@@ -1,6 +1,8 @@
-from django.http import JsonResponse
-from django.shortcuts import render
+from django.conf import settings
+from django.http import Http404, JsonResponse
+from django.shortcuts import get_object_or_404, render
 from django.urls import reverse
+from django.utils import timezone
 from django.utils.http import url_has_allowed_host_and_scheme
 
 from core.choices import TipoDocumento
@@ -18,14 +20,33 @@ from .models import Documento, Fiel, Madre, Padre, Padrino
 def consultar_personas(request):
     """Busca personas por documento o nombre y muestra sus partidas."""
     q = request.GET.get("q", "").strip()
-    contexto = {"q": q, "personas": [], "aviso": "", "hay_mas": False}
+    contexto = {"q": q, "personas": [], "menciones": [], "aviso": "", "hay_mas": False}
     if q and len(q) < 3:
         contexto["aviso"] = "Ingrese al menos 3 caracteres para buscar."
     elif q:
         personas, hay_mas = consultas.buscar_personas(q)
         contexto["personas"] = personas
         contexto["hay_mas"] = hay_mas
+        contexto["menciones"] = consultas.buscar_menciones(q)
     return render(request, "personas/consultar.html", contexto)
+
+
+def ficha_persona_view(request, pk):
+    """Ficha de la persona dueña del ``Documento`` con ese identificador."""
+    documento = get_object_or_404(Documento, pk=pk)
+    ficha = consultas.ficha_persona(documento)
+    if ficha is None:
+        raise Http404("Ese documento no corresponde a ninguna persona registrada.")
+    parroquia_nombre = (settings.NOMBRE_PARROQUIA or "").strip()
+    return render(
+        request,
+        "personas/ficha.html",
+        {
+            "ficha": ficha,
+            "parroquia_nombre": parroquia_nombre or "Sistema de Gestión Parroquial",
+            "ahora": timezone.now(),
+        },
+    )
 
 
 # ---------------------------------------------------------------------------

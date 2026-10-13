@@ -4,13 +4,16 @@ from urllib.parse import quote
 from django.contrib.auth.models import User
 from django.db import IntegrityError, connection, transaction
 from django.db.models import ProtectedError
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 
 from core.choices import (
+    AccionHistorial,
     CargoMinisterial,
+    EstadoAnotacion,
     EstadoCivil,
+    TipoAnotacionMarginal,
     TipoDocumento,
     TipoHijo,
     TipoLibro,
@@ -18,8 +21,11 @@ from core.choices import (
 )
 from parroquias.models import Folio, Libro, Ministro, Parroquia
 from sacramentos.models import (
+    AnotacionMarginal,
     Bautismo,
     Confirmacion,
+    Contrayente,
+    HistorialSacramento,
     Matrimonio,
     PadrinoMatrimonio,
     Sacramento,
@@ -346,11 +352,14 @@ class ConsultarPersonasTests(BasePersonasWebTests):
         self.crear_sacramento(TipoSacramento.CONFIRMACION, fiel)
         respuesta = self.client.get(reverse("personas:consultar"), {"q": "Ana López"})
         persona = respuesta.context["personas"][0]
+        self.assertEqual(persona["total_partidas"], 2)
         self.assertEqual(
             {partida["rol"] for partida in persona["partidas"]}, {"bautizado", "confirmado"}
         )
-        self.assertContains(respuesta, "Bautizado")
-        self.assertContains(respuesta, "Confirmado")
+        self.assertEqual({papel["tipo"] for papel in persona["papeles"]}, {"fiel"})
+        self.assertContains(respuesta, "Fiel")
+        self.assertContains(respuesta, "2 partidas")
+        self.assertNotContains(respuesta, "Bautizado")
 
     def test_madre_en_dos_partidas(self):
         madre = Madre.objects.create(
@@ -393,19 +402,53 @@ class ConsultarPersonasTests(BasePersonasWebTests):
         respuesta = self.client.get(reverse("personas:consultar"), {"q": "García"})
         personas = respuesta.context["personas"]
         self.assertEqual(len(personas), 4)
-        self.assertTrue(all(persona["editable"] for persona in personas))
-        for url in (
+        papeles = [papel for persona in personas for papel in persona["papeles"]]
+        tipos = {papel["tipo"] for papel in papeles}
+        self.assertEqual(tipos, {"fiel", "padre", "madre", "padrino"})
+        self.assertTrue(all(papel["editable"] for papel in papeles))
+        urls_esperadas = {
             reverse("personas:fiel_editar", args=[fiel.pk]),
             reverse("personas:padre_editar", args=[padre.pk]),
             reverse("personas:madre_editar", args=[madre.pk]),
             reverse("personas:padrino_editar", args=[padrino.pk]),
-        ):
-            self.assertContains(respuesta, url)
+        }
+        self.assertEqual({papel["url_editar"] for papel in papeles}, urls_esperadas)
+        for persona in personas:
+            ficha = self.client.get(reverse("personas:ficha", args=[persona["documento_id"]]))
+            self.assertContains(ficha, persona["papeles"][0]["url_editar"])
 
-    def test_testigos_y_padrinos_de_matrimonio_no_tienen_boton_editar(self):
-        matrimonio = self.crear_matrimonio()
+    def test_persona_fiel_padre_y_ministro_se_muestra_una_sola_vez_con_tres_insignias(self):
+        documento = Documento.objects.create(
+            tipo_documento=TipoDocumento.CC, numero_documento="333"
+        )
+        Fiel.objects.create(
+            documento=documento,
+            nombres="Pedro",
+            apellidos="Suárez",
+            fecha_nacimiento=date(1985, 2, 10),
+        )
+        Padre.objects.create(documento=documento, nombre="Pedro", apellido="Suárez")
+        Ministro.objects.create(
+            documento=documento,
+            nombre="Pedro",
+            apellido="Suárez",
+            cargo=CargoMinisterial.VICARIO,
+        )
+        respuesta = self.client.get(reverse("personas:consultar"), {"q": "Suárez"})
+        personas = respuesta.context["personas"]
+        self.assertEqual(len(personas), 1)
+        self.assertEqual(
+            {papel["tipo"] for papel in personas[0]["papeles"]},
+            {"fiel", "padre", "ministro"},
+        )
+        html = respuesta.content.decode()
+        for insignia in ("insignia--fiel", "insignia--padre", "insignia--ministro"):
+            self.assertEqual(html.count(insignia), 1)
+
+    def test_testigo_de_matrimonio_cuyo_documento_coincide_se_une_a_esa_persona(self):
+        fiel = self.crear_fiel("555", nombres="Ana", apellidos="Vargas")
         TestigoMatrimonio.objects.create(
-            matrimonio=matrimonio,
+            matrimonio=self.crear_matrimonio(),
             tipo_documento=TipoDocumento.CC,
             cedula="555",
             nombre="Roberto Vargas",
@@ -413,8 +456,28 @@ class ConsultarPersonasTests(BasePersonasWebTests):
             estado_civil=EstadoCivil.CASADO,
             profesion="Abogado",
         )
-        PadrinoMatrimonio.objects.create(
-            matrimonio=matrimonio,
+        respuesta = self.client.get(reverse("personas:consultar"), {"q": "Vargas"})
+        personas = respuesta.context["personas"]
+        self.assertEqual(len(personas), 1)
+        self.assertEqual(personas[0]["documento_id"], fiel.documento_id)
+        self.assertEqual(
+            {papel["tipo"] for papel in personas[0]["papeles"]},
+            {"fiel", "testigo"},
+        )
+        self.assertEqual(respuesta.context["menciones"], [])
+
+    def test_testigos_y_padrinos_de_matrimonio_no_tienen_boton_editar(self):
+        testigo = TestigoMatrimonio.objects.create(
+            matrimonio=self.crear_matrimonio(),
+            tipo_documento=TipoDocumento.CC,
+            cedula="555",
+            nombre="Roberto Vargas",
+            religion="Católica",
+            estado_civil=EstadoCivil.CASADO,
+            profesion="Abogado",
+        )
+        padrino = PadrinoMatrimonio.objects.create(
+            matrimonio=testigo.matrimonio,
             tipo_documento=TipoDocumento.CC,
             cedula="666",
             nombre="Clara Vargas",
@@ -422,16 +485,299 @@ class ConsultarPersonasTests(BasePersonasWebTests):
             estado_civil=EstadoCivil.CASADO,
             profesion="Doctora",
         )
+        Documento.objects.create(tipo_documento=TipoDocumento.CC, numero_documento=testigo.cedula)
+        Documento.objects.create(tipo_documento=TipoDocumento.CC, numero_documento=padrino.cedula)
         respuesta = self.client.get(reverse("personas:consultar"), {"q": "Vargas"})
         personas = respuesta.context["personas"]
         self.assertEqual(len(personas), 2)
-        self.assertTrue(all(not persona["editable"] for persona in personas))
-        self.assertTrue(all(persona["url_editar"] is None for persona in personas))
+        papeles = [papel for persona in personas for papel in persona["papeles"]]
+        self.assertEqual({papel["tipo"] for papel in papeles}, {"testigo", "padrino_matrimonio"})
+        self.assertTrue(all(not papel["editable"] for papel in papeles))
+        self.assertTrue(all(papel["url_editar"] is None for papel in papeles))
         roles = {partida["rol"] for persona in personas for partida in persona["partidas"]}
         self.assertEqual(roles, {"testigo", "padrino"})
         self.assertContains(respuesta, "Roberto Vargas")
         self.assertContains(respuesta, "Clara Vargas")
         self.assertNotContains(respuesta, "fa-pencil-alt")
+        self.assertEqual(respuesta.context["menciones"], [])
+
+
+# ---------------------------------------------------------------------------
+# Menciones sin documento
+# ---------------------------------------------------------------------------
+
+
+class MencionesTests(BasePersonasWebTests):
+    def test_mencion_de_bautismo_sin_documento(self):
+        fiel = self.crear_fiel("111", nombres="Ana", apellidos="López")
+        bautismo = self.crear_bautismo(fiel, abuelo_paterno="Anacleto Suárez")
+        respuesta = self.client.get(reverse("personas:consultar"), {"q": "Anacleto"})
+        self.assertEqual(respuesta.context["personas"], [])
+        menciones = respuesta.context["menciones"]
+        self.assertEqual(len(menciones), 1)
+        self.assertEqual(menciones[0]["texto"], "Anacleto Suárez")
+        self.assertEqual(menciones[0]["rol"], "Abuelo paterno")
+        self.assertEqual(menciones[0]["partida"]["id"], bautismo.sacramento_id)
+        self.assertContains(respuesta, "Anacleto Suárez")
+
+    def test_menciones_iguales_en_distintas_partidas_se_agrupan(self):
+        fiel = self.crear_fiel("111", nombres="Ana", apellidos="López")
+        otro = self.crear_fiel("222", nombres="Otro", apellidos="Niño")
+        self.crear_bautismo(fiel, abuelo_paterno="Anacleto Suárez")
+        self.crear_bautismo(otro, abuelo_paterno="Anacleto Suárez")
+        respuesta = self.client.get(reverse("personas:consultar"), {"q": "Anacleto"})
+        self.assertEqual(len(respuesta.context["menciones"]), 1)
+
+    def test_testigo_de_matrimonio_sin_documento_es_mencion(self):
+        testigo = TestigoMatrimonio.objects.create(
+            matrimonio=self.crear_matrimonio(),
+            tipo_documento=TipoDocumento.CC,
+            cedula="555",
+            nombre="Roberto Vargas",
+            religion="Católica",
+            estado_civil=EstadoCivil.CASADO,
+            profesion="Abogado",
+        )
+        respuesta = self.client.get(reverse("personas:consultar"), {"q": "Vargas"})
+        self.assertEqual(respuesta.context["personas"], [])
+        menciones = respuesta.context["menciones"]
+        self.assertEqual(len(menciones), 1)
+        self.assertEqual(menciones[0]["rol"], "Testigo de matrimonio")
+        self.assertEqual(menciones[0]["partida"]["id"], testigo.matrimonio.sacramento_id)
+
+    def test_busqueda_por_documento_no_genera_menciones(self):
+        fiel = self.crear_fiel("111", nombres="Ana", apellidos="López")
+        self.crear_bautismo(fiel, abuelo_paterno="Anacleto Suárez")
+        respuesta = self.client.get(reverse("personas:consultar"), {"q": "111"})
+        self.assertEqual(respuesta.context["menciones"], [])
+
+
+# ---------------------------------------------------------------------------
+# Ficha de persona
+# ---------------------------------------------------------------------------
+
+
+class FichaPersonaTests(BasePersonasWebTests):
+    def _crear_contrayente(self, matrimonio, fiel, sexo):
+        return Contrayente.objects.create(
+            matrimonio=matrimonio,
+            fiel=fiel,
+            sexo=sexo,
+            parroquia_bautismo=self.parroquia,
+            libro_bautismo=1,
+            folio_bautismo=2,
+            numero_bautismo=3,
+            parroquia_confirmacion=self.parroquia,
+            fecha_confirmacion=date(2010, 6, 20),
+            direccion_residencia="Calle 5 # 6-7",
+            nombre_padre="José Pérez",
+            nombre_madre="María Gómez",
+            edad=30,
+            estado_civil=EstadoCivil.SOLTERO,
+            religion="Católica",
+            profesion="Ingeniero",
+            acepta_libertad_matrimonio="SI",
+            conoce_unidad_indisolubilidad="SI",
+            conoce_obligaciones_familia="SI",
+            impedimentos_anteriores="NO",
+            dispuesto_cumplir="SI",
+            lugar_despues_matrimonio="Bogotá",
+        )
+
+    def _escenario_ana(self):
+        """Ana es a la vez Fiel, Madre y Ministro con el mismo documento."""
+        documento = Documento.objects.create(
+            tipo_documento=TipoDocumento.CC, numero_documento="333"
+        )
+        ana = Fiel.objects.create(
+            documento=documento,
+            nombres="Ana María",
+            apellidos="López Pérez",
+            fecha_nacimiento=date(1990, 5, 20),
+            telefono="3001234567",
+        )
+        como_madre = Madre.objects.create(documento=documento, nombre="Ana María", apellido="López")
+        Ministro.objects.create(
+            documento=documento, nombre="Ana", apellido="López", cargo=CargoMinisterial.VICARIO
+        )
+        padre = Padre.objects.create(
+            documento=Documento.objects.create(
+                tipo_documento=TipoDocumento.CC, numero_documento="222"
+            ),
+            nombre="Luis",
+            apellido="García",
+        )
+        madre = Madre.objects.create(
+            documento=Documento.objects.create(
+                tipo_documento=TipoDocumento.CC, numero_documento="777"
+            ),
+            nombre="Marta",
+            apellido="García",
+        )
+        padrino = Padrino.objects.create(
+            documento=Documento.objects.create(
+                tipo_documento=TipoDocumento.CC, numero_documento="888"
+            ),
+            nombre="Pedro López",
+        )
+        bautismo = self.crear_bautismo(ana, padre=padre, madre=madre, padrino=padrino)
+        self.crear_confirmacion(ana)
+        AnotacionMarginal.objects.create(
+            sacramento=bautismo.sacramento,
+            tipo=TipoAnotacionMarginal.CONFIRMACION,
+            descripcion="Se anotó la confirmación.",
+            fecha=date(2026, 4, 10),
+            parroquia_destino_texto="Parroquia San Juan",
+            estado=EstadoAnotacion.ANOTADA,
+        )
+        esposo = self.crear_fiel("444", nombres="Luis", apellidos="Pérez")
+        matrimonio = self.crear_matrimonio()
+        self._crear_contrayente(matrimonio, ana, "M")
+        self._crear_contrayente(matrimonio, esposo, "H")
+        hijo = self.crear_fiel("555", nombres="Carlos", apellidos="López")
+        self.crear_bautismo(hijo, madre=como_madre)
+        HistorialSacramento.objects.create(
+            sacramento=bautismo.sacramento, accion=AccionHistorial.CREACION, usuario=self.usuario
+        )
+        return ana
+
+    def test_documento_sin_persona_devuelve_404(self):
+        documento = Documento.objects.create(
+            tipo_documento=TipoDocumento.CC, numero_documento="999"
+        )
+        self.assertEqual(
+            self.client.get(reverse("personas:ficha", args=[documento.pk])).status_code, 404
+        )
+
+    def test_ficha_muestra_sacramentos_papeles_familia_ministro_y_anotaciones(self):
+        ana = self._escenario_ana()
+        respuesta = self.client.get(reverse("personas:ficha", args=[ana.documento_id]))
+        self.assertEqual(respuesta.status_code, 200)
+        for insignia in ("insignia--fiel", "insignia--madre", "insignia--ministro"):
+            self.assertContains(respuesta, insignia)
+        for texto in (
+            "Bautismo",
+            "Confirmación",
+            "Matrimonio",
+            "Contrayente",
+            "Anotación marginal",
+            "Luis García",
+            "Marta García",
+            "Carlos López",
+            "Luis Pérez",
+            "Vicario",
+        ):
+            self.assertContains(respuesta, texto)
+
+    def test_ficha_muestra_el_historial_de_sus_partidas(self):
+        ana = self._escenario_ana()
+        respuesta = self.client.get(reverse("personas:ficha", args=[ana.documento_id]))
+        self.assertContains(respuesta, "Historial")
+        self.assertContains(respuesta, "Creación")
+        self.assertContains(respuesta, "tester (Administrador)")
+
+    def test_ficha_muestra_botones_editar_segun_los_papeles(self):
+        ana = self._escenario_ana()
+        respuesta = self.client.get(reverse("personas:ficha", args=[ana.documento_id]))
+        self.assertContains(respuesta, "Editar datos como fiel")
+        self.assertContains(respuesta, "Editar datos como madre")
+        self.assertNotContains(respuesta, "Editar datos como ministro")
+
+    def test_secciones_vacias_no_se_muestran(self):
+        fiel = self.crear_fiel("333", nombres="Ana", apellidos="López")
+        respuesta = self.client.get(reverse("personas:ficha", args=[fiel.documento_id]))
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertContains(respuesta, "CC 333")
+        self.assertNotContains(respuesta, "Sacramentos recibidos")
+        self.assertNotContains(respuesta, "Familia y relaciones")
+        self.assertNotContains(respuesta, "Como ministro")
+        self.assertNotContains(respuesta, "Testimonios en matrimonios")
+        self.assertNotContains(respuesta, "Historial")
+
+    def test_ministro_sin_partidas_por_documento_y_por_nombre(self):
+        documento = Documento.objects.create(
+            tipo_documento=TipoDocumento.CC, numero_documento="333"
+        )
+        Ministro.objects.create(
+            documento=documento, nombre="Ana", apellido="López", cargo=CargoMinisterial.VICARIO
+        )
+        ficha = self.client.get(reverse("personas:ficha", args=[documento.pk]))
+        self.assertEqual(ficha.status_code, 200)
+        self.assertContains(ficha, "insignia--ministro")
+        self.assertContains(ficha, "Vicario")
+        self.assertNotContains(ficha, "Sacramentos recibidos")
+        self.assertNotContains(ficha, "Historial")
+        respuesta = self.client.get(reverse("personas:consultar"), {"q": "Ana"})
+        personas = respuesta.context["personas"]
+        self.assertEqual(len(personas), 1)
+        self.assertEqual(personas[0]["total_partidas"], 0)
+        self.assertEqual({papel["tipo"] for papel in personas[0]["papeles"]}, {"ministro"})
+
+    def test_numero_de_consultas_de_la_ficha_no_depende_del_tamano(self):
+        ana = self._escenario_ana()
+        with CaptureQueriesContext(connection) as captura:
+            self.client.get(reverse("personas:ficha", args=[ana.documento_id]))
+        consultas_pequeno = len(captura)
+
+        esposo2 = self.crear_fiel("666", nombres="Otro", apellidos="Esposo")
+        matrimonio = self.crear_matrimonio()
+        self._crear_contrayente(matrimonio, ana, "M")
+        self._crear_contrayente(matrimonio, esposo2, "H")
+
+        with CaptureQueriesContext(connection) as captura:
+            respuesta = self.client.get(reverse("personas:ficha", args=[ana.documento_id]))
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertEqual(len(captura), consultas_pequeno)
+
+    @override_settings(NOMBRE_PARROQUIA="")
+    def test_ficha_incluye_el_nombre_en_el_bloque_que_se_imprime(self):
+        ana = self._escenario_ana()
+        respuesta = self.client.get(reverse("personas:ficha", args=[ana.documento_id]))
+        contenido = respuesta.content.decode()
+        self.assertContains(respuesta, '<h1 class="print-nombre">Ana María López Pérez</h1>')
+        self.assertContains(respuesta, '<p class="print-documento">CC 333</p>')
+        self.assertContains(respuesta, "Ficha de persona · Sistema de Gestión Parroquial")
+        self.assertContains(respuesta, "Impreso el")
+        inicio = contenido.index('class="print-encabezado"')
+        bloque = contenido[inicio:]
+        for insignia in ("insignia--fiel", "insignia--madre", "insignia--ministro"):
+            self.assertIn(insignia, bloque)
+
+    def test_botones_llevan_la_clase_que_se_oculta_al_imprimir(self):
+        ana = self._escenario_ana()
+        respuesta = self.client.get(reverse("personas:ficha", args=[ana.documento_id]))
+        self.assertContains(respuesta, 'class="btn btn-default btn-sm no-print"')
+        self.assertContains(respuesta, 'class="btn btn-tema btn-sm no-print"')
+
+    def test_historial_sin_usuario_muestra_datos_de_demostracion(self):
+        parroco_demo = Ministro.objects.create(
+            documento=Documento.objects.create(
+                tipo_documento=TipoDocumento.CC, numero_documento="9990000001"
+            ),
+            nombre="Rafael",
+            apellido="Betancur",
+            cargo=CargoMinisterial.PARROCO,
+        )
+        self.parroquia.parroco = parroco_demo
+        self.parroquia.save(update_fields=["parroco"])
+        ana = self._escenario_ana()
+        confirmacion = Sacramento.objects.filter(fiel=ana, tipo=TipoSacramento.CONFIRMACION).first()
+        HistorialSacramento.objects.create(
+            sacramento=confirmacion, accion=AccionHistorial.CREACION, descripcion="Sin usuario"
+        )
+        respuesta = self.client.get(reverse("personas:ficha", args=[ana.documento_id]))
+        self.assertContains(respuesta, "<td>Datos de demostración</td>")
+        self.assertContains(respuesta, "tester (Administrador)")
+
+    def test_historial_sin_usuario_en_parroquia_no_demo_muestra_sistema(self):
+        fiel = self.crear_fiel("333", nombres="Ana", apellidos="Prueba")
+        sacramento = self.crear_sacramento(TipoSacramento.BAUTISMO, fiel)
+        HistorialSacramento.objects.create(
+            sacramento=sacramento, accion=AccionHistorial.CREACION, descripcion="Sin usuario"
+        )
+        respuesta = self.client.get(reverse("personas:ficha", args=[fiel.documento_id]))
+        self.assertContains(respuesta, "<td>Sistema</td>")
+        self.assertNotContains(respuesta, "Datos de demostración")
 
 
 # ---------------------------------------------------------------------------
@@ -757,6 +1103,7 @@ class LoginRequeridoPersonasTests(TestCase):
     def test_todas_las_vistas_redirigen_al_login_sin_sesion(self):
         urls = [
             reverse("personas:consultar"),
+            reverse("personas:ficha", args=[1]),
             reverse("personas:padre_editar", args=[1]),
             reverse("personas:madre_editar", args=[1]),
             reverse("personas:padrino_editar", args=[1]),

@@ -1,0 +1,55 @@
+{% load static %}<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Página no encontrada - Sistema de Gestión Parroquial</title>
+  <link rel="stylesheet" href="{% static 'css/tema.css' %}">
+  <style>
+    .pagina-error {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: var(--esp-3);
+    }
+    .pagina-error .card {
+      width: 100%;
+      max-width: 520px;
+    }
+    .pagina-error .card-body {
+      padding: var(--esp-4);
+      text-align: center;
+    }
+    .error-codigo {
+      margin: 0;
+      color: var(--gp-activo);
+      font-size: 3.5rem;
+      font-weight: 700;
+      line-height: 1;
+    }
+    .error-titulo {
+      margin: var(--esp-2) 0 var(--esp-1);
+      color: var(--gp-texto);
+      font-size: 1.4rem;
+      font-weight: 700;
+    }
+    .error-texto {
+      margin: 0 0 var(--esp-3);
+      color: var(--gp-texto-suave);
+    }
+  </style>
+</head>
+<body>
+  <main class="pagina-error">
+    <div class="card">
+      <div class="card-body">
+        <p class="error-codigo">404</p>
+        <h1 class="error-titulo">Página no encontrada</h1>
+        <p class="error-texto">La página que buscas no existe o cambió de dirección.</p>
+        <a href="/" class="btn btn-tema">Volver al inicio</a>
+      </div>
+    </div>
+  </main>
+</body>
+</html>

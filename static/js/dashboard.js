@@ -19,6 +19,13 @@
 
   var datos = JSON.parse(origen.textContent);
 
+  function quitarEsqueleto() {
+    var esqueleto = document.querySelector(".esqueleto-grafico");
+    if (esqueleto && esqueleto.parentNode) {
+      esqueleto.parentNode.removeChild(esqueleto);
+    }
+  }
+
   var COLORES = {
     BAUTISMO: { borde: "#4A78B5", fondo: "rgba(74, 120, 181, 0.7)" },
     PRIMERA_COMUNION: { borde: "#4E8A6E", fondo: "rgba(78, 138, 110, 0.7)" },
@@ -59,6 +66,7 @@
     options: {
       responsive: true,
       maintainAspectRatio: false,
+      animation: { onComplete: quitarEsqueleto },
       interaction: { mode: "index", intersect: false },
       plugins: {
         legend: { position: "bottom", labels: { usePointStyle: true, boxWidth: 8 } },

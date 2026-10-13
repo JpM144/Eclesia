@@ -37,7 +37,7 @@
            aria-haspopup="true" aria-expanded="false" aria-label="Anotaciones por comunicar">
           <i class="far fa-bell"></i>
           {% if anotaciones_pendientes_total %}
-            <span class="badge badge-warning navbar-badge">{{ anotaciones_pendientes_total }}</span>
+            <span class="badge badge-campana navbar-badge">{{ anotaciones_pendientes_total }}</span>
           {% endif %}
         </a>
         <div class="dropdown-menu dropdown-menu-right">
@@ -137,6 +137,7 @@
 <!-- AdminLTE 3 -->
 <script src="https://cdn.jsdelivr.net/npm/admin-lte@3.2.0/dist/js/adminlte.min.js"></script>
 <script src="{% static 'js/tema.js' %}"></script>
+<script src="{% static 'js/formularios.js' %}"></script>
 {% block extra_js %}{% endblock %}
 </body>
 </html>

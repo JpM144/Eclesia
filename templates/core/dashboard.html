@@ -163,8 +163,13 @@
         </div>
         <div class="card-body">
           <div class="contenedor-grafico">
-            <canvas id="grafico-sacramentos" role="img"
-                    aria-label="Gráfico de barras con los sacramentos registrados por mes"></canvas>
+            {% if hay_datos_grafico %}
+              <div class="esqueleto-grafico" aria-hidden="true"></div>
+              <canvas id="grafico-sacramentos" role="img"
+                      aria-label="Gráfico de barras con los sacramentos registrados por mes"></canvas>
+            {% else %}
+              {% include "includes/estado_vacio.html" with icono="core/iconos/documento-reloj.svg" titulo="Todavía no hay partidas registradas para graficar" texto="Cuando inscribas partidas aparecerán en esta gráfica." %}
+            {% endif %}
           </div>
         </div>
       </div>
@@ -224,9 +229,7 @@
               </li>
             {% empty %}
               <li class="actividad-vacia">
-                <span class="vacio-circulo">{% include "core/iconos/documento-reloj.svg" %}</span>
-                <p class="vacio-titulo">Aún no hay actividad registrada</p>
-                <p class="vacio-texto">Las últimas acciones aparecerán aquí.</p>
+                {% include "includes/estado_vacio.html" with icono="core/iconos/documento-reloj.svg" titulo="Aún no hay actividad registrada" texto="Las últimas acciones aparecerán aquí." %}
               </li>
             {% endfor %}
           </ul>

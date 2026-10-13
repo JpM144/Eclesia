@@ -37,6 +37,7 @@
   --gp-confirmacion-fondo: #ece6f6;
   --gp-matrimonio: #d04a5c;
   --gp-matrimonio-fondo: #f9e4e7;
+  --gp-peligro: #dc2626;
 
   /* Métricas */
   --gp-radio: 10px;
@@ -317,6 +318,28 @@ a {
   white-space: nowrap;
 }
 
+/* El texto del ítem se recorta con puntos; la etiqueta "Pronto" nunca se corta
+   ni se encoge, aun en ítems largos como "Primera Comunión". */
+.p-con-etiqueta {
+  display: flex;
+  align-items: center;
+  gap: var(--esp-1);
+  min-width: 0;
+}
+
+.p-con-etiqueta .texto-item {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.p-con-etiqueta .etiqueta-pronto {
+  flex: 0 0 auto;
+  margin-left: 0;
+}
+
 .nav-sidebar .nav-link.deshabilitado {
   color: var(--gp-menu-texto-deshabilitado);
   cursor: not-allowed;
@@ -433,6 +456,12 @@ body.sidebar-collapse .menu-cita {
   border-radius: 10px;
   font-size: 0.66rem;
   font-weight: 700;
+}
+
+/* Contador de anotaciones por comunicar: rojo de aviso. */
+.badge-campana {
+  background: var(--gp-peligro);
+  color: #fff;
 }
 
 .navbar-nav .notificaciones .dropdown-header {
@@ -688,4 +717,332 @@ body.sidebar-mini:not(.sidebar-open) .main-sidebar .nav-sidebar .nav-link {
 }
 .nav-item.menu-open .nav-link .right {
   transform: rotate(90deg);
+}
+
+/* ------------------------------------------------------------------ */
+/* Botones y avisos                                                    */
+/* ------------------------------------------------------------------ */
+
+/* Botón principal del tema (azul pizarra, como el menú lateral). */
+.btn-tema {
+  background: var(--gp-activo);
+  border-color: var(--gp-activo);
+  color: #fff;
+}
+
+.btn-tema:hover {
+  background: var(--gp-marino-hover);
+  border-color: var(--gp-marino-hover);
+  color: #fff;
+}
+
+/* Estados consistentes de los botones: .btn-tema y los botones de Bootstrap
+   que se usan en la app (.btn). Transición breve, hover algo más oscuro,
+   :active más oscuro y sin sombra, deshabilitado gris claro sin hover y
+   :focus-visible con un anillo de 3 px que contrasta con el fondo. */
+.btn,
+.btn-tema {
+  transition: background-color 0.18s ease, border-color 0.18s ease, color 0.18s ease,
+    box-shadow 0.18s ease, filter 0.18s ease;
+}
+
+.btn-tema:active {
+  background: var(--gp-marino);
+  border-color: var(--gp-marino);
+  box-shadow: none;
+}
+
+/* Bootstrap oscurece sus botones de color al pasar el cursor y al pulsarlos. */
+.btn:not(.btn-tema):not(:disabled):not(.disabled):hover {
+  filter: brightness(0.94);
+}
+
+.btn:not(.btn-tema):not(:disabled):not(.disabled):active {
+  filter: brightness(0.88);
+  box-shadow: none;
+}
+
+/* Deshabilitado: gris claro, sin realce en hover y cursor de prohibido. */
+.btn:disabled,
+.btn.disabled,
+.btn-tema:disabled,
+.btn-tema.disabled {
+  background-color: #eef0f4 !important;
+  border-color: #d9dee6 !important;
+  color: #9aa3b2 !important;
+  opacity: 1;
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+/* Anillo de foco visible para navegación con teclado. */
+.btn:focus-visible,
+.btn-tema:focus-visible {
+  outline: 3px solid #1d4ed8;
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn,
+  .btn-tema {
+    transition: none;
+  }
+}
+
+/* Mensajes de éxito: tono verde salvia suave con texto legible. */
+.alert-success {
+  background: var(--gp-comunion-fondo);
+  border-color: #bcddc9;
+  color: #1f4a35;
+}
+
+/* ------------------------------------------------------------------ */
+/* Estado vacío reutilizable (includes/estado_vacio.html)              */
+/* ------------------------------------------------------------------ */
+
+.estado-vacio {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--esp-4) var(--esp-3);
+  text-align: center;
+}
+
+.estado-vacio .vacio-circulo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  margin-bottom: 0.75rem;
+  border-radius: 50%;
+  color: var(--gp-texto-suave);
+  background: var(--gp-contenido);
+}
+
+.estado-vacio .vacio-circulo svg {
+  width: 28px;
+  height: 28px;
+}
+
+.estado-vacio .vacio-titulo {
+  margin: 0;
+  color: var(--gp-texto);
+  font-weight: 700;
+}
+
+.estado-vacio .vacio-texto {
+  max-width: 34rem;
+  margin: 0.15rem 0 0;
+  color: var(--gp-texto-suave);
+  font-size: 0.85rem;
+}
+
+.estado-vacio .vacio-boton {
+  margin-top: var(--esp-2);
+}
+
+/* ------------------------------------------------------------------ */
+/* Consulta de personas y ficha de persona                             */
+/* ------------------------------------------------------------------ */
+
+.resultado-persona .card-body {
+  padding: var(--esp-2) var(--esp-3);
+}
+
+.fila-persona {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--esp-1) var(--esp-2);
+}
+
+.info-principal {
+  min-width: 0;
+}
+
+.nombre-persona {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--gp-texto);
+  text-decoration: none;
+}
+
+.nombre-persona:hover,
+.nombre-persona:focus {
+  color: var(--gp-bautismo);
+  text-decoration: underline;
+}
+
+.registros-adicionales {
+  color: var(--gp-texto-suave);
+  font-size: 0.8rem;
+}
+
+.documento-persona {
+  color: var(--gp-texto-suave);
+  font-size: 0.85rem;
+}
+
+.acciones-laterales {
+  display: flex;
+  align-items: center;
+  gap: var(--esp-2);
+}
+
+.conteo-partidas {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--gp-texto-suave);
+  font-size: 0.85rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.linea-ministro {
+  margin-top: var(--esp-1);
+  margin-bottom: 0;
+  color: var(--gp-confirmacion);
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+/* Insignias de los papeles de la persona (fiel, padre, ministro, ...). */
+.insignias {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--esp-1);
+  margin-top: var(--esp-2);
+}
+
+.insignia {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.insignia--fiel {
+  background: var(--gp-bautismo-fondo);
+  color: var(--gp-bautismo);
+}
+
+.insignia--padre,
+.insignia--madre {
+  background: #eef0f4;
+  color: #475069;
+}
+
+.insignia--padrino {
+  background: var(--gp-comunion-fondo);
+  color: var(--gp-comunion);
+}
+
+.insignia--ministro {
+  background: var(--gp-confirmacion-fondo);
+  color: var(--gp-confirmacion);
+}
+
+.insignia--testigo,
+.insignia--padrino_matrimonio {
+  background: var(--gp-matrimonio-fondo);
+  color: var(--gp-matrimonio);
+}
+
+.insignias-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--esp-1);
+  margin-top: var(--esp-2);
+}
+
+.anotacion-fila {
+  background: var(--gp-contenido);
+}
+
+.anotacion-etiqueta {
+  color: var(--gp-texto-suave);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.relaciones-lista {
+  padding-left: var(--esp-2);
+  margin-bottom: var(--esp-2);
+  font-size: 0.85rem;
+}
+
+/* ------------------------------------------------------------------ */
+/* Impresión                                                           */
+/* ------------------------------------------------------------------ */
+
+.print-encabezado {
+  display: none;
+}
+
+@media print {
+  .main-sidebar,
+  .main-header,
+  .main-footer,
+  .no-print {
+    display: none !important;
+  }
+
+  .print-encabezado {
+    display: block !important;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #6c757d;
+  }
+
+  .print-linea-superior {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    font-size: 0.85rem;
+    color: #495057;
+    margin-bottom: 0.75rem;
+  }
+
+  .print-persona {
+    margin-bottom: 0.5rem;
+  }
+
+  .print-nombre {
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin: 0;
+  }
+
+  .print-documento {
+    margin: 0;
+    color: #495057;
+  }
+
+  .content-wrapper {
+    margin-left: 0 !important;
+  }
+
+  .content,
+  .container-fluid {
+    padding: 0 !important;
+  }
+
+  body,
+  .content-wrapper {
+    background: #fff !important;
+  }
+
+  .card {
+    border: none !important;
+    box-shadow: none !important;
+  }
 }
