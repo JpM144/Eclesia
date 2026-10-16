@@ -1,0 +1,122 @@
+{% comment %}
+Grupos de campos del bautismo (bautizado, filiación, padres, abuelos y padrinos).
+Se incluye con `with form=form` desde el alta y la corrección de una partida.
+{% endcomment %}
+<h5 class="mt-4 mb-3">Datos del bautizado</h5>
+<div class="bloque-persona" data-rol="fiel">
+  <div class="row align-items-start">
+    <div class="col-md-4">{% include "sacramentos/includes/campo.html" with campo=form.fiel_tipo_documento %}</div>
+    <div class="col-md-5">{% include "sacramentos/includes/campo.html" with campo=form.fiel_numero_documento %}</div>
+    <div class="col-md-3">
+      <label class="d-block" aria-hidden="true">&nbsp;</label>
+      <button type="button" class="btn btn-outline-secondary btn-sm" data-buscar-persona>
+        <i class="fas fa-search"></i> Buscar
+      </button>
+    </div>
+  </div>
+  <div data-nota-persona class="text-muted small mb-2"></div>
+  <div class="row">
+    <div class="col-md-6">{% include "sacramentos/includes/campo.html" with campo=form.fiel_nombres %}</div>
+    <div class="col-md-6">{% include "sacramentos/includes/campo.html" with campo=form.fiel_apellidos %}</div>
+  </div>
+  <div class="row">
+    <div class="col-md-6">{% include "sacramentos/includes/campo.html" with campo=form.fiel_fecha_nacimiento %}</div>
+    <div class="col-md-6">{% include "sacramentos/includes/campo.html" with campo=form.fiel_sexo %}</div>
+  </div>
+  <div class="row">
+    <div class="col-md-4">{% include "sacramentos/includes/campo.html" with campo=form.fiel_pais %}</div>
+    <div class="col-md-4">{% include "sacramentos/includes/campo.html" with campo=form.fiel_departamento %}</div>
+    <div class="col-md-4">{% include "sacramentos/includes/campo.html" with campo=form.fiel_municipio_nacimiento %}</div>
+  </div>
+  <div class="row">
+    <div class="col-md-6">{% include "sacramentos/includes/campo.html" with campo=form.fiel_telefono %}</div>
+  </div>
+</div>
+
+<h5 class="mt-4 mb-3">Filiación</h5>
+<div class="row">
+  <div class="col-md-4">{% include "sacramentos/includes/campo.html" with campo=form.tipo_hijo %}</div>
+  <div class="col-md-4">{% include "sacramentos/includes/campo.html" with campo=form.padre_biologico_nombre %}</div>
+  <div class="col-md-4">{% include "sacramentos/includes/campo.html" with campo=form.madre_biologica_nombre %}</div>
+</div>
+
+<h5 class="mt-4 mb-3">Padres</h5>
+<div class="bloque-persona" data-rol="padre">
+  <p class="text-muted small mb-2">Padre</p>
+  <div class="row align-items-start">
+    <div class="col-md-4">{% include "sacramentos/includes/campo.html" with campo=form.padre_tipo_documento %}</div>
+    <div class="col-md-5">{% include "sacramentos/includes/campo.html" with campo=form.padre_numero_documento %}</div>
+    <div class="col-md-3">
+      <label class="d-block" aria-hidden="true">&nbsp;</label>
+      <button type="button" class="btn btn-outline-secondary btn-sm" data-buscar-persona>
+        <i class="fas fa-search"></i> Buscar
+      </button>
+    </div>
+  </div>
+  <div data-nota-persona class="text-muted small mb-2"></div>
+  <div class="row">
+    <div class="col-md-6">{% include "sacramentos/includes/campo.html" with campo=form.padre_nombre %}</div>
+    <div class="col-md-6">{% include "sacramentos/includes/campo.html" with campo=form.padre_apellido %}</div>
+  </div>
+</div>
+<div class="bloque-persona" data-rol="madre">
+  <p class="text-muted small mb-2">Madre</p>
+  <div class="row align-items-start">
+    <div class="col-md-4">{% include "sacramentos/includes/campo.html" with campo=form.madre_tipo_documento %}</div>
+    <div class="col-md-5">{% include "sacramentos/includes/campo.html" with campo=form.madre_numero_documento %}</div>
+    <div class="col-md-3">
+      <label class="d-block" aria-hidden="true">&nbsp;</label>
+      <button type="button" class="btn btn-outline-secondary btn-sm" data-buscar-persona>
+        <i class="fas fa-search"></i> Buscar
+      </button>
+    </div>
+  </div>
+  <div data-nota-persona class="text-muted small mb-2"></div>
+  <div class="row">
+    <div class="col-md-6">{% include "sacramentos/includes/campo.html" with campo=form.madre_nombre %}</div>
+    <div class="col-md-6">{% include "sacramentos/includes/campo.html" with campo=form.madre_apellido %}</div>
+  </div>
+</div>
+
+<h5 class="mt-4 mb-3">Abuelos</h5>
+<div class="row">
+  <div class="col-md-6">{% include "sacramentos/includes/campo.html" with campo=form.abuelo_paterno %}</div>
+  <div class="col-md-6">{% include "sacramentos/includes/campo.html" with campo=form.abuela_paterna %}</div>
+</div>
+<div class="row">
+  <div class="col-md-6">{% include "sacramentos/includes/campo.html" with campo=form.abuelo_materno %}</div>
+  <div class="col-md-6">{% include "sacramentos/includes/campo.html" with campo=form.abuela_materna %}</div>
+</div>
+
+<h5 class="mt-4 mb-3">Padrinos o testigo</h5>
+<div class="bloque-persona" data-rol="padrino">
+  <p class="text-muted small mb-2">Padrino</p>
+  <div class="row align-items-start">
+    <div class="col-md-4">{% include "sacramentos/includes/campo.html" with campo=form.padrino_tipo_documento %}</div>
+    <div class="col-md-5">{% include "sacramentos/includes/campo.html" with campo=form.padrino_numero_documento %}</div>
+    <div class="col-md-3">
+      <label class="d-block" aria-hidden="true">&nbsp;</label>
+      <button type="button" class="btn btn-outline-secondary btn-sm" data-buscar-persona>
+        <i class="fas fa-search"></i> Buscar
+      </button>
+    </div>
+  </div>
+  <div data-nota-persona class="text-muted small mb-2"></div>
+  {% include "sacramentos/includes/campo.html" with campo=form.padrino_nombre %}
+</div>
+<div class="bloque-persona" data-rol="madrina">
+  <p class="text-muted small mb-2">Madrina</p>
+  <div class="row align-items-start">
+    <div class="col-md-4">{% include "sacramentos/includes/campo.html" with campo=form.madrina_tipo_documento %}</div>
+    <div class="col-md-5">{% include "sacramentos/includes/campo.html" with campo=form.madrina_numero_documento %}</div>
+    <div class="col-md-3">
+      <label class="d-block" aria-hidden="true">&nbsp;</label>
+      <button type="button" class="btn btn-outline-secondary btn-sm" data-buscar-persona>
+        <i class="fas fa-search"></i> Buscar
+      </button>
+    </div>
+  </div>
+  <div data-nota-persona class="text-muted small mb-2"></div>
+  {% include "sacramentos/includes/campo.html" with campo=form.madrina_nombre %}
+</div>
+{% include "sacramentos/includes/campo.html" with campo=form.testigo_nombre %}

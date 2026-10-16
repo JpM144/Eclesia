@@ -1,6 +1,6 @@
 from django.core.exceptions import ValidationError
 from django.db import transaction
-from django.db.models import Max
+from django.db.models import Count, Max
 
 from core.choices import EstadoLibro, EstadoRegistro, TipoSacramento
 from sacramentos.models import Sacramento
@@ -12,10 +12,34 @@ def siguiente_numero_partida(libro):
     return (ultimo or 0) + 1
 
 
-def folio_sugerido(libro):
-    """Número de folio de la última partida del libro, o 1 si aún no hay partidas."""
-    ultima = libro.sacramentos.select_related("folio").order_by("-fecha", "-numero").first()
-    return ultima.folio.numero_folio if ultima else 1
+def folio_para_nueva_partida(libro):
+    """Folio que corresponde a la siguiente partida del libro, creándolo si falta.
+
+    Cada folio admite ``libro.partidas_por_folio`` partidas. Se continúa en el
+    folio de la última partida mientras le queden espacios y, cuando se llena,
+    se pasa al siguiente. Las partidas anuladas también cuentan porque siguen
+    ocupando su lugar en el libro. Si se agotó el total de folios declarado, no
+    se puede registrar otra partida y se lanza ``ValidationError``.
+    """
+    resumen = (
+        Sacramento.objects.filter(libro=libro)
+        .values("folio__numero_folio")
+        .annotate(total=Count("id"))
+    )
+    if not resumen:
+        numero = 1
+    else:
+        ultimo = max(fila["folio__numero_folio"] for fila in resumen)
+        ocupadas = next(fila["total"] for fila in resumen if fila["folio__numero_folio"] == ultimo)
+        numero = ultimo if ocupadas < libro.partidas_por_folio else ultimo + 1
+
+    if libro.total_folios and numero > libro.total_folios:
+        raise ValidationError(
+            "El libro está lleno: ciérralo y abre uno nuevo para seguir registrando."
+        )
+
+    folio, _ = libro.folios.get_or_create(numero_folio=numero)
+    return folio
 
 
 @transaction.atomic

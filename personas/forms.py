@@ -1,7 +1,14 @@
 from django import forms
+from django.core.exceptions import ValidationError
 
 from core.choices import TipoDocumento
-from core.forms import FormularioBase
+from core.forms import (
+    FormularioBase,
+    marcar_documento,
+    marcar_solo_letras,
+    marcar_solo_numeros,
+)
+from core.validators import normalizar_documento, validar_documento
 from personas.models import Documento, Fiel, Madre, Padre, Padrino
 
 SOLO_DIGITOS = (TipoDocumento.CC, TipoDocumento.TI, TipoDocumento.RC)
@@ -49,6 +56,12 @@ class DocumentoMixin(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        marcar_documento(self.fields["tipo_documento"], self.fields["numero_documento"])
+        for nombre in ("nombre", "apellido", "nombres", "apellidos"):
+            if nombre in self.fields:
+                marcar_solo_letras(self.fields[nombre])
+        if "telefono" in self.fields:
+            marcar_solo_numeros(self.fields["telefono"])
         if self.instance.pk and self.instance.documento_id:
             documento = self.instance.documento
             self.fields["tipo_documento"].initial = documento.tipo_documento
@@ -57,10 +70,7 @@ class DocumentoMixin(forms.ModelForm):
     @staticmethod
     def normalizar_numero(tipo, numero):
         """Quita separadores y ajusta mayúsculas/dígitos según el tipo."""
-        limpio = numero.replace(".", "").replace(" ", "").replace("-", "")
-        if tipo in CON_MAYUSCULAS:
-            return limpio.upper()
-        return limpio
+        return normalizar_documento(tipo, numero)
 
     def clean(self):
         datos = super().clean()
@@ -79,8 +89,10 @@ class DocumentoMixin(forms.ModelForm):
             return datos
 
         numero = self.normalizar_numero(tipo, numero)
-        if tipo in SOLO_DIGITOS and not numero.isdigit():
-            self.add_error("numero_documento", "El documento debe contener solo números.")
+        try:
+            validar_documento(tipo, numero)
+        except ValidationError as error:
+            self.add_error("numero_documento", error.messages)
             return datos
 
         datos["numero_documento"] = numero

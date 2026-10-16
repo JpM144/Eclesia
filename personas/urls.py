@@ -15,6 +15,7 @@ urlpatterns = [
     # API
     path("api/padre/", views.api_padre, name="api_padre"),
     path("api/madre/", views.api_madre, name="api_madre"),
+    path("api/persona/", views.api_persona, name="api_persona"),
     # Ficha de persona (por documento)
     path("<int:pk>/", views.ficha_persona_view, name="ficha"),
 ]

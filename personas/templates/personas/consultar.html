@@ -100,7 +100,7 @@
                 <td>{{ mencion.partida.fecha|date:"d/m/Y" }}</td>
                 <td>{{ mencion.partida.libro }}</td>
                 <td>{{ mencion.partida.folio }}</td>
-                <td>{# TODO: enlace al detalle de la partida #}{{ mencion.partida.numero }}</td>
+                <td>{% if mencion.partida.url_detalle %}<a href="{{ mencion.partida.url_detalle }}">{{ mencion.partida.numero }}</a>{% else %}{{ mencion.partida.numero }}{% endif %}</td>
               </tr>
             {% endfor %}
           </tbody>

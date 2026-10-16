@@ -7,6 +7,8 @@ from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 
 from core.choices import RolUsuario
+from core.forms import marcar_solo_letras
+from core.validators import solo_letras
 
 CAMPOS = [
     "nombres",
@@ -47,6 +49,18 @@ class RegistroForm(UserCreationForm):
         self.fields["username"].label = "Usuario"
         for campo in self.fields.values():
             campo.widget.attrs["class"] = "form-control"
+        marcar_solo_letras(self.fields["nombres"])
+        marcar_solo_letras(self.fields["apellidos"])
+
+    def clean_nombres(self):
+        nombres = self.cleaned_data["nombres"]
+        solo_letras(nombres)
+        return nombres
+
+    def clean_apellidos(self):
+        apellidos = self.cleaned_data["apellidos"]
+        solo_letras(apellidos)
+        return apellidos
 
     def clean_correo(self):
         correo = self.cleaned_data["correo"]

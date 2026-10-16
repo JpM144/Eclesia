@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Editar bautismo - Sistema de Gestión Parroquial{% endblock %}
+{% block heading %}Editar bautismo{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-body">
+    <div class="alert alert-info">
+      <i class="fas fa-info-circle"></i>
+      Corrija los datos necesarios. El libro, el folio, el número de partida y la
+      fecha de registro no cambian: la corrección queda anotada en el margen y en
+      el historial de la partida.
+      <span class="d-block mt-1">
+        Los nombres y documentos de las personas ya vinculadas no se editan aquí:
+        corríjalos desde la ficha de la persona.
+      </span>
+    </div>
+
+    {% if form.aviso_partidas %}
+      <div class="alert alert-warning">
+        <i class="fas fa-exclamation-triangle"></i>
+        Este cambio también se verá en las {{ form.aviso_partidas }} partidas donde aparece esta persona.
+      </div>
+    {% endif %}
+
+    {% if form.non_field_errors %}
+      <div class="alert alert-danger">
+        {% for error in form.non_field_errors %}
+          <p class="mb-0">{{ error }}</p>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    <form method="post" novalidate data-evitar-doble-envio>
+      {% csrf_token %}
+
+      <h5 class="mb-3">Datos de la partida</h5>
+      <p class="text-muted small">
+        Folio {{ sacramento.folio.numero_folio }} · N.° {{ sacramento.numero }} ·
+        Registrada el {{ sacramento.fecha_registro|date:"d/m/Y" }}
+      </p>
+      <div class="row">
+        <div class="col-md-6">{% include "sacramentos/includes/campo.html" with campo=form.libro %}</div>
+        <div class="col-md-6">{% include "sacramentos/includes/campo.html" with campo=form.fecha %}</div>
+      </div>
+      <div class="row">
+        <div class="col-md-6">{% include "sacramentos/includes/campo.html" with campo=form.ministro %}</div>
+        <div class="col-md-6">{% include "sacramentos/includes/campo.html" with campo=form.doy_fe %}</div>
+      </div>
+      {% include "sacramentos/includes/campo.html" with campo=form.observaciones %}
+
+      <h5 class="mt-4 mb-3">Motivo de la corrección</h5>
+      {% include "sacramentos/includes/campo.html" with campo=form.motivo %}
+
+      {% include "sacramentos/includes/campos_bautismo.html" with form=form %}
+
+      <div class="mt-3">
+        <button type="submit" class="btn btn-primary">
+          <i class="fas fa-save"></i> Guardar corrección
+        </button>
+        <a href="{% url 'sacramentos:bautismo_detalle' bautismo.pk %}" class="btn btn-secondary">Cancelar</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/buscar_persona.js' %}"></script>
+<script src="{% static 'js/ubicacion.js' %}"></script>
+{% endblock %}

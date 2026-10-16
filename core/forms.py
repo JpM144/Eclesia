@@ -15,6 +15,25 @@ def widget_cascada(rol, url=None):
     return forms.Select(attrs=atributos)
 
 
+def marcar_solo_letras(campo):
+    """Marca el widget de ``campo`` con ``data-solo-letras`` (lo lee formularios.js)."""
+    campo.widget.attrs["data-solo-letras"] = "si"
+
+
+def marcar_solo_numeros(campo, numerico=True):
+    """Marca el widget de ``campo`` con ``data-solo-numeros`` e ``inputmode``."""
+    campo.widget.attrs["data-solo-numeros"] = "si"
+    if numerico:
+        campo.widget.attrs["inputmode"] = "numeric"
+
+
+def marcar_documento(campo_tipo, campo_numero):
+    """Marca el par tipo/número de documento para ``buscar_persona.js``."""
+    campo_tipo.widget.attrs["data-documento-tipo"] = "tipo"
+    campo_numero.widget.attrs["data-documento-numero"] = "numero"
+    marcar_solo_numeros(campo_numero)
+
+
 class FormularioBase(forms.ModelForm):
     """ModelForm que aplica la clase CSS ``form-control`` a todos los widgets.
 

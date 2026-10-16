@@ -1,0 +1,330 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Detalle del bautismo - Sistema de Gestión Parroquial{% endblock %}
+{% block heading %}Detalle del bautismo{% endblock %}
+
+{% block extra_css %}
+<style>
+  @media print {
+    .main-sidebar,
+    .main-header,
+    .main-footer,
+    .content-header,
+    .no-print {
+      display: none !important;
+    }
+    .content-wrapper {
+      margin-left: 0 !important;
+    }
+    .content,
+    .container-fluid {
+      padding: 0 !important;
+    }
+    .card {
+      border: none !important;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="print-encabezado">
+  <div class="print-linea-superior">
+    <span>Partida de bautismo</span>
+    <span>Impreso el {% now "d/m/Y H:i" %}</span>
+  </div>
+  <div class="print-persona">
+    <h1 class="print-nombre">{{ bautismo.sacramento.fiel }}</h1>
+    <p class="print-documento">{{ bautismo.sacramento.fiel.documento }}</p>
+  </div>
+</div>
+
+<div class="no-print d-flex flex-wrap align-items-center justify-content-between mb-3">
+  <div>
+    <h1 class="h4 mb-1">Bautismo</h1>
+    <p class="text-muted mb-0">
+      Libro {{ sacramento.folio.libro.numero_libro|default:sacramento.folio.libro.nombre }} · Folio {{ sacramento.folio.numero_folio }} · N.° {{ sacramento.numero }}
+    </p>
+  </div>
+  <div class="mt-2 mt-md-0">
+    {% if puede_editar %}
+      <a href="{% url 'sacramentos:bautismo_editar' bautismo.pk %}" class="btn btn-info btn-sm no-print">
+        <i class="fas fa-pencil-alt"></i> Editar
+      </a>
+    {% endif %}
+    {% if puede_anular %}
+      <a href="{% url 'sacramentos:bautismo_anular' bautismo.pk %}" class="btn btn-warning btn-sm no-print">
+        <i class="fas fa-ban"></i> Anular
+      </a>
+    {% endif %}
+    {% if puede_eliminar %}
+      <a href="{% url 'sacramentos:bautismo_eliminar' bautismo.pk %}" class="btn btn-danger btn-sm no-print">
+        <i class="fas fa-trash"></i> Eliminar
+      </a>
+    {% endif %}
+    <a href="{% url 'sacramentos:bautismo_lista' %}" class="btn btn-secondary btn-sm no-print">
+      <i class="fas fa-arrow-left"></i> Volver
+    </a>
+    <button type="button" class="btn btn-default btn-sm no-print" onclick="window.print()">
+      <i class="fas fa-print"></i> Imprimir
+    </button>
+  </div>
+</div>
+
+<div class="row">
+  <div class="col-lg-6">
+    <div class="card mb-3">
+      <div class="card-header">
+        <h2 class="card-title h6 mb-0">Datos de la partida</h2>
+      </div>
+      <div class="card-body">
+        <dl class="row mb-0">
+          <dt class="col-sm-5">Fecha del bautismo</dt>
+          <dd class="col-sm-7 mb-1">{{ sacramento.fecha|date:"d/m/Y" }}</dd>
+          <dt class="col-sm-5">Fecha de registro</dt>
+          <dd class="col-sm-7 mb-1">{{ sacramento.fecha_registro|date:"d/m/Y" }}</dd>
+          <dt class="col-sm-5">Libro</dt>
+          <dd class="col-sm-7 mb-1">{{ sacramento.folio.libro }}</dd>
+          <dt class="col-sm-5">Folio</dt>
+          <dd class="col-sm-7 mb-1">{{ sacramento.folio.numero_folio }}</dd>
+          <dt class="col-sm-5">Número de partida</dt>
+          <dd class="col-sm-7 mb-1">{{ sacramento.numero }}</dd>
+          <dt class="col-sm-5">Parroquia</dt>
+          <dd class="col-sm-7 mb-1">{{ sacramento.parroquia|default:"—" }}</dd>
+          <dt class="col-sm-5">Ministro que bautizó</dt>
+          <dd class="col-sm-7 mb-1">{{ sacramento.ministro|default:"—" }}</dd>
+          <dt class="col-sm-5">Ministro que firma</dt>
+          <dd class="col-sm-7 mb-1">{{ bautismo.quien_firma|default:"—" }}</dd>
+          <dt class="col-sm-5">Quien da fe</dt>
+          <dd class="col-sm-7 mb-1">{{ bautismo.doy_fe|default:"—" }}</dd>
+          <dt class="col-sm-5">Estado</dt>
+          <dd class="col-sm-7 mb-1">
+            {% if sacramento.estado == "ACTIVO" %}
+              <span class="badge badge-success">Activo</span>
+            {% elif sacramento.estado == "CORREGIDO" %}
+              <span class="badge badge-info">Corregido</span>
+            {% elif sacramento.estado == "ANULADO" %}
+              <span class="badge badge-danger">Anulado</span>
+            {% else %}
+              <span class="badge badge-secondary">{{ sacramento.get_estado_display }}</span>
+            {% endif %}
+          </dd>
+          {% if sacramento.observaciones %}
+            <dt class="col-sm-5">Observaciones</dt>
+            <dd class="col-sm-7 mb-1">{{ sacramento.observaciones|linebreaksbr }}</dd>
+          {% endif %}
+        </dl>
+      </div>
+    </div>
+
+    <div class="card mb-3">
+      <div class="card-header">
+        <h2 class="card-title h6 mb-0">Datos del bautizado</h2>
+      </div>
+      <div class="card-body">
+        <dl class="row mb-0">
+          <dt class="col-sm-5">Nombre completo</dt>
+          <dd class="col-sm-7 mb-1">
+            {% if bautismo.sacramento.fiel.documento_id %}
+              <a href="{% url 'personas:ficha' bautismo.sacramento.fiel.documento_id %}">{{ bautismo.sacramento.fiel }}</a>
+            {% else %}
+              {{ bautismo.sacramento.fiel }}
+            {% endif %}
+          </dd>
+          <dt class="col-sm-5">Documento</dt>
+          <dd class="col-sm-7 mb-1">{{ bautismo.sacramento.fiel.documento|default:"—" }}</dd>
+          <dt class="col-sm-5">Fecha de nacimiento</dt>
+          <dd class="col-sm-7 mb-1">{{ bautismo.sacramento.fiel.fecha_nacimiento|date:"d/m/Y"|default:"—" }}</dd>
+          <dt class="col-sm-5">Sexo</dt>
+          <dd class="col-sm-7 mb-1">{{ bautismo.sacramento.fiel.get_sexo_display|default:"—" }}</dd>
+          <dt class="col-sm-5">Municipio de nacimiento</dt>
+          <dd class="col-sm-7 mb-1">{{ bautismo.sacramento.fiel.municipio_nacimiento|default:"—" }}</dd>
+          <dt class="col-sm-5">Teléfono</dt>
+          <dd class="col-sm-7 mb-1">{{ bautismo.sacramento.fiel.telefono|default:"—" }}</dd>
+          <dt class="col-sm-5">Tipo de hijo</dt>
+          <dd class="col-sm-7 mb-1">{{ bautismo.get_tipo_hijo_display }}</dd>
+          {% if bautismo.padre_biologico_nombre %}
+            <dt class="col-sm-5">Padre biológico</dt>
+            <dd class="col-sm-7 mb-1">{{ bautismo.padre_biologico_nombre }}</dd>
+          {% endif %}
+          {% if bautismo.madre_biologica_nombre %}
+            <dt class="col-sm-5">Madre biológica</dt>
+            <dd class="col-sm-7 mb-1">{{ bautismo.madre_biologica_nombre }}</dd>
+          {% endif %}
+        </dl>
+      </div>
+    </div>
+
+    <div class="card mb-3">
+      <div class="card-header">
+        <h2 class="card-title h6 mb-0">Padres</h2>
+      </div>
+      <div class="card-body">
+        <dl class="row mb-0">
+          <dt class="col-sm-5">Padre</dt>
+          <dd class="col-sm-7 mb-1">
+            {% if bautismo.padre %}
+              {% if bautismo.padre.documento_id %}
+                <a href="{% url 'personas:ficha' bautismo.padre.documento_id %}">{{ bautismo.padre }}</a>
+              {% else %}
+                {{ bautismo.padre }}
+              {% endif %}
+              {% if bautismo.padre.documento %}
+                ({{ bautismo.padre.documento }})
+              {% endif %}
+            {% else %}
+              —
+            {% endif %}
+          </dd>
+          <dt class="col-sm-5">Madre</dt>
+          <dd class="col-sm-7 mb-1">
+            {% if bautismo.madre %}
+              {% if bautismo.madre.documento_id %}
+                <a href="{% url 'personas:ficha' bautismo.madre.documento_id %}">{{ bautismo.madre }}</a>
+              {% else %}
+                {{ bautismo.madre }}
+              {% endif %}
+              {% if bautismo.madre.documento %}
+                ({{ bautismo.madre.documento }})
+              {% endif %}
+            {% else %}
+              —
+            {% endif %}
+          </dd>
+        </dl>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-6">
+    <div class="card mb-3">
+      <div class="card-header">
+        <h2 class="card-title h6 mb-0">Abuelos</h2>
+      </div>
+      <div class="card-body">
+        <dl class="row mb-0">
+          <dt class="col-sm-5">Abuelo paterno</dt>
+          <dd class="col-sm-7 mb-1">{{ bautismo.abuelo_paterno|default:"—" }}</dd>
+          <dt class="col-sm-5">Abuela paterna</dt>
+          <dd class="col-sm-7 mb-1">{{ bautismo.abuela_paterna|default:"—" }}</dd>
+          <dt class="col-sm-5">Abuelo materno</dt>
+          <dd class="col-sm-7 mb-1">{{ bautismo.abuelo_materno|default:"—" }}</dd>
+          <dt class="col-sm-5">Abuela materna</dt>
+          <dd class="col-sm-7 mb-1">{{ bautismo.abuela_materna|default:"—" }}</dd>
+        </dl>
+      </div>
+    </div>
+
+    <div class="card mb-3">
+      <div class="card-header">
+        <h2 class="card-title h6 mb-0">Padrinos y testigo</h2>
+      </div>
+      <div class="card-body">
+        <dl class="row mb-0">
+          <dt class="col-sm-5">Padrino</dt>
+          <dd class="col-sm-7 mb-1">
+            {% if bautismo.padrino %}
+              {% if bautismo.padrino.documento_id %}
+                <a href="{% url 'personas:ficha' bautismo.padrino.documento_id %}">{{ bautismo.padrino }}</a>
+              {% else %}
+                {{ bautismo.padrino }}
+              {% endif %}
+              {% if bautismo.padrino.documento %}
+                ({{ bautismo.padrino.documento }})
+              {% endif %}
+            {% else %}
+              —
+            {% endif %}
+          </dd>
+          <dt class="col-sm-5">Madrina</dt>
+          <dd class="col-sm-7 mb-1">
+            {% if bautismo.madrina %}
+              {% if bautismo.madrina.documento_id %}
+                <a href="{% url 'personas:ficha' bautismo.madrina.documento_id %}">{{ bautismo.madrina }}</a>
+              {% else %}
+                {{ bautismo.madrina }}
+              {% endif %}
+              {% if bautismo.madrina.documento %}
+                ({{ bautismo.madrina.documento }})
+              {% endif %}
+            {% else %}
+              —
+            {% endif %}
+          </dd>
+          {% if bautismo.testigo_nombre %}
+            <dt class="col-sm-5">Testigo</dt>
+            <dd class="col-sm-7 mb-1">{{ bautismo.testigo_nombre }}</dd>
+          {% endif %}
+        </dl>
+      </div>
+    </div>
+
+    {% if anotaciones %}
+      <div class="card mb-3">
+        <div class="card-header">
+          <h2 class="card-title h6 mb-0">Anotaciones marginales</h2>
+        </div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-sm mb-0">
+              <thead>
+                <tr>
+                  <th>Tipo</th>
+                  <th>Fecha</th>
+                  <th>Estado</th>
+                  <th>Destino</th>
+                  <th>Descripción</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for anotacion in anotaciones %}
+                  <tr>
+                    <td>{{ anotacion.get_tipo_display }}</td>
+                    <td>{{ anotacion.fecha|date:"d/m/Y" }}</td>
+                    <td>{{ anotacion.get_estado_display }}</td>
+                    <td>{{ anotacion.parroquia_destino|default:anotacion.parroquia_destino_texto|default:"—" }}</td>
+                    <td>{{ anotacion.descripcion|linebreaksbr }}</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    {% endif %}
+
+    {% if historial %}
+      <div class="card mb-3">
+        <div class="card-header">
+          <h2 class="card-title h6 mb-0">Historial</h2>
+        </div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-sm mb-0">
+              <thead>
+                <tr>
+                  <th>Fecha</th>
+                  <th>Acción</th>
+                  <th>Descripción</th>
+                  <th>Usuario</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for entrada in historial %}
+                  <tr>
+                    <td>{{ entrada.fecha|date:"d/m/Y H:i" }}</td>
+                    <td>{{ entrada.get_accion_display }}</td>
+                    <td>{{ entrada.descripcion|default:"—" }}</td>
+                    <td>{{ entrada.usuario|default:"—" }}</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

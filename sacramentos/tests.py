@@ -1,6 +1,6 @@
 import shutil
 import tempfile
-from datetime import date, time
+from datetime import date, time, timedelta
 
 from django.core.exceptions import ValidationError
 from django.core.files.base import ContentFile
@@ -8,6 +8,8 @@ from django.db import IntegrityError, connection, transaction
 from django.db.models import ProtectedError
 from django.test import TestCase, override_settings
 from django.test.utils import CaptureQueriesContext
+from django.urls import reverse
+from django.utils import timezone
 
 from core.choices import (
     AccionHistorial,
@@ -29,13 +31,13 @@ from core.choices import (
 from parroquias.models import Folio, Libro, Ministro, Parroquia
 from parroquias.services import (
     cerrar_libro,
-    folio_sugerido,
     indice_libro,
     siguiente_numero_partida,
 )
 from personas.models import Documento, Fiel, Madre, Padre, Padrino
 from ubicacion.models import Departamento, Municipio, Pais
 
+from .forms import BautismoEditarForm, BautismoForm
 from .models import (
     AnotacionMarginal,
     Bautismo,
@@ -47,12 +49,21 @@ from .models import (
     Matrimonio,
     NotaMarginalMatrimonio,
     PadrinoMatrimonio,
+    PartidaEliminada,
     PrimeraComunion,
     ProclamaMatrimonio,
     Sacramento,
     TestigoMatrimonio,
 )
-from .services import registrar_historial
+from .services import (
+    anular_bautismo,
+    corregir_bautismo,
+    eliminar_bautismo,
+    motivo_no_eliminable,
+    puede_eliminarse,
+    registrar_bautismo,
+    registrar_historial,
+)
 
 
 class BaseSacramentosTests(TestCase):
@@ -1054,20 +1065,6 @@ class ServiciosLibroTests(BaseSacramentosTests):
         self._crear_sacramento(numero=3)
         self.assertEqual(siguiente_numero_partida(self.libro), 4)
 
-    def test_folio_sugerido_vacio(self):
-        self.assertEqual(folio_sugerido(self.libro), 1)
-
-    def test_folio_sugerido_con_datos(self):
-        folio_2 = Folio.objects.create(libro=self.libro, numero_folio=2)
-        self._crear_sacramento(numero=1, folio=self.folio)
-        self._crear_sacramento(
-            numero=2,
-            folio=folio_2,
-            fecha=date(2026, 4, 1),
-            fecha_registro=date(2026, 4, 1),
-        )
-        self.assertEqual(folio_sugerido(self.libro), 2)
-
     def test_cerrar_libro_correcto(self):
         self._crear_sacramento(numero=1)
         libro = cerrar_libro(self.libro, self.ministro, date(2026, 7, 1), nota="Cierre normal")
@@ -1187,3 +1184,822 @@ class ServiciosLibroTests(BaseSacramentosTests):
 
         self.assertEqual(consultas(libro_pequeno), 2)
         self.assertEqual(consultas(libro_grande), 4)
+
+
+class BautismoBaseTests(TestCase):
+    def setUp(self):
+        pais = Pais.objects.create(nombre="Colombia")
+        departamento = Departamento.objects.create(nombre="Cundinamarca", pais=pais)
+        self.municipio = Municipio.objects.create(nombre="Bogotá", departamento=departamento)
+        self.parroquia = Parroquia.objects.create(
+            nombre="San Pedro Claver",
+            municipio=self.municipio,
+            direccion="Calle 1 # 2-34",
+        )
+        self.libro = Libro.objects.create(
+            nombre="Bautismos 2026",
+            tipo_libro=TipoLibro.BAUTISMOS,
+            detalle="Registro de bautismos",
+            fecha_apertura=date(2026, 1, 1),
+            estado=EstadoLibro.ABIERTO,
+            parroquia=self.parroquia,
+        )
+        self.folio = Folio.objects.create(libro=self.libro, numero_folio=1)
+        self.ministro = Ministro.objects.create(
+            documento=self._crear_documento("1234567890"),
+            nombre="Carlos",
+            apellido="Gómez",
+            cargo=CargoMinisterial.PARROCO,
+        )
+        self.parroco = Ministro.objects.create(
+            documento=self._crear_documento("7777777777"),
+            nombre="Pedro",
+            apellido="Ruiz",
+            cargo=CargoMinisterial.PARROCO,
+            parroquia=self.parroquia,
+        )
+        self.libro.parroco_responsable = self.parroco
+        self.libro.save()
+        self.padre = Padre.objects.create(
+            documento=self._crear_documento("11111111"), nombre="José", apellido="Pérez"
+        )
+        self.madre = Madre.objects.create(
+            documento=self._crear_documento("22222222"), nombre="María", apellido="Gómez"
+        )
+        self.padrino = Padrino.objects.create(
+            documento=self._crear_documento("33333333"), nombre="Pedro López"
+        )
+        self.usuario = self._crear_usuario()
+
+    def _crear_documento(self, numero_documento, tipo_documento=TipoDocumento.CC):
+        documento, _ = Documento.objects.get_or_create(
+            tipo_documento=tipo_documento, numero_documento=numero_documento
+        )
+        return documento
+
+    def _crear_usuario(self, username="admin", password="admin123", **kwargs):
+        from django.contrib.auth import get_user_model
+
+        User = get_user_model()
+        user = User(username=username, **kwargs)
+        user.set_password(password)
+        user.save()
+        return user
+
+    def _datos_completos(self, **extra):
+        return {
+            "fiel_nombres": "Luis",
+            "fiel_apellidos": "Martínez Díaz",
+            "fiel_tipo_documento": TipoDocumento.CC,
+            "fiel_numero_documento": "12345678",
+            "fiel_fecha_nacimiento": date(2015, 5, 10),
+            "fiel_sexo": Sexo.HOMBRE,
+            "fiel_municipio_nacimiento": self.municipio.id,
+            "padre_tipo_documento": TipoDocumento.CC,
+            "padre_numero_documento": "11111111",
+            "padre_nombre": "José",
+            "padre_apellido": "Pérez",
+            "madre_tipo_documento": TipoDocumento.CC,
+            "madre_numero_documento": "22222222",
+            "madre_nombre": "María",
+            "madre_apellido": "Gómez",
+            "padrino_tipo_documento": TipoDocumento.CC,
+            "padrino_numero_documento": "33333333",
+            "padrino_nombre": "Pedro López",
+            "libro": self.libro,
+            "fecha": date(2026, 6, 15),
+            "ministro": self.ministro,
+            "quien_firma": self.parroco,
+            "doy_fe": self.parroco,
+            "tipo_hijo": TipoHijo.BIOLOGICO,
+            "testigo_nombre": "",
+            "abuelo_paterno": "",
+            "abuela_paterna": "",
+            "abuelo_materno": "",
+            "abuela_materna": "",
+            "padre_biologico_nombre": "",
+            "madre_biologica_nombre": "",
+            "observaciones": "",
+            **extra,
+        }
+
+    def _datos_post(self, **extra):
+        """Igual que ``_datos_completos`` pero con PK en los campos de modelo."""
+        datos = self._datos_completos(**extra)
+        for campo in ("libro", "ministro", "quien_firma", "doy_fe"):
+            if hasattr(datos[campo], "pk"):
+                datos[campo] = datos[campo].pk
+        return datos
+
+    def _registrar_bautismo_desde_form(self, **extra):
+        form = BautismoForm(self._datos_completos(**extra))
+        self.assertTrue(form.is_valid(), form.errors)
+        return registrar_bautismo(form.datos_para_servicio(), self.usuario)
+
+
+class BautismoServiceTests(BautismoBaseTests):
+    def test_registrar_bautismo_crea_sacramento_y_bautismo(self):
+        form = BautismoForm(self._datos_completos())
+        self.assertTrue(form.is_valid(), form.errors)
+        bautismo, reutilizadas = registrar_bautismo(form.datos_para_servicio(), self.usuario)
+        self.assertIsNotNone(bautismo)
+        self.assertEqual(bautismo.sacramento.tipo, TipoSacramento.BAUTISMO)
+        self.assertEqual(bautismo.sacramento.fiel.nombres, "Luis")
+        self.assertIsInstance(reutilizadas, list)
+
+    def test_registrar_bautismo_reutiliza_personas_existentes(self):
+        form = BautismoForm(self._datos_completos())
+        self.assertTrue(form.is_valid(), form.errors)
+        registrar_bautismo(form.datos_para_servicio(), self.usuario)
+        total_padres = Padre.objects.count()
+        total_madres = Madre.objects.count()
+        total_padrinos = Padrino.objects.count()
+
+        # Otro bautizado (nuevo fiel) con los mismos padres y padrino: se
+        # reutilizan las personas ya registradas sin duplicarlas.
+        form2 = BautismoForm(
+            self._datos_completos(
+                fiel_numero_documento="87654321",
+                fiel_nombres="Sofia",
+                fiel_apellidos="Martínez Díaz",
+            )
+        )
+        self.assertTrue(form2.is_valid(), form2.errors)
+        bautismo2, _ = registrar_bautismo(form2.datos_para_servicio(), self.usuario)
+
+        self.assertEqual(bautismo2.padre, self.padre)
+        self.assertEqual(bautismo2.madre, self.madre)
+        self.assertEqual(bautismo2.padrino, self.padrino)
+        self.assertEqual(Padre.objects.count(), total_padres)
+        self.assertEqual(Madre.objects.count(), total_madres)
+        self.assertEqual(Padrino.objects.count(), total_padrinos)
+
+    def test_registrar_bautismo_guarda_historial_creacion(self):
+        form = BautismoForm(self._datos_completos())
+        self.assertTrue(form.is_valid(), form.errors)
+        bautismo, _ = registrar_bautismo(form.datos_para_servicio(), self.usuario)
+        hist = HistorialSacramento.objects.filter(sacramento=bautismo.sacramento).first()
+        self.assertIsNotNone(hist)
+        self.assertEqual(hist.accion, AccionHistorial.CREACION)
+        self.assertEqual(hist.usuario, self.usuario)
+
+    def test_registrar_bautismo_asigna_numero_y_folio(self):
+        form = BautismoForm(self._datos_completos())
+        self.assertTrue(form.is_valid(), form.errors)
+        bautismo, _ = registrar_bautismo(form.datos_para_servicio(), self.usuario)
+        self.assertIsNotNone(bautismo.sacramento.numero)
+        self.assertIsNotNone(bautismo.sacramento.folio)
+
+    def test_registrar_bautismo_full_clean_ejecutado(self):
+        form = BautismoForm(self._datos_completos())
+        self.assertTrue(form.is_valid(), form.errors)
+        datos = form.datos_para_servicio()
+        datos["partida"]["fecha"] = timezone.localdate() + timedelta(days=1)
+        with self.assertRaises(ValidationError):
+            registrar_bautismo(datos, self.usuario)
+
+
+class BautismoFormTests(BautismoBaseTests):
+    def test_formulario_valido(self):
+        form = BautismoForm(self._datos_completos())
+        self.assertTrue(form.is_valid(), form.errors)
+
+    def test_form_requiere_testigo_si_no_hay_padrino_ni_madrina(self):
+        datos = self._datos_completos(
+            padrino_numero_documento="",
+            padrino_nombre="",
+            testigo_nombre="",
+        )
+        form = BautismoForm(datos)
+        self.assertFalse(form.is_valid())
+
+    def test_form_normaliza_documentos(self):
+        datos = self._datos_completos(fiel_numero_documento="12345678-")
+        form = BautismoForm(datos)
+        self.assertTrue(form.is_valid(), form.errors)
+        self.assertEqual(form.cleaned_data["fiel_numero_documento"], "12345678")
+
+    def test_form_requiere_datos_padres(self):
+        datos = self._datos_completos(padre_nombre="")
+        form = BautismoForm(datos)
+        self.assertFalse(form.is_valid())
+
+    def test_form_sexo_obligatorio(self):
+        datos = self._datos_completos(fiel_sexo="")
+        form = BautismoForm(datos)
+        self.assertFalse(form.is_valid())
+
+    def test_form_fechas_futuras_rechazadas(self):
+        hoy = timezone.localdate()
+        futuro = hoy.replace(year=hoy.year + 1)
+        datos1 = self._datos_completos(fiel_fecha_nacimiento=futuro)
+        form1 = BautismoForm(datos1)
+        self.assertFalse(form1.is_valid())
+        datos2 = self._datos_completos(fecha=futuro)
+        form2 = BautismoForm(datos2)
+        self.assertFalse(form2.is_valid())
+
+    def test_form_nacimiento_posterior_bautismo(self):
+        datos = self._datos_completos(
+            fiel_fecha_nacimiento=date(2026, 6, 15), fecha=date(2026, 6, 10)
+        )
+        form = BautismoForm(datos)
+        self.assertFalse(form.is_valid())
+
+    def test_form_tipo_hijo_adoptivo_requiere_biologicos(self):
+        datos = self._datos_completos(
+            tipo_hijo=TipoHijo.ADOPTIVO,
+            padre_biologico_nombre="",
+            madre_biologica_nombre="",
+        )
+        form = BautismoForm(datos)
+        self.assertFalse(form.is_valid())
+        datos2 = self._datos_completos(
+            tipo_hijo=TipoHijo.ADOPTIVO,
+            padre_biologico_nombre="Pedro Pérez",
+            madre_biologica_nombre="María Gómez",
+        )
+        form2 = BautismoForm(datos2)
+        self.assertTrue(form2.is_valid(), form2.errors)
+
+    def test_form_tipo_hijo_biologico_no_requiere_biologicos(self):
+        datos = self._datos_completos(
+            tipo_hijo=TipoHijo.BIOLOGICO,
+            padre_biologico_nombre="",
+            madre_biologica_nombre="",
+        )
+        form = BautismoForm(datos)
+        self.assertTrue(form.is_valid(), form.errors)
+        self.assertEqual(form.cleaned_data["padre_biologico_nombre"], "")
+        self.assertEqual(form.cleaned_data["madre_biologica_nombre"], "")
+
+    def test_form_padrino_madrina_distintos(self):
+        datos = self._datos_completos(
+            padrino_numero_documento="999000001",
+            madrina_numero_documento="999000001",
+            madrina_nombre="Ana López",
+        )
+        form = BautismoForm(datos)
+        self.assertFalse(form.is_valid())
+
+    def test_form_padrino_no_puede_ser_padre(self):
+        datos = self._datos_completos(
+            padre_numero_documento="999000001",
+            padrino_numero_documento="999000001",
+        )
+        form = BautismoForm(datos)
+        self.assertFalse(form.is_valid())
+
+
+class BautismoViewsTests(BautismoBaseTests):
+    def setUp(self):
+        super().setUp()
+        self.client.force_login(self.usuario)
+
+    def test_lista_bautismos_requiere_login(self):
+        self.client.logout()
+        response = self.client.get(reverse("sacramentos:bautismo_lista"))
+        self.assertNotEqual(response.status_code, 200)
+
+    def test_lista_muestra_bautismos(self):
+        self._registrar_bautismo_desde_form()
+        response = self.client.get(reverse("sacramentos:bautismo_lista"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Luis")
+
+    def test_crear_bautismo_get(self):
+        response = self.client.get(reverse("sacramentos:bautismo_crear"))
+        self.assertEqual(response.status_code, 200)
+
+    def test_crear_bautismo_post_valido(self):
+        response = self.client.post(reverse("sacramentos:bautismo_crear"), self._datos_post())
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(Bautismo.objects.exists())
+
+    def test_crear_bautismo_post_invalido(self):
+        response = self.client.post(reverse("sacramentos:bautismo_crear"), {})
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(Bautismo.objects.exists())
+
+    def test_detalle_bautismo(self):
+        bautismo, _ = self._registrar_bautismo_desde_form()
+        response = self.client.get(reverse("sacramentos:bautismo_detalle", args=[bautismo.pk]))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Luis")
+
+    def test_detalle_bautismo_404(self):
+        response = self.client.get(reverse("sacramentos:bautismo_detalle", args=[9999]))
+        self.assertEqual(response.status_code, 404)
+
+    def test_api_persona_sesion_requerida(self):
+        self.client.logout()
+        response = self.client.get(reverse("personas:api_persona"))
+        self.assertNotEqual(response.status_code, 200)
+
+    def test_api_persona_falta_datos(self):
+        response = self.client.get(reverse("personas:api_persona"))
+        self.assertEqual(response.status_code, 400)
+
+    def test_api_persona_no_encontrado(self):
+        response = self.client.get(
+            reverse("personas:api_persona"),
+            {"rol": "fiel", "tipo": TipoDocumento.CC, "numero": "00000000"},
+        )
+        self.assertEqual(response.status_code, 404)
+
+    def test_api_persona_fiel_encontrado_solo_campos_indicados(self):
+        Fiel.objects.create(
+            documento=self._crear_documento("55555555"),
+            nombres="Juan",
+            apellidos="Pérez",
+            fecha_nacimiento=date(2000, 1, 1),
+            municipio_nacimiento=self.municipio,
+            sexo=Sexo.HOMBRE,
+        )
+        response = self.client.get(
+            reverse("personas:api_persona"),
+            {"rol": "fiel", "tipo": TipoDocumento.CC, "numero": "55555555"},
+        )
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertTrue(payload["encontrado"])
+        self.assertEqual(
+            set(payload.keys()),
+            {"encontrado", "nombres", "apellidos", "fecha_nacimiento", "municipio", "sexo"},
+        )
+
+    def test_lista_bautismos_n1(self):
+        self._registrar_bautismo_desde_form()
+        with CaptureQueriesContext(connection) as ctx:
+            response = self.client.get(reverse("sacramentos:bautismo_lista"))
+        self.assertEqual(response.status_code, 200)
+        self.assertLess(len(ctx.captured_queries), 12)
+
+
+class BautismoN1Tests(BautismoBaseTests):
+    def setUp(self):
+        super().setUp()
+        self.client.force_login(self.usuario)
+
+    def test_detalle_bautismos_n1(self):
+        bautismo, _ = self._registrar_bautismo_desde_form()
+        with CaptureQueriesContext(connection) as ctx:
+            response = self.client.get(reverse("sacramentos:bautismo_detalle", args=[bautismo.pk]))
+        self.assertEqual(response.status_code, 200)
+        self.assertLess(len(ctx.captured_queries), 20)
+
+
+class BautismoPartidaAutomaticaTests(BautismoBaseTests):
+    def test_registro_asigna_fecha_registro_de_hoy(self):
+        bautismo, _ = self._registrar_bautismo_desde_form()
+        self.assertEqual(bautismo.sacramento.fecha_registro, timezone.localdate())
+
+    def test_registro_asigna_el_primer_folio_del_libro(self):
+        bautismo, _ = self._registrar_bautismo_desde_form()
+        self.assertEqual(bautismo.sacramento.folio.numero_folio, 1)
+
+    def test_usa_el_mismo_folio_hasta_llenarlo(self):
+        self.libro.partidas_por_folio = 2
+        self.libro.save()
+        primero, _ = self._registrar_bautismo_desde_form()
+        segundo, _ = self._registrar_bautismo_desde_form(fiel_numero_documento="87654321")
+        tercero, _ = self._registrar_bautismo_desde_form(fiel_numero_documento="55555555")
+        self.assertEqual(primero.sacramento.folio.numero_folio, 1)
+        self.assertEqual(segundo.sacramento.folio.numero_folio, 1)
+        self.assertEqual(tercero.sacramento.folio.numero_folio, 2)
+
+    def test_libro_lleno_lanza_error_y_no_crea_nada(self):
+        self.libro.total_folios = 1
+        self.libro.partidas_por_folio = 1
+        self.libro.save()
+        self._registrar_bautismo_desde_form()
+        with self.assertRaises(ValidationError):
+            self._registrar_bautismo_desde_form(fiel_numero_documento="87654321")
+        self.assertEqual(Sacramento.objects.filter(libro=self.libro).count(), 1)
+
+
+class BautismoCorreccionTests(BautismoBaseTests):
+    def _corregir(self, bautismo, motivo="Se corrige el nombre", **extra):
+        datos = self._datos_completos(**extra)
+        datos["motivo"] = motivo
+        form = BautismoEditarForm(datos, bautismo=bautismo)
+        self.assertTrue(form.is_valid(), form.errors)
+        return corregir_bautismo(
+            bautismo,
+            form.datos_para_servicio(),
+            self.usuario,
+            form.cleaned_data["motivo"],
+        )
+
+    def test_corregir_actualiza_datos_y_marca_corregido(self):
+        bautismo, _ = self._registrar_bautismo_desde_form()
+        self._corregir(bautismo, fiel_fecha_nacimiento=date(2016, 1, 1))
+        bautismo.refresh_from_db()
+        bautismo.sacramento.refresh_from_db()
+        self.assertEqual(bautismo.sacramento.fiel.fecha_nacimiento, date(2016, 1, 1))
+        self.assertEqual(bautismo.sacramento.estado, EstadoRegistro.CORREGIDO)
+
+    def test_corregir_no_permite_cambiar_el_nombre_del_fiel(self):
+        bautismo, _ = self._registrar_bautismo_desde_form()
+        self._corregir(bautismo, fiel_nombres="Otro Nombre")
+        bautismo.sacramento.refresh_from_db()
+        self.assertEqual(bautismo.sacramento.fiel.nombres, "Luis")
+
+    def test_corregir_no_cambia_ubicacion_en_el_libro_ni_fecha_registro(self):
+        bautismo, _ = self._registrar_bautismo_desde_form()
+        folio = bautismo.sacramento.folio
+        numero = bautismo.sacramento.numero
+        fecha_registro = bautismo.sacramento.fecha_registro
+        self._corregir(bautismo, fiel_fecha_nacimiento=date(2016, 1, 1))
+        bautismo.sacramento.refresh_from_db()
+        self.assertEqual(bautismo.sacramento.folio, folio)
+        self.assertEqual(bautismo.sacramento.numero, numero)
+        self.assertEqual(bautismo.sacramento.fecha_registro, fecha_registro)
+
+    def test_corregir_guarda_historial_y_anotacion(self):
+        bautismo, _ = self._registrar_bautismo_desde_form()
+        self._corregir(bautismo, motivo="Error en el apellido")
+        historial = HistorialSacramento.objects.filter(
+            sacramento=bautismo.sacramento, accion=AccionHistorial.CORRECCION
+        )
+        self.assertTrue(historial.exists())
+        self.assertEqual(historial.first().descripcion, "Error en el apellido")
+        self.assertEqual(historial.first().usuario, self.usuario)
+        anotacion = AnotacionMarginal.objects.filter(
+            sacramento=bautismo.sacramento, tipo=TipoAnotacionMarginal.CORRECCION
+        )
+        self.assertTrue(anotacion.exists())
+
+    def test_corregir_partida_anulada_lanza_error(self):
+        bautismo, _ = self._registrar_bautismo_desde_form()
+        anular_bautismo(bautismo, self.usuario, "Anulada")
+        with self.assertRaises(ValidationError):
+            self._corregir(bautismo)
+
+
+class BautismoEditarFormTests(BautismoBaseTests):
+    def _crear_otra_partida_del_mismo_fiel(self, fiel):
+        return Sacramento.objects.create(
+            tipo=TipoSacramento.CONFIRMACION,
+            fiel=fiel,
+            libro=self.libro,
+            folio=self.folio,
+            numero=99,
+            fecha=date(2026, 6, 16),
+            fecha_registro=date(2026, 6, 16),
+            parroquia=self.parroquia,
+        )
+
+    def test_bloquea_nombres_y_documentos_de_personas_vinculadas(self):
+        bautismo, _ = self._registrar_bautismo_desde_form()
+        form = BautismoEditarForm(bautismo=bautismo)
+        bloqueados = (
+            "fiel_tipo_documento",
+            "fiel_numero_documento",
+            "fiel_nombres",
+            "fiel_apellidos",
+            "padre_tipo_documento",
+            "padre_numero_documento",
+            "padre_nombre",
+            "padre_apellido",
+            "madre_tipo_documento",
+            "madre_numero_documento",
+            "madre_nombre",
+            "madre_apellido",
+            "padrino_tipo_documento",
+            "padrino_numero_documento",
+            "padrino_nombre",
+        )
+        for campo in bloqueados:
+            self.assertTrue(form.fields[campo].disabled, campo)
+
+    def test_datos_no_identitarios_del_fiel_siguen_editables(self):
+        bautismo, _ = self._registrar_bautismo_desde_form()
+        form = BautismoEditarForm(bautismo=bautismo)
+        for campo in ("fiel_fecha_nacimiento", "fiel_sexo", "fiel_telefono"):
+            self.assertFalse(form.fields[campo].disabled, campo)
+
+    def test_persona_no_vinculada_queda_editable(self):
+        bautismo, _ = self._registrar_bautismo_desde_form()
+        self.assertIsNone(bautismo.madrina_id)
+        form = BautismoEditarForm(bautismo=bautismo)
+        self.assertFalse(form.fields["madrina_nombre"].disabled)
+        self.assertFalse(form.fields["madrina_tipo_documento"].disabled)
+
+    def test_aviso_partidas_sin_otras_partidas(self):
+        bautismo, _ = self._registrar_bautismo_desde_form()
+        form = BautismoEditarForm(bautismo=bautismo)
+        self.assertEqual(form.aviso_partidas, 0)
+
+    def test_aviso_partidas_cuenta_otras_partidas(self):
+        bautismo, _ = self._registrar_bautismo_desde_form()
+        self._crear_otra_partida_del_mismo_fiel(bautismo.sacramento.fiel)
+        form = BautismoEditarForm(bautismo=bautismo)
+        self.assertEqual(form.aviso_partidas, 1)
+
+
+class BautismoAnulacionTests(BautismoBaseTests):
+    def test_anular_marca_estado_y_guarda_historial_y_anotacion(self):
+        bautismo, _ = self._registrar_bautismo_desde_form()
+        anular_bautismo(bautismo, self.usuario, "Partida duplicada")
+        bautismo.sacramento.refresh_from_db()
+        self.assertEqual(bautismo.sacramento.estado, EstadoRegistro.ANULADO)
+        self.assertTrue(
+            HistorialSacramento.objects.filter(
+                sacramento=bautismo.sacramento, accion=AccionHistorial.ANULACION
+            ).exists()
+        )
+        self.assertTrue(
+            AnotacionMarginal.objects.filter(
+                sacramento=bautismo.sacramento, tipo=TipoAnotacionMarginal.CORRECCION
+            ).exists()
+        )
+
+    def test_anular_partida_ya_anulada_lanza_error(self):
+        bautismo, _ = self._registrar_bautismo_desde_form()
+        anular_bautismo(bautismo, self.usuario, "Anulada")
+        with self.assertRaises(ValidationError):
+            anular_bautismo(bautismo, self.usuario, "Otra vez")
+
+    def test_anulada_no_aparece_en_el_indice_del_libro(self):
+        bautismo, _ = self._registrar_bautismo_desde_form()
+        indice_antes = indice_libro(self.libro)
+        self.assertEqual(len(indice_antes), 1)
+        anular_bautismo(bautismo, self.usuario, "Anulada")
+        self.assertEqual(indice_libro(self.libro), [])
+
+
+class BautismoEliminacionTests(BautismoBaseTests):
+    def _corregir(self, bautismo):
+        datos = self._datos_completos(fiel_fecha_nacimiento=date(2016, 1, 1))
+        datos["motivo"] = "Corrección"
+        form = BautismoEditarForm(datos, bautismo=bautismo)
+        self.assertTrue(form.is_valid(), form.errors)
+        return corregir_bautismo(
+            bautismo, form.datos_para_servicio(), self.usuario, form.cleaned_data["motivo"]
+        )
+
+    def _crear_anotacion(self, **extra):
+        datos = {
+            "tipo": TipoAnotacionMarginal.CORRECCION,
+            "fecha": timezone.localdate(),
+            "descripcion": "Nota",
+            **extra,
+        }
+        return AnotacionMarginal.objects.create(**datos)
+
+    def test_eliminar_ultima_activa_de_hoy_crea_snapshot_y_libera_numero(self):
+        bautismo, _ = self._registrar_bautismo_desde_form()
+        sacramento = bautismo.sacramento
+        numero = sacramento.numero
+        folio_numero = sacramento.folio.numero_folio
+        pk = bautismo.pk
+        sacramento_pk = sacramento.pk
+        self.assertTrue(puede_eliminarse(bautismo))
+        self.assertIsNone(motivo_no_eliminable(bautismo))
+
+        eliminar_bautismo(bautismo, self.usuario, "Partida duplicada")
+
+        self.assertFalse(Sacramento.objects.filter(pk=sacramento_pk).exists())
+        self.assertFalse(Bautismo.objects.filter(pk=pk).exists())
+        partida = PartidaEliminada.objects.get()
+        self.assertEqual(partida.numero, numero)
+        self.assertEqual(partida.folio_numero, folio_numero)
+        self.assertEqual(partida.motivo, "Partida duplicada")
+        self.assertEqual(partida.eliminado_por, self.usuario)
+        self.assertIn("Luis", partida.resumen)
+
+        # El siguiente registro reutiliza el número y el folio liberados.
+        nuevo, _ = self._registrar_bautismo_desde_form()
+        self.assertEqual(nuevo.sacramento.numero, numero)
+        self.assertEqual(nuevo.sacramento.folio.numero_folio, folio_numero)
+
+    def test_no_elimina_partida_anulada(self):
+        bautismo, _ = self._registrar_bautismo_desde_form()
+        anular_bautismo(bautismo, self.usuario, "Anulada")
+        with self.assertRaisesMessage(ValidationError, "Las partidas anuladas no se eliminan"):
+            eliminar_bautismo(bautismo, self.usuario, "Se intenta")
+        self.assertTrue(Bautismo.objects.filter(pk=bautismo.pk).exists())
+        self.assertFalse(PartidaEliminada.objects.exists())
+
+    def test_no_elimina_partida_corregida(self):
+        bautismo, _ = self._registrar_bautismo_desde_form()
+        self._corregir(bautismo)
+        bautismo.sacramento.refresh_from_db()
+        self.assertEqual(bautismo.sacramento.estado, EstadoRegistro.CORREGIDO)
+        self.assertEqual(
+            motivo_no_eliminable(bautismo),
+            "Las partidas corregidas no se eliminan, quedan como constancia",
+        )
+        with self.assertRaisesMessage(ValidationError, "Las partidas corregidas no se eliminan"):
+            eliminar_bautismo(bautismo, self.usuario, "Se intenta")
+        self.assertTrue(Bautismo.objects.filter(pk=bautismo.pk).exists())
+        self.assertFalse(PartidaEliminada.objects.exists())
+
+    def test_no_elimina_si_no_es_la_ultima(self):
+        primero, _ = self._registrar_bautismo_desde_form()
+        self._registrar_bautismo_desde_form(fiel_numero_documento="87654321", fiel_nombres="Sofia")
+        with self.assertRaisesMessage(ValidationError, "última partida del libro"):
+            eliminar_bautismo(primero, self.usuario, "Se intenta")
+        self.assertTrue(Bautismo.objects.filter(pk=primero.pk).exists())
+        self.assertFalse(PartidaEliminada.objects.exists())
+
+    def test_no_elimina_si_no_se_registro_hoy(self):
+        bautismo, _ = self._registrar_bautismo_desde_form()
+        Sacramento.objects.filter(pk=bautismo.sacramento.pk).update(
+            fecha_registro=timezone.localdate() - timedelta(days=1)
+        )
+        bautismo = Bautismo.objects.get(pk=bautismo.pk)
+        with self.assertRaisesMessage(ValidationError, "registrada hoy"):
+            eliminar_bautismo(bautismo, self.usuario, "Se intenta")
+        self.assertTrue(Bautismo.objects.filter(pk=bautismo.pk).exists())
+        self.assertFalse(PartidaEliminada.objects.exists())
+
+    def test_no_elimina_si_tiene_anotacion_como_partida_anotada(self):
+        bautismo, _ = self._registrar_bautismo_desde_form()
+        self._crear_anotacion(sacramento=bautismo.sacramento, estado=EstadoAnotacion.ANOTADA)
+        with self.assertRaisesMessage(ValidationError, "notas marginales"):
+            eliminar_bautismo(bautismo, self.usuario, "Se intenta")
+        self.assertTrue(Bautismo.objects.filter(pk=bautismo.pk).exists())
+        self.assertFalse(PartidaEliminada.objects.exists())
+
+    def test_no_elimina_si_es_origen_de_una_anotacion(self):
+        bautismo, _ = self._registrar_bautismo_desde_form()
+        self._crear_anotacion(sacramento_origen=bautismo.sacramento)
+        with self.assertRaisesMessage(ValidationError, "notas marginales"):
+            eliminar_bautismo(bautismo, self.usuario, "Se intenta")
+        self.assertTrue(Bautismo.objects.filter(pk=bautismo.pk).exists())
+        self.assertFalse(PartidaEliminada.objects.exists())
+
+
+class BautismoAccionesViewsTests(BautismoBaseTests):
+    def setUp(self):
+        super().setUp()
+        self.client.force_login(self.usuario)
+
+    def _url(self, nombre, bautismo):
+        return reverse(f"sacramentos:{nombre}", args=[bautismo.pk])
+
+    def test_detalle_activo_elegible_muestra_editar_anular_y_eliminar(self):
+        bautismo, _ = self._registrar_bautismo_desde_form()
+        respuesta = self.client.get(self._url("bautismo_detalle", bautismo))
+        self.assertContains(respuesta, self._url("bautismo_editar", bautismo))
+        self.assertContains(respuesta, self._url("bautismo_anular", bautismo))
+        self.assertContains(respuesta, self._url("bautismo_eliminar", bautismo))
+
+    def test_detalle_anulado_no_permite_ninguna_accion(self):
+        bautismo, _ = self._registrar_bautismo_desde_form()
+        anular_bautismo(bautismo, self.usuario, "Anulada")
+        respuesta = self.client.get(self._url("bautismo_detalle", bautismo))
+        self.assertNotContains(respuesta, self._url("bautismo_editar", bautismo))
+        self.assertNotContains(respuesta, self._url("bautismo_anular", bautismo))
+        self.assertNotContains(respuesta, self._url("bautismo_eliminar", bautismo))
+
+    def test_editar_get_y_post(self):
+        bautismo, _ = self._registrar_bautismo_desde_form()
+        self.assertEqual(self.client.get(self._url("bautismo_editar", bautismo)).status_code, 200)
+        datos = self._datos_post(fiel_fecha_nacimiento=date(2016, 1, 1))
+        datos["motivo"] = "Corrección de la fecha de nacimiento"
+        respuesta = self.client.post(self._url("bautismo_editar", bautismo), datos)
+        self.assertRedirects(respuesta, self._url("bautismo_detalle", bautismo))
+        bautismo.refresh_from_db()
+        bautismo.sacramento.refresh_from_db()
+        self.assertEqual(bautismo.sacramento.fiel.fecha_nacimiento, date(2016, 1, 1))
+        self.assertEqual(bautismo.sacramento.estado, EstadoRegistro.CORREGIDO)
+
+    def test_editar_partida_anulada_redirige(self):
+        bautismo, _ = self._registrar_bautismo_desde_form()
+        anular_bautismo(bautismo, self.usuario, "Anulada")
+        respuesta = self.client.get(self._url("bautismo_editar", bautismo))
+        self.assertRedirects(respuesta, self._url("bautismo_detalle", bautismo))
+
+    def test_editar_muestra_aviso_de_partidas_compartidas(self):
+        bautismo, _ = self._registrar_bautismo_desde_form()
+        Sacramento.objects.create(
+            tipo=TipoSacramento.CONFIRMACION,
+            fiel=bautismo.sacramento.fiel,
+            libro=self.libro,
+            folio=self.folio,
+            numero=99,
+            fecha=date(2026, 6, 16),
+            fecha_registro=date(2026, 6, 16),
+            parroquia=self.parroquia,
+        )
+        respuesta = self.client.get(self._url("bautismo_editar", bautismo))
+        self.assertContains(
+            respuesta,
+            "Este cambio también se verá en las 1 partidas donde aparece esta persona.",
+        )
+
+    def test_acciones_inexistentes_dan_404(self):
+        for nombre in ("bautismo_editar", "bautismo_anular", "bautismo_eliminar"):
+            url = reverse(f"sacramentos:{nombre}", args=[999999])
+            self.assertEqual(self.client.get(url).status_code, 404, nombre)
+
+    def test_acciones_requieren_login(self):
+        bautismo, _ = self._registrar_bautismo_desde_form()
+        self.client.logout()
+        for nombre in ("bautismo_editar", "bautismo_anular", "bautismo_eliminar"):
+            url = self._url(nombre, bautismo)
+            self.assertNotEqual(self.client.get(url).status_code, 200, nombre)
+            self.assertNotEqual(self.client.post(url, {}).status_code, 200, nombre)
+
+    def test_get_no_ejecuta_la_anulacion_ni_la_eliminacion(self):
+        bautismo, _ = self._registrar_bautismo_desde_form()
+        self.client.get(self._url("bautismo_anular", bautismo))
+        self.client.get(self._url("bautismo_eliminar", bautismo))
+        bautismo.sacramento.refresh_from_db()
+        self.assertEqual(bautismo.sacramento.estado, EstadoRegistro.ACTIVO)
+        self.assertTrue(Bautismo.objects.filter(pk=bautismo.pk).exists())
+
+    def test_anular_post_sin_csrf_falla(self):
+        from django.test import Client
+
+        bautismo, _ = self._registrar_bautismo_desde_form()
+        cliente = Client(enforce_csrf_checks=True)
+        cliente.force_login(self.usuario)
+        respuesta = cliente.post(self._url("bautismo_anular", bautismo), {"motivo": "x"})
+        self.assertEqual(respuesta.status_code, 403)
+        bautismo.sacramento.refresh_from_db()
+        self.assertEqual(bautismo.sacramento.estado, EstadoRegistro.ACTIVO)
+
+    def test_editar_ignora_campos_protegidos_del_post(self):
+        bautismo, _ = self._registrar_bautismo_desde_form()
+        sacramento = bautismo.sacramento
+        original = (
+            sacramento.libro_id,
+            sacramento.folio_id,
+            sacramento.numero,
+            sacramento.fecha_registro,
+            sacramento.creado_por_id,
+        )
+        datos = self._datos_post(fiel_fecha_nacimiento=date(2016, 1, 1))
+        datos["motivo"] = "Intento de manipular campos del sistema"
+        datos.update(
+            {
+                "numero": 999,
+                "folio": 999,
+                "fecha_registro": date(2020, 1, 1),
+                "estado": EstadoRegistro.ANULADO,
+                "creado_por": 999,
+                "modificado_por": 999,
+            }
+        )
+        respuesta = self.client.post(self._url("bautismo_editar", bautismo), datos)
+        self.assertRedirects(respuesta, self._url("bautismo_detalle", bautismo))
+        sacramento.refresh_from_db()
+        self.assertEqual(
+            (
+                sacramento.libro_id,
+                sacramento.folio_id,
+                sacramento.numero,
+                sacramento.fecha_registro,
+                sacramento.creado_por_id,
+            ),
+            original,
+        )
+        self.assertEqual(sacramento.estado, EstadoRegistro.CORREGIDO)
+        self.assertEqual(sacramento.modificado_por_id, self.usuario.pk)
+
+    def test_anular_get_y_post(self):
+        bautismo, _ = self._registrar_bautismo_desde_form()
+        self.assertEqual(self.client.get(self._url("bautismo_anular", bautismo)).status_code, 200)
+        respuesta = self.client.post(
+            self._url("bautismo_anular", bautismo), {"motivo": "Partida duplicada"}
+        )
+        self.assertRedirects(respuesta, self._url("bautismo_detalle", bautismo))
+        bautismo.sacramento.refresh_from_db()
+        self.assertEqual(bautismo.sacramento.estado, EstadoRegistro.ANULADO)
+
+    def test_eliminar_partida_elegible_borra_y_redirige_a_la_lista(self):
+        bautismo, _ = self._registrar_bautismo_desde_form()
+        pk = bautismo.pk
+        self.assertEqual(self.client.get(self._url("bautismo_eliminar", bautismo)).status_code, 200)
+        respuesta = self.client.post(
+            self._url("bautismo_eliminar", bautismo), {"motivo": "Se elimina"}
+        )
+        self.assertRedirects(respuesta, reverse("sacramentos:bautismo_lista"))
+        self.assertFalse(Bautismo.objects.filter(pk=pk).exists())
+        self.assertTrue(PartidaEliminada.objects.exists())
+
+    def test_eliminar_partida_anulada_redirige_sin_borrar(self):
+        bautismo, _ = self._registrar_bautismo_desde_form()
+        anular_bautismo(bautismo, self.usuario, "Anulada")
+        respuesta = self.client.get(self._url("bautismo_eliminar", bautismo))
+        self.assertRedirects(respuesta, self._url("bautismo_detalle", bautismo))
+        respuesta = self.client.post(
+            self._url("bautismo_eliminar", bautismo), {"motivo": "Se intenta"}
+        )
+        self.assertRedirects(respuesta, self._url("bautismo_detalle", bautismo))
+        self.assertTrue(Bautismo.objects.filter(pk=bautismo.pk).exists())
+        self.assertFalse(PartidaEliminada.objects.exists())
+
+    def test_eliminar_partida_no_ultima_redirige_sin_borrar(self):
+        primero, _ = self._registrar_bautismo_desde_form()
+        self._registrar_bautismo_desde_form(fiel_numero_documento="87654321", fiel_nombres="Sofia")
+        respuesta = self.client.post(
+            self._url("bautismo_eliminar", primero), {"motivo": "Se intenta"}
+        )
+        self.assertRedirects(respuesta, self._url("bautismo_detalle", primero))
+        self.assertTrue(Bautismo.objects.filter(pk=primero.pk).exists())
+        self.assertFalse(PartidaEliminada.objects.exists())

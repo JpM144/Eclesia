@@ -1,8 +1,10 @@
 from django.core.exceptions import ValidationError
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.db.models import Q
 
 from core.choices import CargoMinisterial, EstadoLibro, TipoLibro
+from core.validators import normalizar_telefono, solo_letras, validar_telefono
 from personas.models import Documento
 from ubicacion.models import Municipio
 
@@ -56,6 +58,29 @@ class Ministro(models.Model):
         verbose_name_plural = "ministros"
         ordering = ["apellido", "nombre"]
 
+    def clean(self):
+        super().clean()
+        errores = {}
+        for campo in ("nombre", "apellido"):
+            valor = getattr(self, campo)
+            if valor:
+                try:
+                    solo_letras(valor)
+                except ValidationError as error:
+                    errores[campo] = error.messages
+        if self.telefono:
+            try:
+                validar_telefono(self.telefono)
+            except ValidationError as error:
+                errores["telefono"] = error.messages
+        if errores:
+            raise ValidationError(errores)
+
+    def save(self, *args, **kwargs):
+        if self.telefono:
+            self.telefono = normalizar_telefono(self.telefono)
+        super().save(*args, **kwargs)
+
     def __str__(self):
         return f"{self.nombre} {self.apellido} - {self.get_cargo_display()}"
 
@@ -72,6 +97,12 @@ class Libro(models.Model):
     fecha_apertura = models.DateField(verbose_name="fecha de apertura")
     total_folios = models.PositiveIntegerField(
         null=True, blank=True, verbose_name="total de folios"
+    )
+    partidas_por_folio = models.PositiveSmallIntegerField(
+        default=3,
+        validators=[MinValueValidator(1), MaxValueValidator(20)],
+        verbose_name="partidas por folio",
+        help_text="Cuántas partidas caben en cada folio (entre 1 y 20).",
     )
     ministro_apertura = models.ForeignKey(
         "Ministro",
@@ -134,6 +165,10 @@ class Libro(models.Model):
             models.CheckConstraint(
                 condition=Q(total_folios__isnull=True) | Q(total_folios__gt=0),
                 name="libro_total_folios_positivo",
+            ),
+            models.CheckConstraint(
+                condition=Q(partidas_por_folio__gt=0),
+                name="libro_partidas_por_folio_positivo",
             ),
         ]
 

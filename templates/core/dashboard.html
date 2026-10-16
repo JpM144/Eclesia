@@ -181,17 +181,13 @@
           <h3 class="card-title">Acceso Rápido</h3>
         </div>
         <div class="card-body d-flex flex-column">
-          {# TODO: enlazar al crear bautismo #}
-          <button type="button" class="boton-acceso boton-acceso--azul" disabled>
+          <a href="{% url 'sacramentos:bautismo_crear' %}" class="boton-acceso boton-acceso--azul">
             <span class="d-flex align-items-center">
               <span class="icono-boton mr-2">{% include "core/iconos/gota.svg" %}</span>
-              <span class="boton-acceso-texto">
-                <span>Crear Bautismo</span>
-                <small>Disponible pronto</small>
-              </span>
+              <span class="boton-acceso-texto"><span>Crear Bautismo</span></span>
             </span>
             <i class="fas fa-arrow-right" aria-hidden="true"></i>
-          </button>
+          </a>
           <a href="{% url 'parroquias:libro_lista' %}" class="boton-acceso boton-acceso--verde">
             <span class="d-flex align-items-center">
               <span class="icono-boton mr-2"><i class="fas fa-book" aria-hidden="true"></i></span>

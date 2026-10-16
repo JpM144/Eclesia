@@ -72,8 +72,10 @@ comparando `request.resolver_match.url_name` con el nombre de la ruta:
 <a href="{% url 'dashboard' %}" class="nav-link{% if actual == 'dashboard' %} active{% endif %}">
 ```
 
-Cuando se agregue una ruta nueva se usa el mismo patrón con el nombre de esa ruta. Los
-cuatro sacramentos no tienen pantalla todavía: aparecen atenuados (clase `deshabilitado`,
+Cuando se agregue una ruta nueva se usa el mismo patrón con el nombre de esa ruta.
+**Bautismos** ya tiene pantalla y enlaza a `sacramentos:bautismo_lista` (queda activo con
+`ns == 'sacramentos'`). Los tres sacramentos restantes (Primera Comunión, Confirmaciones y
+Matrimonios) aún no tienen pantalla: aparecen atenuados (clase `deshabilitado`,
 `aria-disabled="true"`, sin `href`), con la etiqueta **Pronto** y con los mismos íconos SVG
 del dashboard; llevan el comentario `{# TODO: enlazar cuando exista la pantalla #}`. Su
 etiqueta se maqueta como `<p class="p-con-etiqueta"><span class="texto-item">…</span>
@@ -454,9 +456,17 @@ anidada (`parroquias/views.py`, `FolioBaseMixin`).
 
 El formulario de **Libro** (nuevo y editar) recoge los datos de la *diligencia de
 apertura*: parroquia, tipo de libro, nombre, número, fecha de apertura, total de
-folios, ministro que abre (los de la parroquia del libro; en la creación, si aún no
-hay parroquia elegida, se ofrecen todos ordenados por parroquia), detalle y
+folios, **partidas por folio** (cuántas partidas caben en cada folio, de 1 a 20;
+por defecto 3), ministro que abre (los de la parroquia del libro; en la creación, si
+aún no hay parroquia elegida, se ofrecen todos ordenados por parroquia), detalle y
 observaciones. Los campos de cierre **no** están en este formulario.
+
+El valor **partidas por folio** determina cómo se reparten automáticamente las
+partidas en el libro: `parroquias.services.folio_para_nueva_partida(libro)` reutiliza
+el último folio mientras le queden espacios y, al llenarse, pasa al siguiente creando
+el `Folio` si hace falta. Las partidas anuladas siguen ocupando su lugar, y si se
+supera el total de folios declarado el registro se rechaza con
+**“El libro está lleno: ciérralo y abre uno nuevo para seguir registrando.”**
 
 El cierre es una acción aparte: **Cerrar libro** en
 `/parroquias/libros/<pk>/cerrar/` (solo aparece en libros abiertos). Pide la fecha de
@@ -498,6 +508,101 @@ lista con el mensaje **“No se puede eliminar porque tiene registros asociados�
 folios o partidas y Parroquias con libros o sacramentos. Los ministros usan
 `on_delete=SET_NULL` en `Parroquia` (se desligan de la parroquia), así que no bloquean
 el borrado.
+
+## Sacramentos: Bautismos
+
+Primer sacramento con pantalla completa. La app `sacramentos` expone tres vistas y un servicio
+transaccional; las rutas viven en `sacramentos/urls.py` bajo el namespace `sacramentos`.
+
+| Vista                     | URL                                     | Ruta                            |
+| ------------------------- | --------------------------------------- | ------------------------------- |
+| Lista de bautismos        | `/sacramentos/bautismos/`               | `sacramentos:bautismo_lista`    |
+| Registrar bautismo        | `/sacramentos/bautismos/nuevo/`         | `sacramentos:bautismo_crear`    |
+| Ficha de la partida       | `/sacramentos/bautismos/<pk>/`          | `sacramentos:bautismo_detalle`  |
+| Corregir la partida       | `/sacramentos/bautismos/<pk>/editar/`   | `sacramentos:bautismo_editar`   |
+| Anular la partida         | `/sacramentos/bautismos/<pk>/anular/`   | `sacramentos:bautismo_anular`   |
+| Eliminar la partida       | `/sacramentos/bautismos/<pk>/eliminar/` | `sacramentos:bautismo_eliminar` |
+
+El `<pk>` de la ficha es el `pk` del `Bautismo`, que es a la vez el del `Sacramento`
+(`OneToOneField(primary_key=True)`). Todas las vistas exigen sesión
+(`LoginRequiredMiddleware`).
+
+### Lista y ficha
+
+- **Lista** (`BautismoListView`): pagina de 25 en 25 y ordena por fecha y número de partida
+  descendente. Acepta `?q=` para filtrar por nombres/apellidos del fiel o por número de
+  partida. Usa `select_related` (`fiel`, `folio__libro`, `parroquia`) para no provocar
+  consultas N+1.
+- **Ficha** (`BautismoDetailView`): `select_related` de fiel, municipio de nacimiento, libro,
+  parroquia, ministro, padre, madre, padrino, madrina, quien firma y quien da fe; muestra las
+  anotaciones marginales y el historial. Un `pk` inexistente (o que no sea un bautismo)
+  responde `404`. El enlace a la ficha aparece en **Consultar personas** y en la ficha de la
+  persona cuando la partida de bautismo existe (`url_detalle`).
+
+### Formulario de registro
+
+`BautismoForm` (`sacramentos/forms.py`) es un `forms.Form` plano: reúne datos de `Sacramento`,
+`Bautismo`, `Fiel`, `Padre`, `Madre` y `Padrino`. El select de libro solo ofrece libros de
+**bautismos abiertos**. Valida, con mensajes en español, lo mismo que luego revalida
+`full_clean()` de los modelos:
+
+- La `fecha` del bautismo no puede ser futura ni anterior al nacimiento.
+- El libro debe estar abierto (`_validar_partida` se omite al corregir, porque no se
+  inscribe una partida nueva) y ser de tipo `BAUTISMOS`.
+- **Can. 875**: si no hay padrino ni madrina, el testigo es obligatorio.
+- Documentos normalizados (`DocumentoMixin.normalizar_numero`); `CC`, `TI` y `RC` solo dígitos.
+- Padre y madre obligatorios con documento, nombre y apellido.
+
+El folio y la fecha de registro **no** son campos del formulario: el folio lo calcula
+el servicio y la fecha de registro es la fecha actual (`timezone.localdate()`).
+
+El mapeo de ministros es: `ministro` → `Sacramento.ministro`, `quien_firma` →
+`Bautismo.quien_firma` y `doy_fe` → `Bautismo.doy_fe` (por defecto, el párroco de la parroquia
+del libro). `observaciones` va a `Sacramento.observaciones`. La plantilla incluye
+`static/js/buscar_persona.js` y `static/js/ubicacion.js`, y usa `data-evitar-doble-envio` para
+no reenviar el formulario.
+
+### Servicio y numeración
+
+`registrar_bautismo(datos, usuario)` (`sacramentos/services.py`) corre dentro de
+`transaction.atomic`. Crea o **reutiliza** (sin sobrescribir; solo rellena campos vacíos) las
+personas `Fiel`, `Padre`, `Madre`, `Padrino` y, si aplica, `Madrina`. El número de partida sale
+de `siguiente_numero_partida(libro)`, el folio de `folio_para_nueva_partida(libro)` y la fecha
+de registro es la fecha actual. Registra la creación en `HistorialSacramento` con
+`AccionHistorial.CREACION` y devuelve `(bautismo, reutilizadas)`. Al guardar, muestra
+**“Partida registrada: Libro X, Folio Y, N.° Z”** y, si reutilizó personas, un aviso
+informativo.
+
+### Corregir, anular y eliminar partidas
+
+Siguiendo las reglas de los libros parroquiales (las partidas no se borran ni se
+sobrescriben), la ficha ofrece acciones según el estado:
+
+- **Corregir** (`corregir_bautismo`, estado `CORREGIDO`): vuelca los datos editados
+  —incluidos los datos mutables del bautizado (los nombres y documentos de las personas ya
+  vinculadas son de solo lectura y se corrigen desde su ficha)— sin cambiar libro, folio,
+  número ni fecha de registro; exige `motivo`, guarda historial `CORRECCION` y una anotación
+  marginal de tipo `CORRECCION`. No se puede corregir una partida anulada.
+- **Anular** (`anular_bautismo`, estado `ANULADO`): conserva la partida en el libro, exige
+  `motivo` y guarda historial `ANULACION` y anotación `CORRECCION`.
+- **Eliminar** (`eliminar_bautismo`): solo si la partida está **ACTIVA**, es la **última del
+  libro**, se registró **hoy** y **no tiene anotaciones marginales** (ni como partida anotada
+  ni como origen); las partidas anuladas o corregidas nunca se eliminan (quedan como
+  constancia). Guarda una copia en `PartidaEliminada` (snapshot con motivo y usuario, visible
+  en el admin en solo lectura) antes de borrar el `Sacramento` y, en cascada, el `Bautismo`,
+  el historial y las anotaciones. Al borrar la última partida se liberan su número y folio, y
+  el siguiente registro los reutiliza.
+
+Las partidas anuladas no cuentan en el dashboard ni aparecen en el índice del libro. La ficha
+muestra Editar/Anular solo en estados editables y Eliminar únicamente cuando se cumple
+`puede_eliminarse(bautismo)` (la misma regla que valida el servidor).
+
+### Autocompletado de personas
+
+Los campos de documento de cada bloque (`.bloque-persona[data-rol]`) consultan
+`personas:api_persona` (ver **Endpoint de búsqueda por documento**). Si la persona ya existe,
+el formulario avisa **“Ya registrado: se usan sus datos.”** y ofrece un enlace para
+cambiarla; el relleno se hace siempre con `textContent`/`value`.
 
 ## Personas
 
@@ -541,6 +646,29 @@ individual de una persona.
 
 `Contrayente` no se lista por separado porque no guarda documento ni nombre propios: usa el
 `Fiel` asociado, que aparece con el rol "contrayente" en sus partidas y sacramentos recibidos.
+
+### Endpoint de búsqueda por documento
+
+`GET /personas/api/persona/` (ruta `personas:api_persona`) alimenta el autocompletado de los
+formularios de partidas. Exige sesión (lo cubre `LoginRequiredMiddleware`). Parámetros:
+
+| Parámetro | Valores                          | Descripción                                     |
+| --------- | -------------------------------- | ----------------------------------------------- |
+| `rol`     | `fiel`, `padre`, `madre`, `padrino`, `madrina` | Tipo de persona a buscar.                    |
+| `tipo`    | p. ej. `CC`, `TI`, `RC`           | Tipo de documento (se normaliza).               |
+| `numero`  | dígitos                           | Número de documento.                            |
+
+Respuestas:
+
+- `400` si falta `rol`, `tipo` o `numero` (o el `rol` no es válido).
+- `404` con `{"encontrado": false}` si no existe la persona.
+- `200` con `{"encontrado": true, "nombres": …, "apellidos": …}` y, solo para `rol=fiel`,
+  además `{"fecha_nacimiento": …, "municipio": <id>, "sexo": …}`. No se devuelve ningún otro
+  campo. El consumo desde el navegador se hace en `static/js/buscar_persona.js`, que escribe
+  siempre con `textContent`/`value` (nunca `innerHTML`).
+
+Se conservan los endpoints heredados `personas:api_padre` (`/personas/api/padre/`) y
+`personas:api_madre` (`/personas/api/madre/`).
 
 ## Cuentas y registro
 

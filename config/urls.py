@@ -12,6 +12,7 @@ urlpatterns = [
     path("ubicacion/", include("ubicacion.urls")),
     path("parroquias/", include("parroquias.urls")),
     path("personas/", include("personas.urls")),
+    path("sacramentos/", include("sacramentos.urls")),
     path("cuentas/", include("cuentas.urls")),
     path("login/", auth_views.LoginView.as_view(), name="login"),
     path("logout/", auth_views.LogoutView.as_view(), name="logout"),

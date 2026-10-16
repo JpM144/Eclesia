@@ -787,24 +787,24 @@ class FichaPersonaTests(BasePersonasWebTests):
 
 class EditarPersonaTests(BasePersonasWebTests):
     def test_editar_los_cuatro_tipos_guarda_y_vuelve_a_consultar(self):
-        fiel = self.crear_fiel("111", nombres="Ana", apellidos="Uno")
+        fiel = self.crear_fiel("11111", nombres="Ana", apellidos="Uno")
         padre = Padre.objects.create(
             documento=Documento.objects.create(
-                tipo_documento=TipoDocumento.CC, numero_documento="222"
+                tipo_documento=TipoDocumento.CC, numero_documento="22222"
             ),
             nombre="Luis",
             apellido="Dos",
         )
         madre = Madre.objects.create(
             documento=Documento.objects.create(
-                tipo_documento=TipoDocumento.CC, numero_documento="333"
+                tipo_documento=TipoDocumento.CC, numero_documento="33333"
             ),
             nombre="Marta",
             apellido="Tres",
         )
         padrino = Padrino.objects.create(
             documento=Documento.objects.create(
-                tipo_documento=TipoDocumento.CC, numero_documento="444"
+                tipo_documento=TipoDocumento.CC, numero_documento="44444"
             ),
             nombre="Pedro Cuatro",
         )
@@ -814,7 +814,7 @@ class EditarPersonaTests(BasePersonasWebTests):
                 padre,
                 {
                     "tipo_documento": TipoDocumento.CC,
-                    "numero_documento": "222",
+                    "numero_documento": "22222",
                     "nombre": "Luis Nuevo",
                     "apellido": "Dos",
                 },
@@ -826,7 +826,7 @@ class EditarPersonaTests(BasePersonasWebTests):
                 madre,
                 {
                     "tipo_documento": TipoDocumento.CC,
-                    "numero_documento": "333",
+                    "numero_documento": "33333",
                     "nombre": "Marta Nueva",
                     "apellido": "Tres",
                 },
@@ -838,7 +838,7 @@ class EditarPersonaTests(BasePersonasWebTests):
                 padrino,
                 {
                     "tipo_documento": TipoDocumento.CC,
-                    "numero_documento": "444",
+                    "numero_documento": "44444",
                     "nombre": "Pedro Nuevo",
                 },
                 "nombre",
@@ -849,7 +849,7 @@ class EditarPersonaTests(BasePersonasWebTests):
                 fiel,
                 {
                     "tipo_documento": TipoDocumento.CC,
-                    "numero_documento": "111",
+                    "numero_documento": "11111",
                     "nombres": "Ana Nueva",
                     "apellidos": "Uno",
                     "fecha_nacimiento": "1990-05-20",
@@ -868,7 +868,7 @@ class EditarPersonaTests(BasePersonasWebTests):
     def test_editar_guarda_y_redirige_a_next(self):
         padre = Padre.objects.create(
             documento=Documento.objects.create(
-                tipo_documento=TipoDocumento.CC, numero_documento="222"
+                tipo_documento=TipoDocumento.CC, numero_documento="22222"
             ),
             nombre="Luis",
             apellido="Pérez",
@@ -879,7 +879,7 @@ class EditarPersonaTests(BasePersonasWebTests):
             url,
             {
                 "tipo_documento": TipoDocumento.CC,
-                "numero_documento": "222",
+                "numero_documento": "22222",
                 "nombre": "Luis Nuevo",
                 "apellido": "Pérez",
             },
@@ -891,7 +891,7 @@ class EditarPersonaTests(BasePersonasWebTests):
     def test_next_externo_se_ignora_y_vuelve_a_consultar(self):
         padre = Padre.objects.create(
             documento=Documento.objects.create(
-                tipo_documento=TipoDocumento.CC, numero_documento="222"
+                tipo_documento=TipoDocumento.CC, numero_documento="22222"
             ),
             nombre="Luis",
             apellido="Pérez",
@@ -905,7 +905,7 @@ class EditarPersonaTests(BasePersonasWebTests):
             url,
             {
                 "tipo_documento": TipoDocumento.CC,
-                "numero_documento": "222",
+                "numero_documento": "22222",
                 "nombre": "Luis Nuevo",
                 "apellido": "Pérez",
             },

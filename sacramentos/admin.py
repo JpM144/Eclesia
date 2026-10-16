@@ -11,6 +11,7 @@ from .models import (
     Matrimonio,
     NotaMarginalMatrimonio,
     PadrinoMatrimonio,
+    PartidaEliminada,
     PrimeraComunion,
     ProclamaMatrimonio,
     Sacramento,
@@ -135,3 +136,33 @@ class HistorialSacramentoAdmin(admin.ModelAdmin):
     list_display = ["sacramento", "accion", "usuario", "fecha"]
     list_filter = ["accion"]
     search_fields = ["descripcion"]
+
+
+@admin.register(PartidaEliminada)
+class PartidaEliminadaAdmin(admin.ModelAdmin):
+    list_display = ["tipo", "numero", "folio_numero", "fiel_nombre", "motivo", "eliminado_en"]
+    list_filter = ["tipo", "eliminado_en"]
+    search_fields = ["fiel_nombre", "resumen", "motivo"]
+    readonly_fields = [
+        "tipo",
+        "libro",
+        "folio_numero",
+        "numero",
+        "fecha",
+        "fecha_registro",
+        "fiel_nombre",
+        "parroquia",
+        "resumen",
+        "motivo",
+        "eliminado_por",
+        "eliminado_en",
+    ]
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False

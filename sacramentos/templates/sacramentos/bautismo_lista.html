@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+
+{% block title %}Bautismos - Sistema de Gestión Parroquial{% endblock %}
+{% block heading %}Bautismos{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-header">
+    <div class="row align-items-center">
+      <div class="col-md-6">
+        <form method="get" role="search">
+          <div class="input-group input-group-sm" style="max-width: 320px;">
+            <input type="search" name="q" value="{{ q }}" class="form-control"
+                   placeholder="Buscar por nombre o número...">
+            <div class="input-group-append">
+              <button type="submit" class="btn btn-default" title="Buscar">
+                <i class="fas fa-search"></i>
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="col-md-6 text-right">
+        <a href="{% url 'sacramentos:bautismo_crear' %}" class="btn btn-primary btn-sm">
+          <i class="fas fa-plus"></i> Nuevo
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <div class="card-body p-0">
+    {% if bautismos %}
+      <div class="table-responsive">
+        <table class="table table-striped table-hover table-sm">
+          <thead>
+            <tr>
+              <th>Fecha</th>
+              <th>Libro</th>
+              <th>Folio</th>
+              <th>N.°</th>
+              <th>Bautizado</th>
+              <th>Parroquia</th>
+              <th>Estado</th>
+              <th class="text-right" style="width: 80px;">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for bautismo in bautismos %}
+              <tr>
+                <td>{{ bautismo.sacramento.fecha|date:"d/m/Y" }}</td>
+                <td>{{ bautismo.sacramento.folio.libro }}</td>
+                <td>{{ bautismo.sacramento.folio.numero_folio }}</td>
+                <td>{{ bautismo.sacramento.numero }}</td>
+                <td>
+                  {% if bautismo.sacramento.fiel %}
+                    {{ bautismo.sacramento.fiel }}
+                  {% else %}
+                    —
+                  {% endif %}
+                </td>
+                <td>{{ bautismo.sacramento.parroquia|default:"—" }}</td>
+                <td>
+                  {% if bautismo.sacramento.estado == "ACTIVO" %}
+                    <span class="badge badge-success">Activo</span>
+                  {% elif bautismo.sacramento.estado == "CORREGIDO" %}
+                    <span class="badge badge-info">Corregido</span>
+                  {% elif bautismo.sacramento.estado == "ANULADO" %}
+                    <span class="badge badge-danger">Anulado</span>
+                  {% else %}
+                    <span class="badge badge-secondary">{{ bautismo.sacramento.get_estado_display }}</span>
+                  {% endif %}
+                </td>
+                <td class="text-right">
+                  <a href="{% url 'sacramentos:bautismo_detalle' bautismo.pk %}" class="btn btn-sm btn-secondary" title="Ver detalle">
+                    <i class="fas fa-eye"></i>
+                  </a>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      {% include "includes/estado_vacio.html" with icono="core/iconos/documento-reloj.svg" titulo="Aún no hay bautismos registrados" texto="Registra el primer bautismo para comenzar." boton_texto="Registrar bautismo" boton_url=url_crear_vacio|default:'/sacramentos/bautismos/nuevo/' %}
+    {% endif %}
+  </div>
+
+  {% if is_paginated %}
+    <div class="card-footer clearfix">
+      <span class="float-left text-muted">
+        Página {{ page_obj.number }} de {{ paginator.num_pages }}
+        ({{ paginator.count }} registros)
+      </span>
+      <ul class="pagination pagination-sm m-0 float-right">
+        {% if page_obj.has_previous %}
+          <li class="page-item">
+            <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if q %}&q={{ q|urlencode }}{% endif %}">&laquo;</a>
+          </li>
+        {% else %}
+          <li class="page-item disabled"><span class="page-link">&laquo;</span></li>
+        {% endif %}
+        {% if page_obj.has_next %}
+          <li class="page-item">
+            <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if q %}&q={{ q|urlencode }}{% endif %}">&raquo;</a>
+          </li>
+        {% else %}
+          <li class="page-item disabled"><span class="page-link">&raquo;</span></li>
+        {% endif %}
+      </ul>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

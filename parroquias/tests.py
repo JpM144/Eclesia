@@ -8,12 +8,20 @@ from django.test import TestCase
 from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 
-from core.choices import CargoMinisterial, EstadoLibro, TipoDocumento, TipoLibro, TipoSacramento
+from core.choices import (
+    CargoMinisterial,
+    EstadoLibro,
+    EstadoRegistro,
+    TipoDocumento,
+    TipoLibro,
+    TipoSacramento,
+)
 from personas.models import Documento, Fiel
 from sacramentos.models import Sacramento
 from ubicacion.models import Departamento, Municipio, Pais
 
 from .models import Folio, Libro, Ministro, Parroquia
+from .services import folio_para_nueva_partida
 
 
 class BaseParroquiasTests(TestCase):
@@ -503,7 +511,7 @@ class MinistroCrudTests(CrudParroquiasBaseTests):
 
     def test_reutiliza_un_documento_existente(self):
         documento = Documento.objects.create(
-            tipo_documento=TipoDocumento.CC, numero_documento="888"
+            tipo_documento=TipoDocumento.CC, numero_documento="88888"
         )
         respuesta = self.client.post(
             reverse("parroquias:ministro_crear"),
@@ -512,19 +520,19 @@ class MinistroCrudTests(CrudParroquiasBaseTests):
                 "apellido": "Vargas",
                 "cargo": CargoMinisterial.CATEQUISTA,
                 "tipo_documento": TipoDocumento.CC,
-                "numero_documento": "888",
+                "numero_documento": "88888",
             },
             follow=True,
         )
         self.assertRedirects(respuesta, reverse("parroquias:ministro_lista"))
         self.assertEqual(Documento.objects.count(), 1)
         self.assertEqual(
-            Ministro.objects.get(documento__numero_documento="888").documento, documento
+            Ministro.objects.get(documento__numero_documento="88888").documento, documento
         )
 
     def test_rechaza_documento_de_otro_ministro(self):
         documento = Documento.objects.create(
-            tipo_documento=TipoDocumento.CC, numero_documento="111"
+            tipo_documento=TipoDocumento.CC, numero_documento="11111"
         )
         self._crear_ministro(documento=documento)
         respuesta = self.client.post(
@@ -534,7 +542,7 @@ class MinistroCrudTests(CrudParroquiasBaseTests):
                 "apellido": "Ministro",
                 "cargo": CargoMinisterial.VICARIO,
                 "tipo_documento": TipoDocumento.CC,
-                "numero_documento": "111",
+                "numero_documento": "11111",
             },
         )
         self.assertEqual(respuesta.status_code, 200)
@@ -603,6 +611,7 @@ class LibroCrudTests(CrudParroquiasBaseTests):
                 "detalle": "Registro de matrimonios",
                 "fecha_apertura": "2026-01-01",
                 "parroquia": self.parroquia.pk,
+                "partidas_por_folio": 3,
             },
             follow=True,
         )
@@ -618,6 +627,7 @@ class LibroCrudTests(CrudParroquiasBaseTests):
                 "detalle": "Registro de bautismos",
                 "fecha_apertura": "2026-01-01",
                 "parroquia": self.parroquia.pk,
+                "partidas_por_folio": 3,
             },
             follow=True,
         )
@@ -800,6 +810,7 @@ class LibroFormularioTests(CrudParroquiasBaseTests):
                 "numero_libro": 2,
                 "fecha_apertura": "2027-01-01",
                 "total_folios": 200,
+                "partidas_por_folio": 4,
                 "ministro_apertura": self.ministro.pk,
                 "detalle": "Registro de matrimonios",
                 "observaciones": "Lo abre el párroco",
@@ -1050,3 +1061,91 @@ class BorradoProtegidoCrudTests(CrudParroquiasBaseTests):
         )
         self.assertTrue(Parroquia.objects.filter(pk=self.parroquia.pk).exists())
         self.assertContains(respuesta, "No se puede eliminar porque tiene registros asociados")
+
+
+class FolioParaNuevaPartidaTests(CrudParroquiasBaseTests):
+    def setUp(self):
+        super().setUp()
+        self.libro = Libro.objects.create(
+            nombre="Bautismos 2026",
+            tipo_libro=TipoLibro.BAUTISMOS,
+            detalle="Registro",
+            fecha_apertura=date(2026, 1, 1),
+            parroquia=self.parroquia,
+            total_folios=10,
+            partidas_por_folio=3,
+        )
+
+    def _crear_partida(self, numero, numero_folio=1, estado=EstadoRegistro.ACTIVO):
+        folio, _ = Folio.objects.get_or_create(libro=self.libro, numero_folio=numero_folio)
+        fiel = self._crear_fiel(numero_documento=f"DOC{numero}")
+        return Sacramento.objects.create(
+            tipo=TipoSacramento.BAUTISMO,
+            fiel=fiel,
+            libro=self.libro,
+            folio=folio,
+            numero=numero,
+            fecha=date(2026, 3, 15),
+            fecha_registro=date(2026, 3, 15),
+            parroquia=self.parroquia,
+            estado=estado,
+        )
+
+    def test_libro_vacio_empieza_en_el_folio_1(self):
+        folio = folio_para_nueva_partida(self.libro)
+        self.assertEqual(folio.numero_folio, 1)
+        self.assertTrue(Folio.objects.filter(libro=self.libro, numero_folio=1).exists())
+
+    def test_reutiliza_el_folio_mientras_queden_espacios(self):
+        self._crear_partida(1, numero_folio=1)
+        self._crear_partida(2, numero_folio=1)
+        folio = folio_para_nueva_partida(self.libro)
+        self.assertEqual(folio.numero_folio, 1)
+
+    def test_pasa_al_siguiente_folio_cuando_se_llena(self):
+        for numero in (1, 2, 3):
+            self._crear_partida(numero, numero_folio=1)
+        folio = folio_para_nueva_partida(self.libro)
+        self.assertEqual(folio.numero_folio, 2)
+
+    def test_las_partidas_anuladas_ocupan_su_lugar(self):
+        self._crear_partida(1, numero_folio=1)
+        self._crear_partida(2, numero_folio=1, estado=EstadoRegistro.ANULADO)
+        self._crear_partida(3, numero_folio=1)
+        folio = folio_para_nueva_partida(self.libro)
+        self.assertEqual(folio.numero_folio, 2)
+
+    def test_libro_lleno_lanza_error(self):
+        self.libro.total_folios = 1
+        self.libro.partidas_por_folio = 1
+        self.libro.save()
+        self._crear_partida(1, numero_folio=1)
+        with self.assertRaises(ValidationError):
+            folio_para_nueva_partida(self.libro)
+
+
+class LibroPartidasPorFolioFormTests(CrudParroquiasBaseTests):
+    def test_partidas_por_folio_fuera_de_rango(self):
+        from .forms import LibroForm
+
+        base = {
+            "parroquia": self.parroquia.pk,
+            "tipo_libro": TipoLibro.BAUTISMOS,
+            "nombre": "Bautismos 2026",
+            "fecha_apertura": "2026-01-01",
+            "detalle": "Registro",
+        }
+        for valor in (0, 21):
+            form = LibroForm({**base, "partidas_por_folio": valor})
+            self.assertFalse(form.is_valid())
+            self.assertIn("partidas_por_folio", form.errors)
+
+    def test_partidas_por_folio_tiene_valor_por_defecto(self):
+        libro = Libro.objects.create(
+            nombre="Bautismos 2026",
+            tipo_libro=TipoLibro.BAUTISMOS,
+            detalle="Registro",
+            fecha_apertura=date(2026, 1, 1),
+            parroquia=self.parroquia,
+        )
+        self.assertEqual(libro.partidas_por_folio, 3)

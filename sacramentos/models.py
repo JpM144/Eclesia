@@ -204,6 +204,26 @@ class Bautismo(models.Model):
             raise ValidationError(
                 {"testigo_nombre": ("Debe especificar un testigo cuando no hay padrino ni madrina")}
             )
+        from core.validators import solo_letras
+
+        errores = {}
+        for campo in (
+            "abuelo_paterno",
+            "abuela_paterna",
+            "abuelo_materno",
+            "abuela_materna",
+            "testigo_nombre",
+            "padre_biologico_nombre",
+            "madre_biologica_nombre",
+        ):
+            valor = getattr(self, campo)
+            if valor:
+                try:
+                    solo_letras(valor)
+                except ValidationError as error:
+                    errores[campo] = error.messages
+        if errores:
+            raise ValidationError(errores)
 
     def __str__(self):
         return f"Bautismo de {self.sacramento.fiel}"
@@ -642,6 +662,59 @@ class AnotacionMarginal(models.Model):
 
     def __str__(self):
         return f"Anotación marginal - {self.get_tipo_display()} ({self.sacramento})"
+
+
+class PartidaEliminada(models.Model):
+    """Copia de una partida que se eliminó definitivamente del libro.
+
+    Las partidas no se borran (regla de los libros parroquiales), así que solo se
+    permite eliminar una partida que cumpla todas las condiciones (activa, última
+    del libro, registrada hoy y sin anotaciones marginales); las anuladas y las
+    corregidas nunca se eliminan. Antes de borrar se guarda aquí su rastro para
+    poder auditar qué había en el libro.
+    """
+
+    tipo = models.CharField(max_length=20, choices=TipoSacramento.choices, verbose_name="tipo")
+    libro = models.ForeignKey(
+        Libro,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="partidas_eliminadas",
+        verbose_name="libro",
+    )
+    folio_numero = models.PositiveIntegerField(null=True, blank=True, verbose_name="folio")
+    numero = models.PositiveIntegerField(null=True, blank=True, verbose_name="número")
+    fecha = models.DateField(null=True, blank=True, verbose_name="fecha del sacramento")
+    fecha_registro = models.DateField(null=True, blank=True, verbose_name="fecha de registro")
+    fiel_nombre = models.CharField(max_length=255, blank=True, verbose_name="fiel")
+    parroquia = models.ForeignKey(
+        Parroquia,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
+        verbose_name="parroquia",
+    )
+    resumen = models.TextField(blank=True, verbose_name="resumen de la partida")
+    motivo = models.TextField(verbose_name="motivo de la eliminación")
+    eliminado_por = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="partidas_eliminadas",
+        verbose_name="eliminado por",
+    )
+    eliminado_en = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "partida eliminada"
+        verbose_name_plural = "partidas eliminadas"
+        ordering = ["-eliminado_en"]
+
+    def __str__(self):
+        return f"{self.get_tipo_display()} N.° {self.numero} - {self.fiel_nombre}"
 
 
 class HistorialSacramento(models.Model):

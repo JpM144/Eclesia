@@ -143,3 +143,53 @@ def api_padre(request):
 
 def api_madre(request):
     return _persona_por_documento(request, Madre)
+
+
+def api_persona(request):
+    """Autocompletar los datos de una persona por rol y documento.
+
+    ``rol`` es uno de ``fiel``, ``padre``, ``madre``, ``padrino`` o ``madrina``.
+    ``madrina`` utiliza la misma entidad que ``padrino`` (``Padrino``).
+    """
+    roles = {
+        "fiel": Fiel,
+        "padre": Padre,
+        "madre": Madre,
+        "padrino": Padrino,
+        "madrina": Padrino,
+    }
+    rol = request.GET.get("rol", "").strip()
+    if rol not in roles:
+        return JsonResponse(
+            {"error": "El parámetro 'rol' debe ser fiel, padre, madre, padrino o madrina."},
+            status=400,
+        )
+    tipo = request.GET.get("tipo", TipoDocumento.CC).strip() or TipoDocumento.CC
+    numero = request.GET.get("numero", "").strip()
+    if not numero:
+        return JsonResponse({"error": "El parámetro 'numero' es obligatorio."}, status=400)
+
+    numero = DocumentoMixin.normalizar_numero(tipo, numero)
+    documento = Documento.objects.filter(tipo_documento=tipo, numero_documento=numero).first()
+    persona = roles[rol].objects.filter(documento=documento).first() if documento else None
+    if persona is None:
+        return JsonResponse({"error": "No se encontró la persona."}, status=404)
+
+    encontrado = {"encontrado": True}
+    if rol == "fiel":
+        encontrado.update(
+            {
+                "nombres": persona.nombres,
+                "apellidos": persona.apellidos,
+                "fecha_nacimiento": (
+                    persona.fecha_nacimiento.isoformat() if persona.fecha_nacimiento else ""
+                ),
+                "municipio": persona.municipio_nacimiento_id,
+                "sexo": persona.sexo or "",
+            }
+        )
+    elif rol in ("padre", "madre"):
+        encontrado.update({"nombres": persona.nombre, "apellidos": persona.apellido})
+    else:
+        encontrado.update({"nombres": persona.nombre, "apellidos": ""})
+    return JsonResponse(encontrado)

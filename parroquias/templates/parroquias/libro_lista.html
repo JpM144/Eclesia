@@ -42,6 +42,7 @@
         <th>Estado</th>
         <th>Apertura</th>
         <th>Partidas</th>
+        <th>Partidas/folio</th>
         <th>Acciones</th>
       </tr>
     </thead>
@@ -61,6 +62,7 @@
           </td>
           <td>{{ libro.fecha_apertura }}</td>
           <td>{{ libro.num_partidas }}</td>
+          <td>{{ libro.partidas_por_folio }}</td>
           <td class="text-right">
             <a href="{% url 'parroquias:libro_editar' libro.pk %}" class="btn btn-sm btn-info" title="Editar">
               <i class="fas fa-pencil-alt"></i>

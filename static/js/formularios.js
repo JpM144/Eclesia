@@ -93,3 +93,134 @@
     }
   });
 })();
+
+/*
+ * Restringe lo que se escribe en los campos de personas:
+ *
+ *   data-solo-letras    no admite dígitos.
+ *   data-solo-numeros   no admite letras (inputmode="numeric").
+ *
+ * Los campos con data-documento-numero dejan letras solo cuando el tipo de
+ * documento elegido es CE o PA. Si se descarta un carácter se muestra un aviso
+ * breve bajo el campo (siempre con textContent, nunca con innerHTML).
+ */
+(function () {
+  "use strict";
+
+  var TIPOS_CON_LETRAS = ["CE", "PA"];
+  var AVISO_LETRAS = "Este campo solo admite letras";
+  var AVISO_NUMEROS = "Este campo solo admite números";
+
+  function avisoDe(campo) {
+    var contenedor = campo.closest(".form-group") || campo.parentNode;
+    var aviso = null;
+    if (contenedor) {
+      aviso = contenedor.querySelector("[data-aviso-caracter]");
+      if (!aviso) {
+        aviso = document.createElement("div");
+        aviso.className = "text-danger small";
+        aviso.setAttribute("data-aviso-caracter", "");
+        contenedor.appendChild(aviso);
+      }
+    }
+    return aviso;
+  }
+
+  function mostrarAviso(campo, texto) {
+    var aviso = avisoDe(campo);
+    if (aviso) {
+      aviso.textContent = texto;
+    }
+  }
+
+  function limpiarAviso(campo) {
+    var contenedor = campo.closest(".form-group") || campo.parentNode;
+    if (!contenedor) {
+      return;
+    }
+    var aviso = contenedor.querySelector("[data-aviso-caracter]");
+    if (aviso) {
+      aviso.textContent = "";
+    }
+  }
+
+  function tipoDocumento(campo) {
+    var contenedor =
+      campo.closest(".bloque-persona") || campo.closest("form") || campo.parentNode;
+    if (!contenedor) {
+      return "";
+    }
+    var select = contenedor.querySelector("[data-documento-tipo]");
+    return select ? select.value : "";
+  }
+
+  function filtroDe(campo) {
+    if (campo.hasAttribute("data-solo-letras")) {
+      return { patron: /[^A-Za-zÁÉÍÓÚÜÑáéíóúüñ'.\- ]/g, aviso: AVISO_LETRAS };
+    }
+    if (campo.hasAttribute("data-solo-numeros")) {
+      if (campo.hasAttribute("data-documento-numero")) {
+        var tipo = tipoDocumento(campo);
+        if (TIPOS_CON_LETRAS.indexOf(tipo) !== -1) {
+          return { patron: /[^A-Za-z0-9]/g, aviso: "El documento solo admite letras y números" };
+        }
+      }
+      return { patron: /[^0-9]/g, aviso: AVISO_NUMEROS };
+    }
+    return null;
+  }
+
+  function limpiarCampo(campo) {
+    var filtro = filtroDe(campo);
+    if (!filtro) {
+      limpiarAviso(campo);
+      return;
+    }
+    var original = campo.value;
+    var limpio = original.replace(filtro.patron, "");
+    if (limpio !== original) {
+      var posicion = campo.selectionStart;
+      campo.value = limpio;
+      if (typeof posicion === "number") {
+        var nueva = Math.max(0, posicion - (original.length - limpio.length));
+        try {
+          campo.setSelectionRange(nueva, nueva);
+        } catch (error) {
+          /* campos sin selección (p. ej. type number) */
+        }
+      }
+      mostrarAviso(campo, filtro.aviso);
+    } else {
+      limpiarAviso(campo);
+    }
+  }
+
+  function iniciar() {
+    var campos = document.querySelectorAll(
+      "[data-solo-letras], [data-solo-numeros]"
+    );
+    Array.prototype.forEach.call(campos, function (campo) {
+      campo.addEventListener("input", function () {
+        limpiarCampo(campo);
+      });
+      campo.addEventListener("paste", function () {
+        window.setTimeout(function () {
+          limpiarCampo(campo);
+        }, 0);
+      });
+      var contenedor = campo.closest(".bloque-persona") || campo.closest("form");
+      var select = contenedor ? contenedor.querySelector("[data-documento-tipo]") : null;
+      if (select) {
+        select.addEventListener("change", function () {
+          limpiarCampo(campo);
+        });
+      }
+    });
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", iniciar);
+  } else {
+    iniciar();
+  }
+})();

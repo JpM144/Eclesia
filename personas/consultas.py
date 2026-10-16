@@ -267,14 +267,24 @@ def _filtrar_palabras(queryset, campos, palabras):
 
 
 def _fila(sacramento, rol):
+    url_detalle = ""
+    if sacramento.tipo == TipoSacramento.BAUTISMO:
+        try:
+            from django.urls import reverse
+
+            url_detalle = reverse("sacramentos:bautismo_detalle", args=[sacramento.pk])
+        except Exception:
+            url_detalle = ""
     return {
         "id": sacramento.pk,
         "rol": rol,
+        "tipo": sacramento.tipo,
         "tipo_sacramento": sacramento.get_tipo_display(),
         "fecha": sacramento.fecha,
         "libro": str(sacramento.folio.libro),
         "folio": sacramento.folio.numero_folio,
         "numero": sacramento.numero,
+        "url_detalle": url_detalle,
     }
 
 
@@ -548,9 +558,18 @@ def _datos_personales(roles):
 
 
 def _fila_sacramento(sacramento, rol):
+    url_detalle = ""
+    if sacramento.tipo == TipoSacramento.BAUTISMO:
+        try:
+            from django.urls import reverse
+
+            url_detalle = reverse("sacramentos:bautismo_detalle", args=[sacramento.pk])
+        except Exception:
+            url_detalle = ""
     return {
         "id": sacramento.pk,
         "rol": rol,
+        "tipo": sacramento.tipo,
         "tipo_sacramento": sacramento.get_tipo_display(),
         "fecha": sacramento.fecha,
         "parroquia": sacramento.parroquia.nombre if sacramento.parroquia else "",
@@ -559,6 +578,7 @@ def _fila_sacramento(sacramento, rol):
         "numero": sacramento.numero,
         "estado": sacramento.get_estado_display(),
         "anotaciones": [],
+        "url_detalle": url_detalle,
     }
 
 

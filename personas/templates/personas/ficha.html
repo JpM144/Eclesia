@@ -123,7 +123,7 @@
                 {% for sacramento in ficha.sacramentos %}
                   <tr>
                     <td>{{ sacramento.rol|capfirst }}</td>
-                    <td>{{ sacramento.tipo_sacramento }}</td>
+                    <td>{% if sacramento.url_detalle %}<a href="{{ sacramento.url_detalle }}">{{ sacramento.tipo_sacramento }}</a>{% else %}{{ sacramento.tipo_sacramento }}{% endif %}</td>
                     <td>{{ sacramento.fecha|date:"d/m/Y" }}</td>
                     <td>{{ sacramento.parroquia|default:"—" }}</td>
                     <td>{{ sacramento.libro }}</td>
