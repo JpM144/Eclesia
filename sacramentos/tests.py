@@ -2003,3 +2003,306 @@ class BautismoAccionesViewsTests(BautismoBaseTests):
         self.assertRedirects(respuesta, self._url("bautismo_detalle", primero))
         self.assertTrue(Bautismo.objects.filter(pk=primero.pk).exists())
         self.assertFalse(PartidaEliminada.objects.exists())
+
+
+class BautismoPartidasBaseTests(BautismoBaseTests):
+    """Utilidades para crear partidas de bautismo directamente en la base."""
+
+    contador = 0
+
+    def setUp(self):
+        super().setUp()
+        self.client.force_login(self.usuario)
+
+    def _fiel(self, numero=None):
+        if numero is None:
+            type(self).contador += 1
+            numero = f"7000000{type(self).contador}"
+        return Fiel.objects.create(
+            documento=self._crear_documento(numero),
+            nombres="Fiel",
+            apellidos=f"Prueba {numero}",
+            fecha_nacimiento=date(2000, 1, 1),
+        )
+
+    def _crear_partida(
+        self,
+        *,
+        libro=None,
+        folio=None,
+        numero=1,
+        fecha=date(2026, 3, 15),
+        estado=EstadoRegistro.ACTIVO,
+        fiel=None,
+        parroquia=None,
+        tipo_hijo=TipoHijo.BIOLOGICO,
+        **bautismo_extra,
+    ):
+        libro = libro or self.libro
+        if folio is None:
+            if libro == self.libro:
+                folio = self.folio
+            else:
+                folio, _ = Folio.objects.get_or_create(libro=libro, defaults={"numero_folio": 1})
+        sacramento = Sacramento.objects.create(
+            tipo=TipoSacramento.BAUTISMO,
+            fiel=fiel or self._fiel(),
+            libro=libro,
+            folio=folio,
+            numero=numero,
+            fecha=fecha,
+            fecha_registro=fecha,
+            parroquia=parroquia or self.parroquia,
+            ministro=self.ministro,
+            estado=estado,
+        )
+        datos = {
+            "sacramento": sacramento,
+            "padre": self.padre,
+            "madre": self.madre,
+            "tipo_hijo": tipo_hijo,
+            "padrino": self.padrino,
+            "quien_firma": self.parroco,
+            "doy_fe": self.parroco,
+        }
+        datos.update(bautismo_extra)
+        return Bautismo.objects.create(**datos)
+
+    def _url_lista(self, parametros=None):
+        url = reverse("sacramentos:bautismo_lista")
+        if parametros:
+            from django.utils.http import urlencode
+
+            url += "?" + urlencode(parametros)
+        return url
+
+
+class BautismoListaVistaTests(BautismoPartidasBaseTests):
+    def setUp(self):
+        super().setUp()
+        self.libro.numero_libro = 1
+        self.libro.save()
+
+    def test_lista_muestra_columnas_nuevas(self):
+        self._crear_partida(numero=4)
+        respuesta = self.client.get(reverse("sacramentos:bautismo_lista"))
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertContains(respuesta, "<th>N.° de partida</th>", html=True)
+        self.assertContains(respuesta, "<th>Fecha del bautismo</th>", html=True)
+        self.assertContains(respuesta, "Registrar bautismo")
+        self.assertContains(respuesta, "Ver partida")
+        self.assertContains(respuesta, str(self.padre))
+
+    def test_lista_sin_columna_parroquia_con_una_sola_parroquia(self):
+        self._crear_partida()
+        respuesta = self.client.get(reverse("sacramentos:bautismo_lista"))
+        self.assertNotContains(respuesta, ">Parroquia</th>")
+        self.assertNotContains(respuesta, 'name="parroquia"')
+
+    def test_lista_con_columna_y_filtro_parroquia_con_varias_parroquias(self):
+        otra = Parroquia.objects.create(
+            nombre="San José", municipio=self.municipio, direccion="Calle 9"
+        )
+        otro_libro = Libro.objects.create(
+            nombre="Bautismos San José",
+            tipo_libro=TipoLibro.BAUTISMOS,
+            detalle="Registro",
+            numero_libro=2,
+            fecha_apertura=date(2026, 1, 1),
+            estado=EstadoLibro.ABIERTO,
+            parroquia=otra,
+        )
+        self._crear_partida(numero=1)
+        partida_otra = self._crear_partida(libro=otro_libro, numero=1, parroquia=otra)
+        respuesta = self.client.get(reverse("sacramentos:bautismo_lista"))
+        self.assertContains(respuesta, ">Parroquia</th>")
+        self.assertContains(respuesta, 'name="parroquia"')
+        self.assertContains(respuesta, "San José")
+
+        filtrada = self.client.get(self._url_lista({"parroquia": otra.pk}))
+        self.assertEqual(list(filtrada.context["bautismos"]), [partida_otra])
+
+    def test_lista_filtra_por_libro(self):
+        otra = Parroquia.objects.create(
+            nombre="San José", municipio=self.municipio, direccion="Calle 9"
+        )
+        otro_libro = Libro.objects.create(
+            nombre="Bautismos San José",
+            tipo_libro=TipoLibro.BAUTISMOS,
+            detalle="Registro",
+            fecha_apertura=date(2026, 1, 1),
+            estado=EstadoLibro.ABIERTO,
+            parroquia=otra,
+        )
+        propia = self._crear_partida(numero=1)
+        ajena = self._crear_partida(libro=otro_libro, numero=1, parroquia=otra)
+        respuesta = self.client.get(self._url_lista({"libro": self.libro.pk}))
+        self.assertEqual(list(respuesta.context["bautismos"]), [propia])
+        self.assertNotIn(ajena, respuesta.context["bautismos"])
+
+    def test_lista_filtra_por_anio(self):
+        antigua = self._crear_partida(numero=1, fecha=date(2025, 6, 1))
+        reciente = self._crear_partida(numero=2, fecha=date(2026, 6, 1))
+        respuesta = self.client.get(self._url_lista({"anio": 2025}))
+        self.assertEqual(list(respuesta.context["bautismos"]), [antigua])
+        self.assertNotIn(reciente, respuesta.context["bautismos"])
+
+    def test_lista_filtra_por_estado(self):
+        activa = self._crear_partida(numero=1, estado=EstadoRegistro.ACTIVO)
+        anulada = self._crear_partida(numero=2, estado=EstadoRegistro.ANULADO)
+        respuesta = self.client.get(self._url_lista({"estado": EstadoRegistro.ANULADO}))
+        self.assertEqual(list(respuesta.context["bautismos"]), [anulada])
+        self.assertNotIn(activa, respuesta.context["bautismos"])
+
+    def test_lista_filtros_combinados_y_enlace_limpiar(self):
+        self._crear_partida(numero=1, fecha=date(2026, 6, 1), estado=EstadoRegistro.ACTIVO)
+        self._crear_partida(numero=2, fecha=date(2026, 6, 2), estado=EstadoRegistro.ANULADO)
+        self._crear_partida(numero=3, fecha=date(2025, 6, 3), estado=EstadoRegistro.ACTIVO)
+        respuesta = self.client.get(
+            self._url_lista({"anio": 2026, "estado": EstadoRegistro.ACTIVO})
+        )
+        numeros = [b.sacramento.numero for b in respuesta.context["bautismos"]]
+        self.assertEqual(numeros, [1])
+        self.assertContains(respuesta, "Limpiar filtros")
+
+    def test_lista_estado_vacio_por_filtro(self):
+        self._crear_partida(numero=1, fecha=date(2026, 1, 1))
+        respuesta = self.client.get(self._url_lista({"anio": 1999}))
+        self.assertContains(respuesta, "No hay resultados con estos filtros")
+
+    def test_lista_ordena_por_libro_y_numero_descendente(self):
+        otra = Parroquia.objects.create(
+            nombre="San José", municipio=self.municipio, direccion="Calle 9"
+        )
+        libro_dos = Libro.objects.create(
+            nombre="Bautismos 2027",
+            tipo_libro=TipoLibro.BAUTISMOS,
+            detalle="Registro",
+            numero_libro=2,
+            fecha_apertura=date(2027, 1, 1),
+            estado=EstadoLibro.ABIERTO,
+            parroquia=otra,
+        )
+        libro_dos_folio = Folio.objects.create(libro=libro_dos, numero_folio=1)
+        self._crear_partida(numero=1, fecha=date(2026, 2, 1))
+        self._crear_partida(numero=3, fecha=date(2026, 3, 1))
+        self._crear_partida(numero=2, fecha=date(2026, 1, 1))
+        nueva = self._crear_partida(
+            libro=libro_dos, folio=libro_dos_folio, numero=1, parroquia=otra
+        )
+        respuesta = self.client.get(reverse("sacramentos:bautismo_lista"))
+        bautismos = list(respuesta.context["bautismos"])
+        self.assertEqual(bautismos[0].pk, nueva.pk)
+        self.assertEqual([b.sacramento.numero for b in bautismos[1:]], [3, 2, 1])
+
+    def test_lista_pagina_de_25(self):
+        for numero in range(1, 27):
+            self._crear_partida(numero=numero)
+        respuesta = self.client.get(reverse("sacramentos:bautismo_lista"))
+        self.assertTrue(respuesta.context["is_paginated"])
+        self.assertEqual(len(respuesta.context["bautismos"]), 25)
+        segunda = self.client.get(self._url_lista({"page": 2}))
+        self.assertEqual(len(segunda.context["bautismos"]), 1)
+
+    def test_lista_paginacion_conserva_los_filtros(self):
+        for numero in range(1, 27):
+            self._crear_partida(numero=numero, fecha=date(2026, 1, numero))
+        respuesta = self.client.get(self._url_lista({"anio": 2026}))
+        self.assertTrue(respuesta.context["is_paginated"])
+        self.assertContains(respuesta, "anio=2026")
+
+    def test_lista_numero_de_consultas_constante(self):
+        self._crear_partida(numero=1)
+        with CaptureQueriesContext(connection) as pocas:
+            self.client.get(reverse("sacramentos:bautismo_lista"))
+        for numero in range(2, 13):
+            self._crear_partida(numero=numero)
+        with CaptureQueriesContext(connection) as muchas:
+            self.client.get(reverse("sacramentos:bautismo_lista"))
+        self.assertEqual(len(pocas.captured_queries), len(muchas.captured_queries))
+
+    def test_lista_requiere_login(self):
+        self.client.logout()
+        respuesta = self.client.get(reverse("sacramentos:bautismo_lista"))
+        self.assertNotEqual(respuesta.status_code, 200)
+
+
+class BautismoHojaTests(BautismoPartidasBaseTests):
+    def _detalle(self, bautismo):
+        return self.client.get(reverse("sacramentos:bautismo_detalle", args=[bautismo.pk]))
+
+    def test_detalle_usa_el_parcial_de_la_hoja(self):
+        bautismo = self._crear_partida(numero=5)
+        respuesta = self._detalle(bautismo)
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertTemplateUsed(respuesta, "sacramentos/partials/hoja_partida.html")
+
+    def test_detalle_muestra_referencia_y_datos_ausentes(self):
+        bautismo = self._crear_partida(numero=5)
+        with override_settings(NOMBRE_PARROQUIA="San Pedro Claver"):
+            respuesta = self._detalle(bautismo)
+        self.assertContains(respuesta, "PARTIDA DE BAUTISMO")
+        self.assertContains(respuesta, "Libro de Bautismos")
+        self.assertContains(respuesta, "Folio 1 · N.° 5")
+        self.assertContains(respuesta, "En la Parroquia San Pedro Claver, se hace constar que:")
+        self.assertContains(respuesta, "dato no presentado")
+        self.assertContains(respuesta, "Sin notas marginales")
+
+    def test_detalle_muestra_notas_marginales_y_franja_anulada(self):
+        bautismo = self._crear_partida(numero=1)
+        anular_bautismo(bautismo, self.usuario, "Partida duplicada")
+        respuesta = self._detalle(bautismo)
+        self.assertContains(respuesta, "Notas marginales")
+        self.assertContains(respuesta, "Partida duplicada")
+        self.assertContains(respuesta, "ANULADA")
+        self.assertContains(respuesta, "insignia-estado--anulado")
+
+    def test_detalle_no_muestra_padres_biologicos(self):
+        bautismo = self._crear_partida(
+            numero=1,
+            tipo_hijo=TipoHijo.ADOPTIVO,
+            padre_biologico_nombre="Anacleto Biológico",
+            madre_biologica_nombre="Berta Biológica",
+        )
+        respuesta = self._detalle(bautismo)
+        self.assertNotContains(respuesta, "Anacleto Biológico")
+        self.assertNotContains(respuesta, "Berta Biológica")
+        self.assertContains(respuesta, str(self.padre))
+        self.assertContains(respuesta, str(self.madre))
+
+    def test_detalle_muestra_enlaces_a_las_fichas(self):
+        fiel = self._fiel("80000001")
+        bautismo = self._crear_partida(numero=1, fiel=fiel)
+        respuesta = self._detalle(bautismo)
+        self.assertContains(respuesta, reverse("personas:ficha", args=[fiel.documento_id]))
+        self.assertContains(respuesta, reverse("personas:ficha", args=[self.padre.documento_id]))
+
+    def test_detalle_usa_nombre_parroquia_configurado(self):
+        bautismo = self._crear_partida(numero=1)
+        with override_settings(NOMBRE_PARROQUIA="Parroquia Configurada"):
+            respuesta = self._detalle(bautismo)
+        self.assertContains(respuesta, "Parroquia Configurada")
+
+    def test_detalle_corregido_muestra_editar_y_anular_sin_eliminar(self):
+        bautismo, _ = self._registrar_bautismo_desde_form()
+        datos = self._datos_completos()
+        datos["motivo"] = "Corrección de datos"
+        form = BautismoEditarForm(datos, bautismo=bautismo)
+        self.assertTrue(form.is_valid(), form.errors)
+        corregir_bautismo(
+            bautismo,
+            form.datos_para_servicio(),
+            self.usuario,
+            form.cleaned_data["motivo"],
+        )
+        respuesta = self._detalle(bautismo)
+        self.assertContains(respuesta, reverse("sacramentos:bautismo_editar", args=[bautismo.pk]))
+        self.assertContains(respuesta, reverse("sacramentos:bautismo_anular", args=[bautismo.pk]))
+        self.assertNotContains(
+            respuesta, reverse("sacramentos:bautismo_eliminar", args=[bautismo.pk])
+        )
+
+    def test_detalle_requiere_login(self):
+        bautismo = self._crear_partida(numero=1)
+        self.client.logout()
+        self.assertNotEqual(self._detalle(bautismo).status_code, 200)

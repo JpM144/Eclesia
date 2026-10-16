@@ -1,0 +1,80 @@
+/*
+ * Lista de bautismos (sacramentos/templates/sacramentos/bautismo_lista.html).
+ *
+ * Filas clicables hacia la ficha de la partida y, en móvil, la tabla pasa a
+ * tarjetas apiladas (número, bautizado, fecha y estado) sin scroll horizontal.
+ */
+
+.tabla-partidas .fila-clicable {
+  cursor: pointer;
+}
+
+.tabla-partidas .celda-bautizado {
+  min-width: 12rem;
+}
+
+.tabla-partidas .bautizado-documento {
+  display: block;
+  color: var(--gp-texto-suave);
+  font-size: 0.78rem;
+}
+
+.tabla-partidas .celda-accion {
+  white-space: nowrap;
+}
+
+.tabla-partidas .enlace-ver {
+  color: var(--gp-texto-suave);
+  text-decoration: none;
+}
+
+.tabla-partidas .enlace-ver:hover,
+.tabla-partidas .enlace-ver:focus {
+  color: var(--gp-bautismo);
+}
+
+@media (max-width: 767.98px) {
+  .tabla-partidas,
+  .tabla-partidas thead,
+  .tabla-partidas tbody,
+  .tabla-partidas tr,
+  .tabla-partidas th,
+  .tabla-partidas td {
+    display: block;
+    width: 100%;
+  }
+
+  .tabla-partidas thead {
+    position: absolute;
+    left: -9999px;
+  }
+
+  .tabla-partidas tbody tr {
+    margin: 0.75rem;
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--gp-borde);
+    border-radius: var(--gp-radio-sm);
+    background: #fff;
+    box-shadow: var(--gp-sombra);
+  }
+
+  .tabla-partidas td {
+    padding: 0.2rem 0;
+    border: 0;
+  }
+
+  /* En tarjeta solo quedan número, bautizado, fecha y estado. */
+  .tabla-partidas .oculta-movil {
+    display: none;
+  }
+
+  .tabla-partidas .celda-bautizado {
+    min-width: 0;
+    font-size: 1.05rem;
+    font-weight: 600;
+  }
+
+  .tabla-partidas .celda-accion {
+    display: none;
+  }
+}

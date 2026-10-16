@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.db.models import Q
@@ -412,3 +413,83 @@ def _resumen_partida(bautismo):
         f"Observaciones: {sacramento.observaciones or '—'}",
     ]
     return "\n".join(lineas)
+
+
+def _persona_con_documento(persona):
+    """Nombre de una persona con su documento entre paréntesis, o vacío."""
+    if persona is None:
+        return ""
+    documento = getattr(persona, "documento", None)
+    if documento is not None:
+        return f"{persona} ({documento})"
+    return str(persona)
+
+
+def _fila(etiqueta, valor):
+    """Par etiqueta/valor para la hoja de partida; el valor vacío se marca ausente."""
+    return {"etiqueta": etiqueta, "valor": valor or ""}
+
+
+def _fecha_corta(valor):
+    return valor.strftime("%d/%m/%Y") if valor else ""
+
+
+def datos_hoja_bautismo(bautismo):
+    """Datos de una partida de bautismo preparados para ``hoja_partida.html``.
+
+    Devuelve el título, el tipo de libro, la referencia (libro, folio y número),
+    el nombre de la parroquia, las filas de datos, las notas marginales y el
+    estado. Los padres biológicos de un hijo adoptivo nunca se incluyen: en la
+    hoja constan solo el padre y la madre registrados en la partida.
+    """
+    sacramento = bautismo.sacramento
+    libro = sacramento.folio.libro
+    fiel = sacramento.fiel
+
+    filas = [
+        _fila("Bautizado", str(fiel) if fiel else ""),
+        _fila("Documento", _persona_con_documento(fiel)),
+        _fila("Fecha de nacimiento", _fecha_corta(getattr(fiel, "fecha_nacimiento", None))),
+        _fila(
+            "Lugar de nacimiento",
+            str(fiel.municipio_nacimiento) if fiel and fiel.municipio_nacimiento_id else "",
+        ),
+        _fila("Fecha del bautismo", _fecha_corta(sacramento.fecha)),
+        _fila("Padre", _persona_con_documento(bautismo.padre)),
+        _fila("Madre", _persona_con_documento(bautismo.madre)),
+        _fila("Abuelo paterno", bautismo.abuelo_paterno),
+        _fila("Abuela paterna", bautismo.abuela_paterna),
+        _fila("Abuelo materno", bautismo.abuelo_materno),
+        _fila("Abuela materna", bautismo.abuela_materna),
+        _fila("Padrino", _persona_con_documento(bautismo.padrino)),
+        _fila("Madrina", _persona_con_documento(bautismo.madrina)),
+        _fila("Testigo", bautismo.testigo_nombre),
+        _fila("Ministro que bautizó", _persona_con_documento(sacramento.ministro)),
+        _fila("Ministro que firma", _persona_con_documento(bautismo.quien_firma)),
+        _fila("Quien da fe", _persona_con_documento(bautismo.doy_fe)),
+        _fila("Observaciones", sacramento.observaciones),
+    ]
+
+    notas = [
+        {
+            "tipo": anotacion.get_tipo_display(),
+            "fecha": _fecha_corta(anotacion.fecha),
+            "descripcion": anotacion.descripcion,
+        }
+        for anotacion in sacramento.anotaciones_marginales.all()
+    ]
+
+    return {
+        "titulo": "PARTIDA DE BAUTISMO",
+        "tipo_libro": f"Libro de {libro.get_tipo_libro_display()}",
+        "referencia": (
+            f"Libro {libro.numero_libro or libro.nombre} · "
+            f"Folio {sacramento.folio.numero_folio} · N.° {sacramento.numero}"
+        ),
+        "parroquia": settings.NOMBRE_PARROQUIA or libro.parroquia.nombre,
+        "filas": filas,
+        "icono_agua": "core/iconos/gota.svg",
+        "notas": notas,
+        "estado": sacramento.estado,
+        "estado_etiqueta": sacramento.get_estado_display(),
+    }

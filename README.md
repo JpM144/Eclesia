@@ -160,7 +160,10 @@ decorado adicional.
 ### Estaticos
 
 Los archivos estáticos propios van en `static/` (configurado con `STATICFILES_DIRS`);
-los de terceros se cargan por CDN.
+los de terceros se cargan por CDN. Además de `tema.css` (global) están `dashboard.css`
+(dashboard), `bautismo_lista.css` y `hoja_partida.css` (sacramentos), y los scripts
+`tema.js`, `formularios.js`, `ubicacion.js`, `buscar_persona.js` y `filas_clicables.js`
+(este último hace clicables las filas `tr[data-href]` de las listas).
 
 ### Dashboard
 
@@ -184,10 +187,11 @@ anterior tiene 0 muestra **Nuevo** o **Sin cambios** según haya registros este 
   heredan el color con `currentColor`). Se insertan en línea con
   `{% include "core/iconos/<nombre>.svg" %}` para poder colorearlos con CSS y llevan
   `aria-hidden="true"`. El ícono de la iglesia del menú es `iglesia.svg`, la cruz del menú es
-  `cruz.svg` y el estado vacío de actividades usa `documento-reloj.svg`. Varias partes llevan
-  relleno con opacidad baja (el agua de la gota, la copa del cáliz, el ala de la paloma) para
-  dar peso visual. Los mismos SVG se usan en el sidebar, a tamaño de ícono de menú (clase
-  `nav-icon icono-menu`).
+  `cruz.svg` y el estado vacío de actividades usa `documento-reloj.svg`. La hoja de partida usa
+  `cruz_certificado.svg` (cruz latina) en el encabezado y `gota.svg` como marca de agua. Varias
+  partes llevan relleno con opacidad baja (el agua de la gota, la copa del cáliz, el ala de la
+  paloma) para dar peso visual. Los mismos SVG se usan en el sidebar, a tamaño de ícono de menú
+  (clase `nav-icon icono-menu`).
 - Cada tarjeta muestra el ícono en un círculo pastel de **64 px** con el color del
   sacramento (`.icono-circulo`) y el SVG a **40 px**; la etiqueta en mayúsculas grises va
   sobre el total grande (`.tarjeta-total`) y debajo, centrado, el indicador de variación
@@ -243,8 +247,12 @@ anterior tiene 0 muestra **Nuevo** o **Sin cambios** según haya registros este 
 - Los colores y las medidas se definen como variables CSS en `static/css/tema.css` (cargado
   después de AdminLTE): superficies (`--gp-marino`, `--gp-activo`, `--gp-contenido`), texto
   (`--gp-texto`, `--gp-texto-suave`), colores por sacramento y sus pasteles, radio, sombra y
-  ancho máximo.
-- La tipografía es **Inter** desde Google Fonts (pesos 400, 500, 600 y 700) con respaldo
+  ancho máximo. Para los estados de las partidas hay además `--gp-corregido` /
+  `--gp-corregido-fondo` (ámbar) y `--gp-archivado` / `--gp-archivado-fondo` (azul grisáceo),
+  y para la hoja de partida `--gp-azul-hoja` y `--gp-dorado`. Las hojas de partida usan
+  **Cinzel** (títulos) y **EB Garamond** (texto) desde Google Fonts, con respaldo
+  Georgia/"Times New Roman"/serif (`static/css/hoja_partida.css`).
+- La tipografía general es **Inter** desde Google Fonts (pesos 400, 500, 600 y 700) con respaldo
   `system-ui, -apple-system, "Segoe UI", Roboto, sans-serif`, de modo que se ve bien incluso
   sin conexión.
 - Puntos de corte: a partir de 1200 px (y hasta 2K/4K) el menú es fijo, hay cuatro tarjetas
@@ -286,6 +294,12 @@ de `CrudListView` (`titulo_vacio`, `texto_vacio`, `texto_boton_vacio`, `icono_va
 vista puede sobrescribir `get_texto_vacio`, `get_texto_boton_vacio` y `get_url_crear_vacio`;
 `hay_filtros_activos` decide cuál rama se muestra. El dashboard usa el mismo parcial para la
 actividad reciente y para la gráfica.
+
+**Insignias de estado.** Las partidas muestran su estado con `.insignia-estado` (definida en
+`static/css/tema.css`): `--activo` (verde), `--corregido` (ámbar), `--anulado` (gris) y
+`--archivado` (azul grisáceo). La clase se arma como `insignia-estado--{{ estado|lower }}` y el
+texto sale de `get_estado_display`. La hoja de partida usa la misma insignia y añade la franja
+en diagonal **ANULADA** cuando la partida está anulada.
 
 **Carga.** Los formularios marcados con `data-evitar-doble-envio` (los del CRUD, el de
 cuentas y el de eliminación; el registro de usuarios lo añade a mano) usan
@@ -529,15 +543,30 @@ El `<pk>` de la ficha es el `pk` del `Bautismo`, que es a la vez el del `Sacrame
 
 ### Lista y ficha
 
-- **Lista** (`BautismoListView`): pagina de 25 en 25 y ordena por fecha y número de partida
-  descendente. Acepta `?q=` para filtrar por nombres/apellidos del fiel o por número de
-  partida. Usa `select_related` (`fiel`, `folio__libro`, `parroquia`) para no provocar
-  consultas N+1.
-- **Ficha** (`BautismoDetailView`): `select_related` de fiel, municipio de nacimiento, libro,
-  parroquia, ministro, padre, madre, padrino, madrina, quien firma y quien da fe; muestra las
-  anotaciones marginales y el historial. Un `pk` inexistente (o que no sea un bautismo)
-  responde `404`. El enlace a la ficha aparece en **Consultar personas** y en la ficha de la
-  persona cuando la partida de bautismo existe (`url_detalle`).
+- **Lista** (`BautismoListView`, plantilla `bautismo_lista.html`): pagina de 25 en 25 y ordena
+  por libro y número de partida descendentes (`-libro__numero_libro`, `-libro__nombre`,
+  `-numero`). Muestra las columnas N.° de partida, folio, libro, fecha del bautismo, bautizado
+  (con su documento en gris), padres, parroquia y estado. Acepta los filtros combinables
+  `?q=` (nombres/apellidos del fiel o número de partida), `?libro=`, `?anio=`, `?estado=` y
+  `?parroquia=`; **Parroquia** (columna y filtro) solo aparece cuando hay más de una parroquia
+  con libros de bautismos, y los filtros se conservan al paginar (`consulta_filtros`). Cada fila
+  es clicable (`static/js/filas_clicables.js`, filas `tr[data-href]`) y ofrece además el enlace
+  **Ver partida**; el estado se pinta con `.insignia-estado` (`--activo`, `--corregido`,
+  `--anulado`, `--archivado`). Usa `select_related` (fiel, folio, libro, parroquia, padre,
+  madre) para no provocar consultas N+1 y mantiene un número constante de consultas.
+- **Ficha** (`BautismoDetailView`, plantilla `bautismo_detalle.html`): muestra la partida como
+  una hoja del libro mediante el parcial reutilizable
+  `sacramentos/templates/sacramentos/partials/hoja_partida.html` (estilo `hoja_partida.css`,
+  tipografías Cinzel + EB Garamond, marca de agua con la gota, insignia de estado y franja
+  **ANULADA** si procede), más una barra de acciones (editar/anular/eliminar según las reglas,
+  volver e **Imprimir** con `window.print()`) y, fuera de la hoja (`.no-print`), el historial y
+  los enlaces a las fichas de las personas de la partida. El parcial recibe `titulo`,
+  `tipo_libro`, `referencia`, `parroquia`, `filas`, `icono_agua`, `notas`, `estado` y
+  `estado_etiqueta`, y está pensado para reutilizarse en el certificado y en los demás
+  sacramentos. Los datos los arma `datos_hoja_bautismo(bautismo)` (`sacramentos/services.py`);
+  los padres biológicos de un hijo adoptivo nunca se incluyen en la hoja. Un `pk` inexistente
+  (o que no sea un bautismo) responde `404`. El enlace a la ficha aparece en **Consultar
+  personas** y en la ficha de la persona cuando la partida de bautismo existe (`url_detalle`).
 
 ### Formulario de registro
 
