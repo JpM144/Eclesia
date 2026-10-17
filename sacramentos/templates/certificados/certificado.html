@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Certificado de bautismo{% endblock %}
+{% block heading %}Certificado de bautismo{% endblock %}
+
+{% block extra_css %}
+  <link rel="stylesheet" href="{% static 'css/hoja_partida.css' %}">
+  <link rel="stylesheet" href="{% static 'css/certificado.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="certificado-barra d-print-none">
+  <button type="button" class="btn btn-primary" onclick="window.print()">
+    <i class="fas fa-print"></i> Imprimir
+  </button>
+  <a href="{% url 'sacramentos:bautismo_detalle' bautismo.pk %}" class="btn btn-secondary">
+    Volver a la partida
+  </a>
+</div>
+
+{% include "sacramentos/partials/hoja_partida.html" with titulo=hoja.titulo tipo_libro=hoja.tipo_libro referencia=hoja.referencia parroquia=hoja.parroquia diocesis=hoja.diocesis filas=hoja.filas icono_agua=hoja.icono_agua notas=hoja.notas estado=hoja.estado estado_etiqueta=hoja.estado_etiqueta ocultar_estado=hoja.ocultar_estado incluir_cierre=hoja.incluir_cierre certificado=certificado %}
+
+<footer class="certificado-pie">
+  <span class="certificado-pie-linea" aria-hidden="true"></span>
+  <span class="certificado-pie-texto">{{ hoja.parroquia }} · Fe que une, sacramentos que dan vida</span>
+  <span class="certificado-pie-linea" aria-hidden="true"></span>
+</footer>
+{% endblock %}

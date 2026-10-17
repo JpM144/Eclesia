@@ -4,6 +4,7 @@ import os
 import re
 from datetime import date, datetime, timedelta
 
+from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.management import call_command
 from django.db import connection
@@ -637,6 +638,29 @@ class NombreParroquiaMenuTests(EscenarioBase):
     def test_oculta_el_nombre_si_esta_vacio(self):
         respuesta = self.client.get(reverse("dashboard"))
         self.assertNotContains(respuesta, "marca-parroquia")
+
+
+class EdadesSacramentosSettingsTests(TestCase):
+    """Las edades de las reglas de los sacramentos se leen de .env con cast=int."""
+
+    EDADES = {
+        "EDAD_MINIMA_PADRINO": 16,
+        "EDAD_USO_RAZON": 7,
+        "EDAD_MINIMA_CONFIRMACION": 7,
+        "EDAD_MINIMA_MATRIMONIO_VARON": 16,
+        "EDAD_MINIMA_MATRIMONIO_MUJER": 14,
+        "EDAD_LICITA_MATRIMONIO": 18,
+    }
+
+    def test_existen_y_son_enteras(self):
+        for nombre in self.EDADES:
+            with self.subTest(edad=nombre):
+                self.assertIsInstance(getattr(settings, nombre), int)
+
+    def test_valores_por_defecto(self):
+        for nombre, esperado in self.EDADES.items():
+            with self.subTest(edad=nombre):
+                self.assertEqual(getattr(settings, nombre), esperado)
 
 
 class DashboardPeriodoTests(EscenarioBase):

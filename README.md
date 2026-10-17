@@ -324,6 +324,13 @@ con el context processor `core.context_processors.nombre_parroquia`, que no cons
 de datos; en los tests se fija con `override_settings(NOMBRE_PARROQUIA=...)`. La línea de
 ejemplo está en `.env.example` con un comentario.
 
+### NOMBRE_DIOCESIS
+
+La variable de entorno `NOMBRE_DIOCESIS` (leída con `python-decouple`, con default vacío) es el
+nombre de la diócesis que consta en las hojas de partida y en los certificados. `datos_hoja_bautismo`
+la expone como `diocesis` y el parcial `hoja_partida.html` la pinta bajo el nombre de la parroquia
+solo si no está vacía. La línea de ejemplo está en `.env.example` con un comentario.
+
 ## Patrón CRUD
 
 Todo el CRUD del proyecto se construye con cuatro vistas genéricas definidas en
@@ -536,6 +543,7 @@ transaccional; las rutas viven en `sacramentos/urls.py` bajo el namespace `sacra
 | Corregir la partida       | `/sacramentos/bautismos/<pk>/editar/`   | `sacramentos:bautismo_editar`   |
 | Anular la partida         | `/sacramentos/bautismos/<pk>/anular/`   | `sacramentos:bautismo_anular`   |
 | Eliminar la partida       | `/sacramentos/bautismos/<pk>/eliminar/` | `sacramentos:bautismo_eliminar` |
+| Certificado de la partida | `/sacramentos/bautismos/<pk>/certificado/` | `sacramentos:bautismo_certificado` |
 
 El `<pk>` de la ficha es el `pk` del `Bautismo`, que es a la vez el del `Sacramento`
 (`OneToOneField(primary_key=True)`). Todas las vistas exigen sesión
@@ -561,9 +569,11 @@ El `<pk>` de la ficha es el `pk` del `Bautismo`, que es a la vez el del `Sacrame
   **ANULADA** si procede), más una barra de acciones (editar/anular/eliminar según las reglas,
   volver e **Imprimir** con `window.print()`) y, fuera de la hoja (`.no-print`), el historial y
   los enlaces a las fichas de las personas de la partida. El parcial recibe `titulo`,
-  `tipo_libro`, `referencia`, `parroquia`, `filas`, `icono_agua`, `notas`, `estado` y
-  `estado_etiqueta`, y está pensado para reutilizarse en el certificado y en los demás
-  sacramentos. Los datos los arma `datos_hoja_bautismo(bautismo)` (`sacramentos/services.py`);
+  `tipo_libro`, `referencia`, `parroquia`, `diocesis`, `filas`, `icono_agua`, `notas`, `estado`,
+  `estado_etiqueta` y, opcionalmente, `ocultar_estado` (oculta la insignia de estado) e
+  `incluir_cierre` (añade el pie del certificado), y está pensado para reutilizarse en el
+  certificado y en los demás sacramentos. Los datos los arma
+  `datos_hoja_bautismo(bautismo)` (`sacramentos/services.py`);
   los padres biológicos de un hijo adoptivo nunca se incluyen en la hoja. Un `pk` inexistente
   (o que no sea un bautismo) responde `404`. El enlace a la ficha aparece en **Consultar
   personas** y en la ficha de la persona cuando la partida de bautismo existe (`url_detalle`).
@@ -625,6 +635,28 @@ sobrescriben), la ficha ofrece acciones según el estado:
 Las partidas anuladas no cuentan en el dashboard ni aparecen en el índice del libro. La ficha
 muestra Editar/Anular solo en estados editables y Eliminar únicamente cuando se cumple
 `puede_eliminarse(bautismo)` (la misma regla que valida el servidor).
+
+### Certificado
+
+La ficha ofrece **Certificado** (excepto en partidas anuladas), que lleva a
+`sacramentos:bautismo_certificado` = `/sacramentos/bautismos/<pk>/certificado/`
+(`BautismoCertificadoView`, un `FormView` con `SolicitudCertificadoForm`). El GET muestra la
+solicitud (solicitante, tipo y número de documento, relación con el titular y finalidad); el
+POST valida —nombre solo con letras, documento validado según su tipo, y texto obligatorio
+cuando la finalidad es «Otro»—, registra `AccionHistorial.CERTIFICADO` en el historial
+(«Certificado expedido a … (relación) para …») y renderiza el certificado imprimible con
+`certificados/certificado.html`. Una partida anulada redirige a la ficha con un mensaje.
+
+El certificado reutiliza el parcial de la hoja (`hoja_partida.html` con
+`ocultar_estado=True` e `incluir_cierre=True`): sin la insignia de estado, con las notas
+marginales y con el pie `certificados/partials/cierre_certificado.html` dentro del marco
+(texto de expedición firmado por el párroco, sello y, solo cuando quien expide tiene rol
+Secretario(a), su firma). Los datos del pie los arma
+`datos_certificado_bautismo(bautismo, solicitud, usuario)` en `sacramentos/services.py`,
+usando `fecha_en_letras` para la fecha de expedición. Fuera del marco, en cursiva gris y con
+líneas finas a los lados, va el pie `{Parroquia} · Fe que une, sacramentos que dan vida`. La
+hoja la estiliza `static/css/hoja_partida.css` y la página (barra Imprimir/Volver y pie) el
+nuevo `static/css/certificado.css`.
 
 ### Autocompletado de personas
 

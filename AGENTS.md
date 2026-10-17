@@ -28,6 +28,8 @@ Reglas para cualquier agente que trabaje en este proyecto.
 
 ## Antes de cambiar sacramentos
 
+Antes de construir o cambiar un sacramento, lee docs/requisitos_sacramentos.md y aplica sus reglas.
+
 Lee, en este orden:
 
 1. `docs/especificacion_sacramentos.md`

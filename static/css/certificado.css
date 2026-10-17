@@ -1,0 +1,60 @@
+/*
+ * Página del certificado (sacramentos/templates/certificados/certificado.html).
+ *
+ * Barra de acciones (Imprimir / Volver) y el pie que va fuera del marco de la
+ * hoja: la parroquia con el lema, en cursiva gris y con líneas finas a los
+ * lados. Al imprimir solo desaparecen la barra; la hoja y el pie se imprimen.
+ */
+
+.certificado-barra {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: center;
+  margin-bottom: 1.25rem;
+}
+
+.certificado-pie {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  max-width: 820px;
+  margin: 1.5rem auto 2rem;
+  color: #64748b;
+  font-style: italic;
+}
+
+.certificado-pie-linea {
+  flex: 1 1 auto;
+  height: 1px;
+  background: rgba(100, 116, 139, 0.45);
+}
+
+.certificado-pie-texto {
+  flex: 0 0 auto;
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+@media (max-width: 767.98px) {
+  .certificado-pie {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .certificado-pie-linea {
+    width: 60%;
+    flex: 0 0 auto;
+  }
+}
+
+@media print {
+  .hoja-partida {
+    padding: 1.5rem 2rem;
+    border: 1px solid var(--gp-dorado, #b8954a);
+  }
+
+  .certificado-pie {
+    max-width: none;
+    margin: 1rem 0 0;
+  }
+}

@@ -15,6 +15,8 @@ from django.core.exceptions import ValidationError
 from core.choices import (
     EstadoLibro,
     EstadoRegistro,
+    FinalidadCertificado,
+    RelacionCertificado,
     Sexo,
     TipoDocumento,
     TipoHijo,
@@ -664,3 +666,108 @@ class BautismoEditarForm(BautismoForm):
         ):
             self._inicial_persona(inicial, prefijo, persona)
         return inicial
+
+
+class SolicitudCertificadoForm(forms.Form):
+    """Solicitud de un certificado: quién lo pide, con qué documento, relación y finalidad.
+
+    Todos los campos son obligatorios. El nombre solo admite letras y el
+    documento se valida según su tipo. Cuando la finalidad es ``Otro`` se exige
+    explicarla; en caso contrario ese texto se descarta.
+    """
+
+    solicitante = forms.CharField(
+        max_length=255,
+        label="Nombre de quien solicita el certificado",
+    )
+    tipo_documento = forms.ChoiceField(
+        choices=TipoDocumento.choices,
+        label="Tipo de documento",
+    )
+    numero_documento = forms.CharField(
+        max_length=30,
+        label="Número de documento",
+    )
+    relacion = forms.ChoiceField(
+        choices=RelacionCertificado.choices,
+        label="Relación con el titular",
+    )
+    finalidad = forms.ChoiceField(
+        choices=FinalidadCertificado.choices,
+        label="Finalidad del certificado",
+    )
+    finalidad_otro = forms.CharField(
+        max_length=255,
+        label="Especifique la finalidad",
+        required=False,
+        help_text="Obligatorio cuando la finalidad es «Otro».",
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for campo in self.fields.values():
+            clases = campo.widget.attrs.get("class", "")
+            campo.widget.attrs["class"] = f"{clases} form-control".strip()
+        self.fields["numero_documento"].widget.attrs["inputmode"] = "numeric"
+        self.fields["solicitante"].widget.attrs["data-solo-letras"] = "si"
+
+    def clean_solicitante(self):
+        valor = (self.cleaned_data.get("solicitante") or "").strip()
+        try:
+            solo_letras(valor)
+        except ValidationError as error:
+            raise ValidationError(error.messages)
+        return valor
+
+    def clean(self):
+        datos = super().clean()
+        tipo = datos.get("tipo_documento")
+        numero = (datos.get("numero_documento") or "").strip()
+        if tipo and numero:
+            numero = normalizar_documento(tipo, numero)
+            try:
+                validar_documento(tipo, numero)
+            except ValidationError as error:
+                self.add_error("numero_documento", error.messages)
+            else:
+                datos["numero_documento"] = numero
+                self.cleaned_data["numero_documento"] = numero
+        if datos.get("finalidad") == FinalidadCertificado.OTRO:
+            if not (datos.get("finalidad_otro") or "").strip():
+                self.add_error(
+                    "finalidad_otro",
+                    "Indique la finalidad del certificado.",
+                )
+        else:
+            datos["finalidad_otro"] = ""
+            self.cleaned_data["finalidad_otro"] = ""
+        return datos
+
+    def _finalidad_display(self):
+        finalidad = self.cleaned_data.get("finalidad")
+        if finalidad == FinalidadCertificado.OTRO:
+            return self.cleaned_data.get("finalidad_otro", "")
+        return self.fields["finalidad"].choices and dict(FinalidadCertificado.choices).get(
+            finalidad, finalidad
+        )
+
+    def datos_para_servicio(self):
+        """Diccionario con la solicitud ya validada y su descripción para el historial."""
+        relacion_display = dict(RelacionCertificado.choices).get(
+            self.cleaned_data["relacion"], self.cleaned_data["relacion"]
+        )
+        finalidad_display = self._finalidad_display()
+        return {
+            "solicitante": self.cleaned_data["solicitante"],
+            "tipo_documento": self.cleaned_data["tipo_documento"],
+            "numero_documento": self.cleaned_data["numero_documento"],
+            "relacion": self.cleaned_data["relacion"],
+            "relacion_display": relacion_display,
+            "finalidad": self.cleaned_data["finalidad"],
+            "finalidad_display": finalidad_display,
+            "finalidad_otro": self.cleaned_data.get("finalidad_otro", ""),
+            "descripcion_historial": (
+                f"Certificado expedido a {self.cleaned_data['solicitante']} "
+                f"({relacion_display}) para {finalidad_display}."
+            ),
+        }

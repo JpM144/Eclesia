@@ -105,6 +105,7 @@ class AccionHistorial(models.TextChoices):
     ANULACION = "ANULACION", "Anulación"
     CORRECCION = "CORRECCION", "Corrección"
     ARCHIVADO = "ARCHIVADO", "Archivado"
+    CERTIFICADO = "CERTIFICADO", "Certificado expedido"
 
 
 class ResultadoProclama(models.TextChoices):
@@ -113,3 +114,20 @@ class ResultadoProclama(models.TextChoices):
     CON_IMPEDIMENTO = "CON_IMPEDIMENTO", "Con impedimento"
     DISPENSADA = "DISPENSADA", "Dispensada"
     DESIERTA = "DESIERTA", "Desierta"
+
+
+class RelacionCertificado(models.TextChoices):
+    TITULAR = "TITULAR", "El mismo titular"
+    PADRE_MADRE = "PADRE_MADRE", "Padre o madre"
+    FAMILIAR = "FAMILIAR", "Familiar"
+    APODERADO = "APODERADO", "Apoderado"
+    ENTIDAD = "ENTIDAD", "Entidad"
+    OTRO = "OTRO", "Otro"
+
+
+class FinalidadCertificado(models.TextChoices):
+    MATRIMONIO = "MATRIMONIO", "Matrimonio"
+    CONFIRMACION = "CONFIRMACION", "Confirmación"
+    PRIMERA_COMUNION = "PRIMERA_COMUNION", "Primera comunión"
+    TRAMITE_CIVIL = "TRAMITE_CIVIL", "Trámite civil"
+    OTRO = "OTRO", "Otro"

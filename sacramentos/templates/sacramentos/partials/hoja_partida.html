@@ -6,14 +6,18 @@ Recibe:
   tipo_libro      – p. ej. "Libro de Bautismos"
   referencia      – p. ej. "Libro 1 · Folio 2 · N.° 3"
   parroquia       – nombre de la parroquia que consta en la hoja
+  diocesis        – nombre de la diócesis (opcional; se omite si está vacío)
   filas           – lista de {"etiqueta": ..., "valor": ...}; valor vacío
                     muestra "dato no presentado" en gris
   icono_agua      – ruta del SVG de la marca de agua (p. ej. la gota)
   notas           – lista de {"tipo": ..., "fecha": ..., "descripcion": ...}
   estado          – valor del estado (ACTIVO, CORREGIDO, ANULADO, ARCHIVADO)
   estado_etiqueta – etiqueta legible del estado
+  ocultar_estado  – si es verdadero, no se muestra la insignia de estado
+  incluir_cierre  – si es verdadero, se añade el pie del certificado
+  certificado     – datos del pie (solicitante, finalidad, fecha, firmas…)
 
-La usan la ficha de bautismo y, más adelante, el certificado imprimible y las
+La usan la ficha de bautismo y el certificado imprimible, y más adelante las
 partidas de los demás sacramentos. Nunca se marca contenido como seguro: todos
 los valores se imprimen escapados.
 {% endcomment %}
@@ -22,9 +26,10 @@ los valores se imprimen escapados.
     <div class="hoja-encabezado-izquierda">
       <span class="hoja-cruz" aria-hidden="true">{% include "core/iconos/cruz_certificado.svg" %}</span>
       <h1 class="hoja-parroquia">{{ parroquia }}</h1>
+      {% if diocesis %}<p class="hoja-diocesis">{{ diocesis }}</p>{% endif %}
     </div>
     <div class="hoja-encabezado-derecha">
-      <span class="insignia-estado insignia-estado--{{ estado|lower }}">{{ estado_etiqueta }}</span>
+      {% if not ocultar_estado %}<span class="insignia-estado insignia-estado--{{ estado|lower }}">{{ estado_etiqueta }}</span>{% endif %}
       <span class="hoja-referencia">{{ referencia }}</span>
       <span class="hoja-tipo-libro">{{ tipo_libro }}</span>
     </div>
@@ -73,5 +78,9 @@ los valores se imprimen escapados.
         <p class="hoja-notas-vacias">Sin notas marginales</p>
       {% endif %}
     </section>
+
+    {% if incluir_cierre %}
+      {% include "certificados/partials/cierre_certificado.html" %}
+    {% endif %}
   </div>
 </article>

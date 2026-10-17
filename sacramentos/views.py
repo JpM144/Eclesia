@@ -7,12 +7,18 @@ from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
 from django.views.generic import DetailView, FormView, ListView
 
-from core.choices import EstadoRegistro, TipoLibro, TipoSacramento
+from core.choices import AccionHistorial, EstadoRegistro, TipoLibro, TipoSacramento
 from parroquias.models import Libro, Parroquia
 
-from .forms import BautismoEditarForm, BautismoForm, MotivoForm
+from .forms import BautismoEditarForm, BautismoForm, MotivoForm, SolicitudCertificadoForm
 from .models import Bautismo, Sacramento
-from .services import datos_hoja_bautismo, motivo_no_eliminable, puede_eliminarse
+from .services import (
+    datos_certificado_bautismo,
+    datos_hoja_bautismo,
+    motivo_no_eliminable,
+    puede_eliminarse,
+    registrar_historial,
+)
 
 # Estados en los que aún se puede editar o anular una partida.
 ESTADOS_EDITABLES = (EstadoRegistro.ACTIVO, EstadoRegistro.CORREGIDO)
@@ -193,6 +199,7 @@ class BautismoDetailView(DetailView):
         contexto["puede_editar"] = sacramento.estado in ESTADOS_EDITABLES
         contexto["puede_anular"] = sacramento.estado in ESTADOS_EDITABLES
         contexto["puede_eliminar"] = puede_eliminarse(self.object)
+        contexto["puede_certificar"] = sacramento.estado != EstadoRegistro.ANULADO
         return contexto
 
 
@@ -326,3 +333,52 @@ class BautismoEliminarView(BautismoBaseMixin, FormView):
         eliminar_bautismo(self.bautismo, self.request.user, form.cleaned_data["motivo"])
         messages.success(self.request, "Partida eliminada correctamente.")
         return redirect(reverse("sacramentos:bautismo_lista"))
+
+
+class BautismoCertificadoView(BautismoBaseMixin, FormView):
+    """Expide un certificado imprimible a partir de una partida de bautismo.
+
+    El GET muestra el formulario de solicitud (quién lo pide, con qué documento,
+    relación y finalidad). Al enviarlo, registra la expedición en el historial y
+    devuelve el certificado listo para imprimir. No se puede certificar una
+    partida anulada.
+    """
+
+    template_name = "certificados/solicitud_certificado.html"
+    form_class = SolicitudCertificadoForm
+
+    def dispatch(self, request, *args, **kwargs):
+        self.bautismo = self.get_bautismo()
+        self.certificado = None
+        if self.bautismo.sacramento.estado == EstadoRegistro.ANULADO:
+            messages.error(
+                self.request,
+                "No se puede expedir un certificado de una partida anulada.",
+            )
+            return redirect(reverse("sacramentos:bautismo_detalle", args=[self.bautismo.pk]))
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_template_names(self):
+        if self.certificado is not None:
+            return ["certificados/certificado.html"]
+        return [self.template_name]
+
+    def get_context_data(self, **kwargs):
+        contexto = super().get_context_data(**kwargs)
+        contexto["hoja"] = datos_hoja_bautismo(self.bautismo)
+        if self.certificado is not None:
+            contexto["hoja"]["ocultar_estado"] = True
+            contexto["hoja"]["incluir_cierre"] = True
+            contexto["certificado"] = self.certificado
+        return contexto
+
+    def form_valid(self, form):
+        datos = form.datos_para_servicio()
+        registrar_historial(
+            self.bautismo.sacramento,
+            AccionHistorial.CERTIFICADO,
+            descripcion=datos["descripcion_historial"],
+            usuario=self.request.user,
+        )
+        self.certificado = datos_certificado_bautismo(self.bautismo, datos, self.request.user)
+        return self.render_to_response(self.get_context_data(form=form))

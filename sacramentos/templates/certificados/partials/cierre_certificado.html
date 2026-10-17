@@ -1,0 +1,35 @@
+{% comment %}
+Pie del certificado, incluido al final de la hoja de partida cuando
+``incluir_cierre`` es verdadero.
+
+Recibe ``certificado`` (solicitante, finalidad, municipio, fecha de expedición,
+párroco y secretario(a)). El nombre del secretario(a) solo viene cuando quien
+expide tiene ese rol. Todos los valores se imprimen escapados.
+{% endcomment %}
+<section class="hoja-cierre">
+  <p class="hoja-cierre-texto">
+    Se expide la presente certificación, fiel a su original, a solicitud de
+    {{ certificado.solicitante }}, para {{ certificado.finalidad }}.
+  </p>
+  <p class="hoja-cierre-lugar">
+    {{ certificado.municipio }}, {{ certificado.fecha_expedicion }}.
+  </p>
+
+  <div class="hoja-cierre-firmas">
+    <div class="hoja-firma">
+      <span class="hoja-firma-linea" aria-hidden="true"></span>
+      <span class="hoja-firma-nombre">{{ certificado.parroco }}</span>
+      <span class="hoja-firma-rol">Párroco</span>
+    </div>
+    <div class="hoja-sello" aria-hidden="true"><span>Sello</span></div>
+    {% if certificado.secretario %}
+      <div class="hoja-firma">
+        <span class="hoja-firma-linea" aria-hidden="true"></span>
+        <span class="hoja-firma-nombre">{{ certificado.secretario }}</span>
+        <span class="hoja-firma-rol">Secretario(a)</span>
+      </div>
+    {% endif %}
+  </div>
+
+  <span class="hoja-cierre-ornamento" aria-hidden="true"></span>
+</section>

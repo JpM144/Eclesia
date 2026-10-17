@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+
+{% block title %}Certificado de bautismo{% endblock %}
+{% block heading %}Certificado de bautismo{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-header">
+    <h3 class="card-title">Solicitud del certificado</h3>
+  </div>
+  <div class="card-body">
+    <p class="text-muted">
+      Partida de <strong>{{ bautismo.sacramento.fiel }}</strong>
+      (Folio {{ sacramento.folio.numero_folio }}, N.° {{ sacramento.numero }}).
+      Complete los datos de quien solicita el certificado.
+    </p>
+
+    <form method="post" novalidate data-evitar-doble-envio>
+      {% csrf_token %}
+      {% for error in form.non_field_errors %}
+        <div class="alert alert-danger">{{ error }}</div>
+      {% endfor %}
+      {% include "sacramentos/includes/campo.html" with campo=form.solicitante %}
+      {% include "sacramentos/includes/campo.html" with campo=form.tipo_documento %}
+      {% include "sacramentos/includes/campo.html" with campo=form.numero_documento %}
+      {% include "sacramentos/includes/campo.html" with campo=form.relacion %}
+      {% include "sacramentos/includes/campo.html" with campo=form.finalidad %}
+      {% include "sacramentos/includes/campo.html" with campo=form.finalidad_otro %}
+      <button type="submit" class="btn btn-primary">
+        <i class="fas fa-file-alt"></i> Generar certificado
+      </button>
+      <a href="{% url 'sacramentos:bautismo_detalle' bautismo.pk %}" class="btn btn-secondary">Cancelar</a>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  (function () {
+    var finalidad = document.getElementById("{{ form.finalidad.id_for_label }}");
+    var otro = document.getElementById("{{ form.finalidad_otro.id_for_label }}");
+    if (!finalidad || !otro) {
+      return;
+    }
+    var grupo = otro.closest(".form-group");
+    function alternar() {
+      var mostrar = finalidad.value === "OTRO";
+      if (grupo) {
+        grupo.style.display = mostrar ? "" : "none";
+      }
+      otro.required = mostrar;
+    }
+    finalidad.addEventListener("change", alternar);
+    alternar();
+  })();
+</script>
+{% endblock %}

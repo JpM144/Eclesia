@@ -30,6 +30,11 @@
         <i class="fas fa-trash" aria-hidden="true"></i> Eliminar
       </a>
     {% endif %}
+    {% if puede_certificar %}
+      <a href="{% url 'sacramentos:bautismo_certificado' bautismo.pk %}" class="btn btn-primary btn-sm">
+        <i class="fas fa-file-alt" aria-hidden="true"></i> Certificado
+      </a>
+    {% endif %}
     <a href="{% url 'sacramentos:bautismo_lista' %}" class="btn btn-secondary btn-sm">
       <i class="fas fa-arrow-left" aria-hidden="true"></i> Volver a la lista
     </a>
@@ -39,7 +44,7 @@
   </div>
 </div>
 
-{% include "sacramentos/partials/hoja_partida.html" with titulo=hoja.titulo tipo_libro=hoja.tipo_libro referencia=hoja.referencia parroquia=hoja.parroquia filas=hoja.filas icono_agua=hoja.icono_agua notas=hoja.notas estado=hoja.estado estado_etiqueta=hoja.estado_etiqueta %}
+{% include "sacramentos/partials/hoja_partida.html" with titulo=hoja.titulo tipo_libro=hoja.tipo_libro referencia=hoja.referencia parroquia=hoja.parroquia diocesis=hoja.diocesis filas=hoja.filas icono_agua=hoja.icono_agua notas=hoja.notas estado=hoja.estado estado_etiqueta=hoja.estado_etiqueta %}
 
 <div class="no-print row mt-3">
   <div class="col-lg-6">

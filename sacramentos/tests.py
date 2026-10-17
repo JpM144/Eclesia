@@ -18,8 +18,11 @@ from core.choices import (
     EstadoCivil,
     EstadoLibro,
     EstadoRegistro,
+    FinalidadCertificado,
+    RelacionCertificado,
     RespuestaDoctrina,
     ResultadoProclama,
+    RolUsuario,
     Sexo,
     SiNo,
     TipoAnotacionMarginal,
@@ -28,6 +31,7 @@ from core.choices import (
     TipoLibro,
     TipoSacramento,
 )
+from cuentas.models import PerfilUsuario
 from parroquias.models import Folio, Libro, Ministro, Parroquia
 from parroquias.services import (
     cerrar_libro,
@@ -2306,3 +2310,159 @@ class BautismoHojaTests(BautismoPartidasBaseTests):
         bautismo = self._crear_partida(numero=1)
         self.client.logout()
         self.assertNotEqual(self._detalle(bautismo).status_code, 200)
+
+
+class BautismoCertificadoTests(BautismoPartidasBaseTests):
+    """Certificado imprimible de bautismo: solicitud, cierre e historial."""
+
+    def _url(self, bautismo):
+        return reverse("sacramentos:bautismo_certificado", args=[bautismo.pk])
+
+    def _detalle(self, bautismo):
+        return self.client.get(reverse("sacramentos:bautismo_detalle", args=[bautismo.pk]))
+
+    def _datos_solicitud(self, **extra):
+        datos = {
+            "solicitante": "María Solicitante",
+            "tipo_documento": TipoDocumento.CC,
+            "numero_documento": "12345678",
+            "relacion": RelacionCertificado.PADRE_MADRE,
+            "finalidad": FinalidadCertificado.MATRIMONIO,
+            "finalidad_otro": "",
+        }
+        datos.update(extra)
+        return datos
+
+    def _hay_certificado_en_historial(self):
+        return HistorialSacramento.objects.filter(accion=AccionHistorial.CERTIFICADO).exists()
+
+    def test_certificado_requiere_login(self):
+        bautismo = self._crear_partida(numero=1)
+        self.client.logout()
+        respuesta = self.client.get(self._url(bautismo))
+        self.assertNotEqual(respuesta.status_code, 200)
+        self.assertFalse(self._hay_certificado_en_historial())
+
+    def test_certificado_404(self):
+        respuesta = self.client.get(reverse("sacramentos:bautismo_certificado", args=[9999]))
+        self.assertEqual(respuesta.status_code, 404)
+
+    def test_get_muestra_formulario(self):
+        bautismo = self._crear_partida(numero=1)
+        respuesta = self.client.get(self._url(bautismo))
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertTemplateUsed(respuesta, "certificados/solicitud_certificado.html")
+        self.assertFalse(self._hay_certificado_en_historial())
+
+    def test_post_valido_emite_certificado_y_registra_historial(self):
+        bautismo = self._crear_partida(numero=1)
+        respuesta = self.client.post(self._url(bautismo), self._datos_solicitud())
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertTemplateUsed(respuesta, "certificados/certificado.html")
+        self.assertContains(respuesta, "María Solicitante")
+        self.assertContains(respuesta, "Matrimonio")
+        self.assertContains(respuesta, "Pedro Ruiz")
+
+        historial = HistorialSacramento.objects.get(accion=AccionHistorial.CERTIFICADO)
+        self.assertEqual(historial.sacramento, bautismo.sacramento)
+        self.assertEqual(historial.usuario, self.usuario)
+        self.assertIn("María Solicitante", historial.descripcion)
+
+    def test_post_invalido_no_emite_certificado(self):
+        bautismo = self._crear_partida(numero=1)
+        respuesta = self.client.post(self._url(bautismo), {})
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertTemplateUsed(respuesta, "certificados/solicitud_certificado.html")
+        self.assertFalse(self._hay_certificado_en_historial())
+
+    def test_certificado_solicitante_solo_letras(self):
+        bautismo = self._crear_partida(numero=1)
+        respuesta = self.client.post(
+            self._url(bautismo), self._datos_solicitud(solicitante="María 123")
+        )
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertContains(respuesta, "solo admite letras")
+        self.assertFalse(self._hay_certificado_en_historial())
+
+    def test_certificado_valida_documento_segun_tipo(self):
+        bautismo = self._crear_partida(numero=1)
+        respuesta = self.client.post(
+            self._url(bautismo),
+            self._datos_solicitud(numero_documento="12"),
+        )
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertContains(respuesta, "5 y 15")
+        self.assertFalse(self._hay_certificado_en_historial())
+
+    def test_finalidad_otro_exige_texto(self):
+        bautismo = self._crear_partida(numero=1)
+        respuesta = self.client.post(
+            self._url(bautismo),
+            self._datos_solicitud(finalidad=FinalidadCertificado.OTRO),
+        )
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertFalse(self._hay_certificado_en_historial())
+
+    def test_finalidad_otro_usa_el_texto(self):
+        bautismo = self._crear_partida(numero=1)
+        respuesta = self.client.post(
+            self._url(bautismo),
+            self._datos_solicitud(
+                finalidad=FinalidadCertificado.OTRO,
+                finalidad_otro="Trámite de visa",
+            ),
+        )
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertContains(respuesta, "Trámite de visa")
+
+    def test_partida_anulada_no_emite_certificado(self):
+        bautismo = self._crear_partida(numero=1, estado=EstadoRegistro.ANULADO)
+        destino = reverse("sacramentos:bautismo_detalle", args=[bautismo.pk])
+        self.assertRedirects(self.client.get(self._url(bautismo)), destino)
+        self.assertRedirects(
+            self.client.post(self._url(bautismo), self._datos_solicitud()), destino
+        )
+        self.assertFalse(self._hay_certificado_en_historial())
+
+    def test_certificado_no_muestra_padres_biologicos(self):
+        bautismo = self._crear_partida(
+            numero=1,
+            tipo_hijo=TipoHijo.ADOPTIVO,
+            padre_biologico_nombre="Anacleto Biológico",
+            madre_biologica_nombre="Berta Biológica",
+        )
+        respuesta = self.client.post(self._url(bautismo), self._datos_solicitud())
+        self.assertNotContains(respuesta, "Anacleto Biológico")
+        self.assertNotContains(respuesta, "Berta Biológica")
+
+    def test_certificado_muestra_diocesis_y_pie_configurados(self):
+        bautismo = self._crear_partida(numero=1)
+        with override_settings(NOMBRE_DIOCESIS="Diócesis de Prueba"):
+            respuesta = self.client.post(self._url(bautismo), self._datos_solicitud())
+        self.assertContains(respuesta, "Diócesis de Prueba")
+        self.assertContains(respuesta, "Fe que une, sacramentos que dan vida")
+
+    def test_certificado_oculta_insignia_de_estado(self):
+        bautismo = self._crear_partida(numero=1)
+        respuesta = self.client.post(self._url(bautismo), self._datos_solicitud())
+        self.assertNotContains(respuesta, "insignia-estado")
+
+    def test_firma_secretario_solo_con_ese_rol(self):
+        bautismo = self._crear_partida(numero=1)
+        respuesta = self.client.post(self._url(bautismo), self._datos_solicitud())
+        self.assertNotContains(respuesta, "Secretario(a)")
+
+        PerfilUsuario.objects.create(usuario=self.usuario, rol=RolUsuario.SECRETARIO)
+        respuesta = self.client.post(self._url(bautismo), self._datos_solicitud())
+        self.assertContains(respuesta, "Secretario(a)")
+        self.assertContains(respuesta, self.usuario.username)
+
+    def test_detalle_muestra_enlace_certificado(self):
+        bautismo = self._crear_partida(numero=1)
+        respuesta = self._detalle(bautismo)
+        self.assertContains(respuesta, self._url(bautismo))
+
+    def test_detalle_anulado_no_muestra_enlace_certificado(self):
+        bautismo = self._crear_partida(numero=1, estado=EstadoRegistro.ANULADO)
+        respuesta = self._detalle(bautismo)
+        self.assertNotContains(respuesta, self._url(bautismo))

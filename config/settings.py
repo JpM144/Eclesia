@@ -154,6 +154,20 @@ CODIGO_REGISTRO = config("CODIGO_REGISTRO", default="")
 # lateral. Si queda vacío, la línea no se muestra.
 NOMBRE_PARROQUIA = config("NOMBRE_PARROQUIA", default="")
 
+# Nombre de la diócesis que consta en las hojas de partida y en los
+# certificados. Si queda vacío, la línea no se muestra.
+NOMBRE_DIOCESIS = config("NOMBRE_DIOCESIS", default="")
+
+# Edades de referencia para las reglas y advertencias de los sacramentos
+# (docs/requisitos_sacramentos.md). Son configurables porque la Conferencia
+# Episcopal o la diócesis pueden fijar otras.
+EDAD_MINIMA_PADRINO = config("EDAD_MINIMA_PADRINO", default=16, cast=int)
+EDAD_USO_RAZON = config("EDAD_USO_RAZON", default=7, cast=int)
+EDAD_MINIMA_CONFIRMACION = config("EDAD_MINIMA_CONFIRMACION", default=7, cast=int)
+EDAD_MINIMA_MATRIMONIO_VARON = config("EDAD_MINIMA_MATRIMONIO_VARON", default=16, cast=int)
+EDAD_MINIMA_MATRIMONIO_MUJER = config("EDAD_MINIMA_MATRIMONIO_MUJER", default=14, cast=int)
+EDAD_LICITA_MATRIMONIO = config("EDAD_LICITA_MATRIMONIO", default=18, cast=int)
+
 # Map the message levels to Bootstrap alert classes
 MESSAGE_TAGS = {
     message_constants.DEBUG: "secondary",

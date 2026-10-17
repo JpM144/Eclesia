@@ -69,6 +69,14 @@
   line-height: 1.25;
 }
 
+.hoja-diocesis {
+  margin: 0.15rem 0 0;
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #64748b;
+}
+
 .hoja-encabezado-derecha {
   flex: 0 0 auto;
   text-align: right;
@@ -265,6 +273,85 @@
 }
 
 /* ------------------------------------------------------------------ */
+/* Cierre del certificado                                              */
+/* ------------------------------------------------------------------ */
+
+.hoja-cierre {
+  margin-top: 2rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid rgba(184, 149, 74, 0.45);
+}
+
+.hoja-cierre-texto {
+  margin: 0 0 0.4rem;
+  font-style: italic;
+  text-align: center;
+  color: #334155;
+}
+
+.hoja-cierre-lugar {
+  margin: 0 0 1.75rem;
+  font-style: italic;
+  text-align: center;
+  color: #334155;
+}
+
+.hoja-cierre-firmas {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-around;
+  gap: 1.5rem;
+}
+
+.hoja-firma {
+  flex: 0 1 220px;
+  text-align: center;
+}
+
+.hoja-firma-linea {
+  display: block;
+  margin-bottom: 0.35rem;
+  border-top: 1px solid #1e2a4a;
+}
+
+.hoja-firma-nombre {
+  display: block;
+  font-weight: 600;
+}
+
+.hoja-firma-rol {
+  display: block;
+  font-size: 0.85rem;
+  color: #64748b;
+}
+
+.hoja-sello {
+  flex: 0 0 110px;
+  height: 110px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px dashed var(--gp-dorado, #b8954a);
+  border-radius: 50%;
+  color: var(--gp-dorado, #b8954a);
+  font-size: 0.8rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.hoja-cierre-ornamento {
+  width: 90px;
+  height: 12px;
+  margin: 1.75rem auto 0;
+  background:
+    radial-gradient(circle, var(--gp-dorado, #b8954a) 34%, transparent 36%) center /
+      10px 10px no-repeat,
+    linear-gradient(to right, transparent, rgba(184, 149, 74, 0.6), transparent)
+      center / 100% 1px no-repeat;
+}
+
+/* ------------------------------------------------------------------ */
 /* Móvil: la hoja ocupa todo el ancho y la tabla pasa a una columna    */
 /* ------------------------------------------------------------------ */
 
@@ -315,6 +402,11 @@
 
   .hoja-tabla th {
     font-size: 0.85rem;
+  }
+
+  .hoja-cierre-firmas {
+    flex-direction: column;
+    align-items: center;
   }
 }
 

@@ -8,6 +8,7 @@ from core.choices import (
     AccionHistorial,
     EstadoAnotacion,
     EstadoRegistro,
+    RolUsuario,
     TipoAnotacionMarginal,
     TipoHijo,
     TipoSacramento,
@@ -487,9 +488,64 @@ def datos_hoja_bautismo(bautismo):
             f"Folio {sacramento.folio.numero_folio} · N.° {sacramento.numero}"
         ),
         "parroquia": settings.NOMBRE_PARROQUIA or libro.parroquia.nombre,
+        "diocesis": settings.NOMBRE_DIOCESIS,
         "filas": filas,
         "icono_agua": "core/iconos/gota.svg",
         "notas": notas,
         "estado": sacramento.estado,
         "estado_etiqueta": sacramento.get_estado_display(),
+    }
+
+
+MESES_EN_LETRAS = (
+    "enero",
+    "febrero",
+    "marzo",
+    "abril",
+    "mayo",
+    "junio",
+    "julio",
+    "agosto",
+    "septiembre",
+    "octubre",
+    "noviembre",
+    "diciembre",
+)
+
+
+def fecha_en_letras(fecha):
+    """Devuelve una fecha en letras, p. ej. ``16 de octubre de 2026``."""
+    return f"{fecha.day} de {MESES_EN_LETRAS[fecha.month - 1]} de {fecha.year}"
+
+
+def _nombre_secretario(usuario):
+    """Nombre del usuario que expide el certificado, solo si es secretario(a)."""
+    if usuario is None:
+        return ""
+    perfil = getattr(usuario, "perfil", None)
+    if perfil is None or perfil.rol != RolUsuario.SECRETARIO:
+        return ""
+    return usuario.get_full_name() or usuario.username
+
+
+def datos_certificado_bautismo(bautismo, solicitud, usuario):
+    """Datos de cierre de un certificado de bautismo listo para la plantilla.
+
+    Recibe la partida, la solicitud ya validada (``SolicitudCertificadoForm``) y
+    el usuario que expide. Devuelve el texto del solicitante y la finalidad, el
+    municipio y la fecha de expedición en letras, el párroco que firma y el
+    secretario(a) cuando quien expide tiene ese rol. Nunca incluye datos
+    internos ni los padres biológicos (los aporta ``datos_hoja_bautismo``).
+    """
+    sacramento = bautismo.sacramento
+    parroquia = sacramento.folio.libro.parroquia
+    parroco = getattr(parroquia, "parroco", None) or bautismo.doy_fe
+    return {
+        "solicitante": solicitud["solicitante"],
+        "relacion": solicitud["relacion_display"],
+        "finalidad": solicitud["finalidad_display"],
+        "municipio": str(parroquia.municipio),
+        "fecha_expedicion": fecha_en_letras(timezone.localdate()),
+        "parroco": str(parroco) if parroco is not None else "",
+        "secretario": _nombre_secretario(usuario),
     }
