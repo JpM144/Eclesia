@@ -426,6 +426,23 @@ def _persona_con_documento(persona):
     return str(persona)
 
 
+def _documento_de(persona):
+    """«Tipo Número» del documento de una persona, o vacío si no lo tiene."""
+    if persona is None:
+        return ""
+    documento = getattr(persona, "documento", None)
+    return str(documento) if documento is not None else ""
+
+
+def _nombre_de(persona):
+    """Solo el nombre de una persona, sin documento.
+
+    Para un ``Ministro`` conserva el cargo que añade su ``__str__``
+    (p. ej. «Rafael Betancur Restrepo - Párroco»).
+    """
+    return str(persona) if persona is not None else ""
+
+
 def _fila(etiqueta, valor):
     """Par etiqueta/valor para la hoja de partida; el valor vacío se marca ausente."""
     return {"etiqueta": etiqueta, "valor": valor or ""}
@@ -435,39 +452,60 @@ def _fecha_corta(valor):
     return valor.strftime("%d/%m/%Y") if valor else ""
 
 
-def datos_hoja_bautismo(bautismo):
+def datos_hoja_bautismo(bautismo, para_certificado=False):
     """Datos de una partida de bautismo preparados para ``hoja_partida.html``.
 
     Devuelve el título, el tipo de libro, la referencia (libro, folio y número),
-    el nombre de la parroquia, las filas de datos, las notas marginales y el
-    estado. Los padres biológicos de un hijo adoptivo nunca se incluyen: en la
-    hoja constan solo el padre y la madre registrados en la partida.
+    el nombre de la parroquia, la frase introductoria, las filas de datos, las
+    notas marginales y el estado. Los padres biológicos de un hijo adoptivo nunca
+    se incluyen: en la hoja constan solo el padre y la madre registrados en la
+    partida.
+
+    Con ``para_certificado=True`` la hoja se prepara para el certificado: el
+    título es «CERTIFICADO DE BAUTISMO», la frase introductoria certifica la
+    partida y cada persona aparece solo con su nombre (los ministros con su
+    cargo), sin tipo ni número de documento. El documento solo se muestra en la
+    fila del bautizado. Sin ese parámetro (la ficha de la app) las personas se
+    muestran con su documento, como hasta ahora.
     """
     sacramento = bautismo.sacramento
     libro = sacramento.folio.libro
     fiel = sacramento.fiel
+    parroquia = settings.NOMBRE_PARROQUIA or libro.parroquia.nombre
+
+    if para_certificado:
+        titulo = "CERTIFICADO DE BAUTISMO"
+        consta = (
+            f"El suscrito párroco certifica que en el Libro de Bautismos de "
+            f"{parroquia} se encuentra la siguiente partida:"
+        )
+        valor = _nombre_de
+    else:
+        titulo = "PARTIDA DE BAUTISMO"
+        consta = f"En la Parroquia {parroquia}, se hace constar que:"
+        valor = _persona_con_documento
 
     filas = [
         _fila("Bautizado", str(fiel) if fiel else ""),
-        _fila("Documento", _persona_con_documento(fiel)),
+        _fila("Documento", _documento_de(fiel)),
         _fila("Fecha de nacimiento", _fecha_corta(getattr(fiel, "fecha_nacimiento", None))),
         _fila(
             "Lugar de nacimiento",
             str(fiel.municipio_nacimiento) if fiel and fiel.municipio_nacimiento_id else "",
         ),
         _fila("Fecha del bautismo", _fecha_corta(sacramento.fecha)),
-        _fila("Padre", _persona_con_documento(bautismo.padre)),
-        _fila("Madre", _persona_con_documento(bautismo.madre)),
+        _fila("Padre", valor(bautismo.padre)),
+        _fila("Madre", valor(bautismo.madre)),
         _fila("Abuelo paterno", bautismo.abuelo_paterno),
         _fila("Abuela paterna", bautismo.abuela_paterna),
         _fila("Abuelo materno", bautismo.abuelo_materno),
         _fila("Abuela materna", bautismo.abuela_materna),
-        _fila("Padrino", _persona_con_documento(bautismo.padrino)),
-        _fila("Madrina", _persona_con_documento(bautismo.madrina)),
+        _fila("Padrino", valor(bautismo.padrino)),
+        _fila("Madrina", valor(bautismo.madrina)),
         _fila("Testigo", bautismo.testigo_nombre),
-        _fila("Ministro que bautizó", _persona_con_documento(sacramento.ministro)),
-        _fila("Ministro que firma", _persona_con_documento(bautismo.quien_firma)),
-        _fila("Quien da fe", _persona_con_documento(bautismo.doy_fe)),
+        _fila("Ministro que bautizó", valor(sacramento.ministro)),
+        _fila("Ministro que firma", valor(bautismo.quien_firma)),
+        _fila("Quien da fe", valor(bautismo.doy_fe)),
         _fila("Observaciones", sacramento.observaciones),
     ]
 
@@ -481,13 +519,14 @@ def datos_hoja_bautismo(bautismo):
     ]
 
     return {
-        "titulo": "PARTIDA DE BAUTISMO",
+        "titulo": titulo,
+        "consta": consta,
         "tipo_libro": f"Libro de {libro.get_tipo_libro_display()}",
         "referencia": (
             f"Libro {libro.numero_libro or libro.nombre} · "
             f"Folio {sacramento.folio.numero_folio} · N.° {sacramento.numero}"
         ),
-        "parroquia": settings.NOMBRE_PARROQUIA or libro.parroquia.nombre,
+        "parroquia": parroquia,
         "diocesis": settings.NOMBRE_DIOCESIS,
         "filas": filas,
         "icono_agua": "core/iconos/gota.svg",
@@ -528,14 +567,28 @@ def _nombre_secretario(usuario):
     return usuario.get_full_name() or usuario.username
 
 
+def _nombre_sin_cargo(ministro):
+    """Nombre de un ministro sin el « - Cargo» que añade su ``__str__``.
+
+    En la firma del certificado el cargo va aparte, debajo de la línea.
+    """
+    if ministro is None:
+        return ""
+    nombre = getattr(ministro, "nombre", None)
+    if nombre is None:
+        return str(ministro)
+    return f"{nombre} {getattr(ministro, 'apellido', '')}".strip()
+
+
 def datos_certificado_bautismo(bautismo, solicitud, usuario):
     """Datos de cierre de un certificado de bautismo listo para la plantilla.
 
     Recibe la partida, la solicitud ya validada (``SolicitudCertificadoForm``) y
     el usuario que expide. Devuelve el texto del solicitante y la finalidad, el
-    municipio y la fecha de expedición en letras, el párroco que firma y el
-    secretario(a) cuando quien expide tiene ese rol. Nunca incluye datos
-    internos ni los padres biológicos (los aporta ``datos_hoja_bautismo``).
+    municipio y la fecha de expedición en letras, el párroco que firma (solo su
+    nombre: el cargo se muestra en la línea de debajo) y el secretario(a) cuando
+    quien expide tiene ese rol. Nunca incluye datos internos, documentos ni los
+    padres biológicos (los aporta ``datos_hoja_bautismo``).
     """
     sacramento = bautismo.sacramento
     parroquia = sacramento.folio.libro.parroquia
@@ -546,6 +599,6 @@ def datos_certificado_bautismo(bautismo, solicitud, usuario):
         "finalidad": solicitud["finalidad_display"],
         "municipio": str(parroquia.municipio),
         "fecha_expedicion": fecha_en_letras(timezone.localdate()),
-        "parroco": str(parroco) if parroco is not None else "",
+        "parroco": _nombre_sin_cargo(parroco),
         "secretario": _nombre_secretario(usuario),
     }

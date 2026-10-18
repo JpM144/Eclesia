@@ -2,11 +2,13 @@
 Hoja de partida reutilizable (lista de parroquia).
 
 Recibe:
-  titulo          – p. ej. "PARTIDA DE BAUTISMO"
+  titulo          – p. ej. "PARTIDA DE BAUTISMO" o "CERTIFICADO DE BAUTISMO"
   tipo_libro      – p. ej. "Libro de Bautismos"
   referencia      – p. ej. "Libro 1 · Folio 2 · N.° 3"
   parroquia       – nombre de la parroquia que consta en la hoja
   diocesis        – nombre de la diócesis (opcional; se omite si está vacío)
+  consta          – frase introductoria completa (varía entre la ficha y el
+                    certificado)
   filas           – lista de {"etiqueta": ..., "valor": ...}; valor vacío
                     muestra "dato no presentado" en gris
   icono_agua      – ruta del SVG de la marca de agua (p. ej. la gota)
@@ -14,14 +16,15 @@ Recibe:
   estado          – valor del estado (ACTIVO, CORREGIDO, ANULADO, ARCHIVADO)
   estado_etiqueta – etiqueta legible del estado
   ocultar_estado  – si es verdadero, no se muestra la insignia de estado
-  incluir_cierre  – si es verdadero, se añade el pie del certificado
+  incluir_cierre  – si es verdadero, se añade el pie del certificado (y el
+                    ornamento dorado del borde inferior del marco)
   certificado     – datos del pie (solicitante, finalidad, fecha, firmas…)
 
 La usan la ficha de bautismo y el certificado imprimible, y más adelante las
 partidas de los demás sacramentos. Nunca se marca contenido como seguro: todos
 los valores se imprimen escapados.
 {% endcomment %}
-<article class="hoja-partida{% if estado == "ANULADO" %} hoja-partida--anulada{% endif %}">
+<article class="hoja-partida{% if incluir_cierre %} hoja-partida--certificado{% endif %}{% if estado == "ANULADO" %} hoja-partida--anulada{% endif %}">
   <header class="hoja-encabezado">
     <div class="hoja-encabezado-izquierda">
       <span class="hoja-cruz" aria-hidden="true">{% include "core/iconos/cruz_certificado.svg" %}</span>
@@ -47,7 +50,7 @@ los valores se imprimen escapados.
   {% endif %}
 
   <div class="hoja-cuerpo">
-    <p class="hoja-consta">En la Parroquia {{ parroquia }}, se hace constar que:</p>
+    <p class="hoja-consta">{{ consta }}</p>
 
     <table class="hoja-tabla">
       <tbody>
@@ -83,4 +86,8 @@ los valores se imprimen escapados.
       {% include "certificados/partials/cierre_certificado.html" %}
     {% endif %}
   </div>
+
+  {% if incluir_cierre %}
+    <span class="hoja-ornamento-pie" aria-hidden="true">{% include "core/iconos/ornamento_certificado.svg" %}</span>
+  {% endif %}
 </article>

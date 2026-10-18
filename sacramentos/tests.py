@@ -1454,6 +1454,67 @@ class BautismoFormTests(BautismoBaseTests):
         form = BautismoForm(datos)
         self.assertFalse(form.is_valid())
 
+    def _fiel_con_sexo(self, numero, sexo):
+        return Fiel.objects.create(
+            documento=self._crear_documento(numero),
+            nombres="Persona",
+            apellidos=f"Conocida {numero}",
+            fecha_nacimiento=date(1990, 1, 1),
+            sexo=sexo,
+        )
+
+    def test_form_padrino_mujer_conocida_falla_en_el_campo(self):
+        """c. 874: si el documento del padrino es de una fiel mujer, el form falla."""
+        self._fiel_con_sexo("44444444", Sexo.MUJER)
+        datos = self._datos_completos(
+            padrino_numero_documento="44444444",
+            padrino_nombre="Pedro Conocido",
+        )
+        form = BautismoForm(datos)
+        self.assertFalse(form.is_valid())
+        self.assertIn("padrino_numero_documento", form.errors)
+        self.assertIn("El padrino debe ser varón.", form.errors["padrino_numero_documento"])
+
+    def test_form_madrina_varon_conocido_falla_en_el_campo(self):
+        """c. 874: si el documento de la madrina es de un fiel varón, el form falla."""
+        self._fiel_con_sexo("55555555", Sexo.HOMBRE)
+        datos = self._datos_completos(
+            madrina_tipo_documento=TipoDocumento.CC,
+            madrina_numero_documento="55555555",
+            madrina_nombre="Maria Conocida",
+        )
+        form = BautismoForm(datos)
+        self.assertFalse(form.is_valid())
+        self.assertIn("madrina_numero_documento", form.errors)
+        self.assertIn("La madrina debe ser mujer.", form.errors["madrina_numero_documento"])
+
+    def test_form_padrino_varon_y_madrina_mujer_conocidos_son_validos(self):
+        self._fiel_con_sexo("66666666", Sexo.HOMBRE)
+        self._fiel_con_sexo("77777777", Sexo.MUJER)
+        datos = self._datos_completos(
+            padrino_numero_documento="66666666",
+            padrino_nombre="Pedro Conocido",
+            madrina_tipo_documento=TipoDocumento.CC,
+            madrina_numero_documento="77777777",
+            madrina_nombre="Maria Conocida",
+        )
+        form = BautismoForm(datos)
+        self.assertTrue(form.is_valid(), form.errors)
+
+    def test_form_padrino_de_fiel_sin_sexo_no_falla(self):
+        Fiel.objects.create(
+            documento=self._crear_documento("88888888"),
+            nombres="Sin",
+            apellidos="Sexo Registrado",
+            fecha_nacimiento=date(1990, 1, 1),
+        )
+        datos = self._datos_completos(
+            padrino_numero_documento="88888888",
+            padrino_nombre="Sin Sexo Registrado",
+        )
+        form = BautismoForm(datos)
+        self.assertTrue(form.is_valid(), form.errors)
+
 
 class BautismoViewsTests(BautismoBaseTests):
     def setUp(self):
@@ -2306,6 +2367,13 @@ class BautismoHojaTests(BautismoPartidasBaseTests):
             respuesta, reverse("sacramentos:bautismo_eliminar", args=[bautismo.pk])
         )
 
+    def test_detalle_muestra_documentos_como_hasta_ahora(self):
+        bautismo = self._crear_partida(numero=1)
+        respuesta = self._detalle(bautismo)
+        self.assertContains(respuesta, str(bautismo.sacramento.fiel.documento))
+        self.assertContains(respuesta, f"Pedro López ({self.padrino.documento})")
+        self.assertContains(respuesta, f"José Pérez ({self.padre.documento})")
+
     def test_detalle_requiere_login(self):
         bautismo = self._crear_partida(numero=1)
         self.client.logout()
@@ -2466,3 +2534,44 @@ class BautismoCertificadoTests(BautismoPartidasBaseTests):
         bautismo = self._crear_partida(numero=1, estado=EstadoRegistro.ANULADO)
         respuesta = self._detalle(bautismo)
         self.assertNotContains(respuesta, self._url(bautismo))
+
+    def test_certificado_titulo_y_consta_propios(self):
+        bautismo = self._crear_partida(numero=3)
+        with override_settings(NOMBRE_PARROQUIA="San Pedro Claver"):
+            respuesta = self.client.post(self._url(bautismo), self._datos_solicitud())
+        self.assertContains(respuesta, "CERTIFICADO DE BAUTISMO")
+        self.assertNotContains(respuesta, "PARTIDA DE BAUTISMO")
+        self.assertContains(
+            respuesta,
+            "El suscrito párroco certifica que en el Libro de Bautismos de "
+            "San Pedro Claver se encuentra la siguiente partida:",
+        )
+
+    def test_certificado_solo_muestra_el_documento_del_bautizado(self):
+        bautismo = self._crear_partida(numero=1)
+        respuesta = self.client.post(self._url(bautismo), self._datos_solicitud())
+        self.assertContains(respuesta, str(bautismo.sacramento.fiel.documento))
+        self.assertContains(respuesta, "Pedro López")
+        self.assertNotContains(respuesta, "33333333")  # documento del padrino
+        self.assertNotContains(respuesta, "11111111")  # documento del padre
+        self.assertNotContains(respuesta, "22222222")  # documento de la madre
+        self.assertNotContains(respuesta, "1234567890")  # documento del ministro
+        self.assertNotContains(respuesta, "7777777777")  # documento del párroco
+
+    def test_certificado_firma_del_parroco_sin_cargo_pegado(self):
+        bautismo = self._crear_partida(numero=1)
+        respuesta = self.client.post(self._url(bautismo), self._datos_solicitud())
+        self.assertContains(respuesta, '<span class="hoja-firma-nombre">Pedro Ruiz</span>')
+        self.assertContains(respuesta, '<span class="hoja-firma-rol">Párroco</span>')
+
+    def test_certificado_ministro_con_cargo_sin_documento(self):
+        bautismo = self._crear_partida(numero=1)
+        respuesta = self.client.post(self._url(bautismo), self._datos_solicitud())
+        self.assertContains(respuesta, "Carlos Gómez - Párroco")
+        self.assertNotContains(respuesta, "1234567890")
+
+    def test_certificado_usa_ornamento_nuevo_sin_el_viejo(self):
+        bautismo = self._crear_partida(numero=1)
+        respuesta = self.client.post(self._url(bautismo), self._datos_solicitud())
+        self.assertContains(respuesta, "hoja-ornamento-pie")
+        self.assertNotContains(respuesta, "hoja-cierre-ornamento")

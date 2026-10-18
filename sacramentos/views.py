@@ -367,6 +367,7 @@ class BautismoCertificadoView(BautismoBaseMixin, FormView):
         contexto = super().get_context_data(**kwargs)
         contexto["hoja"] = datos_hoja_bautismo(self.bautismo)
         if self.certificado is not None:
+            contexto["hoja"] = datos_hoja_bautismo(self.bautismo, para_certificado=True)
             contexto["hoja"]["ocultar_estado"] = True
             contexto["hoja"]["incluir_cierre"] = True
             contexto["certificado"] = self.certificado

@@ -19,12 +19,14 @@ from core.choices import (
     EstadoAnotacion,
     EstadoRegistro,
     RolUsuario,
+    Sexo,
     TipoAnotacionMarginal,
     TipoDocumento,
     TipoHijo,
     TipoLibro,
     TipoSacramento,
 )
+from core.management.commands.cargar_datos_demo import PREFIJO_DOCUMENTO
 from core.services import resumen_dashboard
 from core.templatetags.dashboard_extras import fecha_relativa
 from cuentas.models import PerfilUsuario
@@ -770,6 +772,32 @@ class CargarDatosDemoTests(TestCase):
         self.assertEqual(
             HistorialSacramento.objects.filter(accion=AccionHistorial.ANULACION).count(), 1
         )
+
+    @override_settings(DEBUG=True)
+    def test_padrinos_y_madrinas_demo_respetan_el_sexo(self):
+        """El padrino de una partida demo es varón y la madrina, mujer (c. 873/874)."""
+        call_command("cargar_datos_demo")
+        documentos_demo = Documento.objects.filter(numero_documento__startswith=PREFIJO_DOCUMENTO)
+        bautismos = Bautismo.objects.filter(
+            sacramento__fiel__documento__in=documentos_demo
+        ).select_related("padrino__documento__fiel", "madrina__documento__fiel")
+        self.assertEqual(bautismos.count(), 26)
+        for bautismo in bautismos:
+            with self.subTest(numero=bautismo.sacramento.numero):
+                self.assertEqual(bautismo.padrino.documento.fiel.sexo, Sexo.HOMBRE)
+                self.assertEqual(bautismo.madrina.documento.fiel.sexo, Sexo.MUJER)
+
+        confirmaciones = (
+            Confirmacion.objects.filter(sacramento__fiel__documento__in=documentos_demo)
+            .exclude(padrino=None)
+            .select_related("padrino__documento__fiel")
+        )
+        # Cinco confirmaciones con padrino registrado (la sexta es externa y no
+        # tiene padrino en el sistema).
+        self.assertEqual(confirmaciones.count(), 5)
+        for confirmacion in confirmaciones:
+            with self.subTest(numero=confirmacion.sacramento.numero):
+                self.assertEqual(confirmacion.padrino.documento.fiel.sexo, Sexo.HOMBRE)
 
     @override_settings(DEBUG=True)
     def test_doble_ejecucion_no_duplica(self):

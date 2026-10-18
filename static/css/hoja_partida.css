@@ -327,11 +327,13 @@
 }
 
 .hoja-sello {
-  flex: 0 0 110px;
-  height: 110px;
+  flex: 0 0 auto;
+  width: 105px;
+  aspect-ratio: 1;
   display: flex;
   align-items: center;
   justify-content: center;
+  margin-bottom: 0.35rem;
   border: 1px dashed var(--gp-dorado, #b8954a);
   border-radius: 50%;
   color: var(--gp-dorado, #b8954a);
@@ -340,22 +342,41 @@
   text-transform: uppercase;
 }
 
-.hoja-cierre-ornamento {
-  width: 90px;
-  height: 12px;
-  margin: 1.75rem auto 0;
-  background:
-    radial-gradient(circle, var(--gp-dorado, #b8954a) 34%, transparent 36%) center /
-      10px 10px no-repeat,
-    linear-gradient(to right, transparent, rgba(184, 149, 74, 0.6), transparent)
-      center / 100% 1px no-repeat;
+.hoja-ornamento-pie {
+  position: absolute;
+  left: 50%;
+  bottom: -12px;
+  z-index: 2;
+  width: min(260px, 60%);
+  height: 24px;
+  transform: translateX(-50%);
+  color: var(--gp-dorado, #b8954a);
+  pointer-events: none;
+}
+
+.hoja-ornamento-pie svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* En el certificado el ornamento cuelga sobre el borde inferior del marco:
+ * hay que dejar de recortar y meter la marca de agua dentro de la hoja. */
+.hoja-partida--certificado {
+  overflow: visible;
+}
+
+.hoja-partida--certificado .hoja-marca-agua {
+  right: 0;
 }
 
 /* ------------------------------------------------------------------ */
 /* Móvil: la hoja ocupa todo el ancho y la tabla pasa a una columna    */
 /* ------------------------------------------------------------------ */
+/* Solo en pantalla: al imprimir (también desde un móvil) se conserva el
+   diseño de escritorio, como ve el usuario antes de imprimir. */
 
-@media (max-width: 767.98px) {
+@media screen and (max-width: 767.98px) {
   .hoja-partida {
     padding: 1.5rem 1.1rem 2rem;
   }
@@ -430,5 +451,11 @@
 
   .hoja-franja-anulada {
     color: rgba(100, 116, 139, 0.25);
+  }
+
+  /* El pie y las firmas no se parten entre páginas */
+  .hoja-cierre,
+  .hoja-cierre-firmas {
+    break-inside: avoid;
   }
 }

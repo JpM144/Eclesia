@@ -455,6 +455,39 @@ class BautismoForm(forms.Form):
             "madrina_numero_documento",
             "El padrino y la madrina no pueden tener el mismo documento.",
         )
+        self._validar_sexo_padrinos()
+
+    def _validar_sexo_padrinos(self):
+        """c. 874: el padrino debe ser varón y la madrina, mujer.
+
+        El modelo ``Padrino`` no guarda el sexo: se toma del ``Fiel`` que
+        comparte el mismo documento, cuando existe y lo tiene registrado. Si
+        el documento no corresponde a ningún fiel conocido, no hay nada que
+        validar.
+        """
+        reglas = (
+            (
+                self.documento_padrino,
+                "padrino_numero_documento",
+                Sexo.HOMBRE,
+                "El padrino debe ser varón.",
+            ),
+            (
+                self.documento_madrina,
+                "madrina_numero_documento",
+                Sexo.MUJER,
+                "La madrina debe ser mujer.",
+            ),
+        )
+        for documento, campo, sexo_requerido, mensaje in reglas:
+            if not documento:
+                continue
+            fiel = Fiel.objects.filter(
+                documento__tipo_documento=documento["tipo_documento"],
+                documento__numero_documento=documento["numero_documento"],
+            ).first()
+            if fiel and fiel.sexo and fiel.sexo != sexo_requerido:
+                self.add_error(campo, mensaje)
 
     def _validar_documento(self, datos, prefijo, etiqueta, requerido):
         campo_tipo = f"{prefijo}_tipo_documento"

@@ -2,9 +2,16 @@
  * Página del certificado (sacramentos/templates/certificados/certificado.html).
  *
  * Barra de acciones (Imprimir / Volver) y el pie que va fuera del marco de la
- * hoja: la parroquia con el lema, en cursiva gris y con líneas finas a los
- * lados. Al imprimir solo desaparecen la barra; la hoja y el pie se imprimen.
+ * hoja: la parroquia con el lema, en cursiva serif y con líneas finas a los
+ * lados. Al imprimir solo desaparecen la barra; la hoja y el pie se imprimen
+ * en UNA hoja carta: la hoja se imprime en el diseño de escritorio aunque el
+ * navegador esté en ancho móvil, con tipografía y separaciones compactas.
  */
+
+@page {
+  size: letter;
+  margin: 15mm;
+}
 
 .certificado-barra {
   display: flex;
@@ -31,11 +38,12 @@
 
 .certificado-pie-texto {
   flex: 0 0 auto;
-  font-size: 0.9rem;
+  font-family: "EB Garamond", Georgia, "Times New Roman", serif;
+  font-size: 1rem;
   text-align: center;
 }
 
-@media (max-width: 767.98px) {
+@media screen and (max-width: 767.98px) {
   .certificado-pie {
     flex-direction: column;
     gap: 0.5rem;
@@ -49,12 +57,87 @@
 
 @media print {
   .hoja-partida {
-    padding: 1.5rem 2rem;
+    padding: 0.75rem 1.25rem 1rem;
     border: 1px solid var(--gp-dorado, #b8954a);
+    font-size: 10.5pt;
+    line-height: 1.3;
+  }
+
+  /* Diseño de escritorio aunque el navegador esté en ancho móvil */
+  .hoja-encabezado {
+    flex-direction: row;
+    gap: 1rem;
+    margin-bottom: 0.6rem;
+  }
+
+  .hoja-encabezado-derecha {
+    text-align: right;
+  }
+
+  .hoja-titulo {
+    font-size: 1.15rem;
+  }
+
+  .hoja-regla {
+    margin-bottom: 0.6rem;
+  }
+
+  .hoja-consta {
+    margin-bottom: 0.4rem;
+    font-size: 1rem;
+  }
+
+  /* La tabla vuelve a ser una tabla de dos columnas */
+  .hoja-tabla {
+    display: table;
+    width: 100%;
+  }
+
+  .hoja-tabla tbody {
+    display: table-row-group;
+  }
+
+  .hoja-tabla tr {
+    display: table-row;
+    padding: 0;
+    border-bottom: 0;
+  }
+
+  .hoja-tabla th,
+  .hoja-tabla td {
+    display: table-cell;
+    padding: 0.2rem 0.4rem;
+    border-bottom: 1px solid rgba(184, 149, 74, 0.22);
+  }
+
+  .hoja-tabla th {
+    width: 34%;
+  }
+
+  .hoja-notas {
+    margin-top: 0.6rem;
+    padding-top: 0.5rem;
+  }
+
+  .hoja-cierre {
+    margin-top: 0.7rem;
+    padding-top: 0.6rem;
+  }
+
+  .hoja-cierre-lugar {
+    margin-bottom: 0.7rem;
+  }
+
+  .hoja-cierre-firmas {
+    gap: 1rem;
+  }
+
+  .hoja-sello {
+    width: 80px;
   }
 
   .certificado-pie {
     max-width: none;
-    margin: 1rem 0 0;
+    margin: 0.75rem 0 0;
   }
 }

@@ -117,8 +117,9 @@ FAMILIAS = (
 )
 
 # Fieles sueltos. Los dos primeros se bautizan en otra parroquia (solo tienen
-# los datos externos), de los índices 2 a 9 salen los padrinos y los dos últimos
-# se bautizan aquí (uno de ellos queda anulado).
+# los datos externos), de los índices 2 a 9 salen los padrinos (varones) y las
+# madrinas (mujeres) y los dos últimos se bautizan aquí (uno de ellos queda
+# anulado).
 EXTRAS = (
     ("Juan Esteban", "Pérez Mora", date(2015, 3, 9), Sexo.HOMBRE),
     ("Ricardo Andrés", "Salazar Nieto", date(1995, 6, 30), Sexo.HOMBRE),
@@ -237,7 +238,8 @@ class Command(BaseCommand):
         hoy = timezone.localdate()
         self._hoy = hoy
         self._contador = 0
-        self._padrinos = []
+        self._padrinos_varones = []
+        self._madrinas = []
 
         municipio = Municipio.objects.order_by("pk").first()
         self._ubicacion_creada = municipio is None
@@ -365,15 +367,21 @@ class Command(BaseCommand):
             )
             self._extras.append({"fiel": fiel, "documento": documento})
 
+        # Los padrinos y las madrinas se eligen por sexo (c. 873/874): el
+        # padrino debe ser varón y la madrina mujer, nunca al revés.
+        self._padrinos_varones = []
+        self._madrinas = []
         for extra in self._extras[2:10]:
-            self._padrinos.append(
-                self._guardar(
-                    Padrino(
-                        documento=extra["documento"],
-                        nombre=f"{extra['fiel'].nombres} {extra['fiel'].apellidos}",
-                    )
+            padrino = self._guardar(
+                Padrino(
+                    documento=extra["documento"],
+                    nombre=f"{extra['fiel'].nombres} {extra['fiel'].apellidos}",
                 )
             )
+            if extra["fiel"].sexo == Sexo.HOMBRE:
+                self._padrinos_varones.append(padrino)
+            else:
+                self._madrinas.append(padrino)
 
     def _crear_persona_con_fila(self, datos, es_padre):
         nombres, apellido, nacimiento, sexo = datos
@@ -446,8 +454,8 @@ class Command(BaseCommand):
                 ),
                 ministro=self._ministros[indice % len(self._ministros)],
             )
-            padrino = self._padrinos[indice % len(self._padrinos)]
-            madrina = self._padrinos[(indice + 3) % len(self._padrinos)]
+            padrino = self._padrinos_varones[indice % len(self._padrinos_varones)]
+            madrina = self._madrinas[(indice + 1) % len(self._madrinas)]
             bautismo = self._guardar(
                 Bautismo(
                     sacramento=sacramento,
@@ -584,7 +592,7 @@ class Command(BaseCommand):
                     sacramento=sacramento,
                     edad=self._edad(fiel.fecha_nacimiento, fecha),
                     bautismo=registro["bautismo"],
-                    padrino=self._padrinos[(indice + 1) % len(self._padrinos)],
+                    padrino=self._padrinos_varones[indice % len(self._padrinos_varones)],
                     doy_fe=self._ministros[1],
                 )
             )

@@ -17,19 +17,17 @@ expide tiene ese rol. Todos los valores se imprimen escapados.
 
   <div class="hoja-cierre-firmas">
     <div class="hoja-firma">
-      <span class="hoja-firma-linea" aria-hidden="true"></span>
       <span class="hoja-firma-nombre">{{ certificado.parroco }}</span>
+      <span class="hoja-firma-linea" aria-hidden="true"></span>
       <span class="hoja-firma-rol">Párroco</span>
     </div>
     <div class="hoja-sello" aria-hidden="true"><span>Sello</span></div>
     {% if certificado.secretario %}
       <div class="hoja-firma">
-        <span class="hoja-firma-linea" aria-hidden="true"></span>
         <span class="hoja-firma-nombre">{{ certificado.secretario }}</span>
+        <span class="hoja-firma-linea" aria-hidden="true"></span>
         <span class="hoja-firma-rol">Secretario(a)</span>
       </div>
     {% endif %}
   </div>
-
-  <span class="hoja-cierre-ornamento" aria-hidden="true"></span>
 </section>
