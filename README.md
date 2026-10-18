@@ -661,9 +661,19 @@ nuevo `static/css/certificado.css`.
 ### Autocompletado de personas
 
 Los campos de documento de cada bloque (`.bloque-persona[data-rol]`) consultan
-`personas:api_persona` (ver **Endpoint de búsqueda por documento**). Si la persona ya existe,
-el formulario avisa **“Ya registrado: se usan sus datos.”** y ofrece un enlace para
-cambiarla; el relleno se hace siempre con `textContent`/`value`.
+`personas:api_persona` (ver **Endpoint de búsqueda por documento**). Si la persona ya existe en
+cualquier rol, el formulario rellena sus datos, bloquea **solo** nombres y apellidos (solo
+lectura) y muestra «Persona registrada. Para corregir sus datos usa Consultar personas» con un
+enlace a su ficha (se abre en otra pestaña). Si cambias el número después de buscar, se
+desbloquean y se limpian los datos rellenados.
+
+Si el documento no existe se avisa («No está registrada. Llena sus datos y se guardará con la
+partida») y los campos quedan editables: al guardar, las personas nuevas se crean
+validadas (`full_clean`) dentro de la misma transacción que la partida. Si el fiel ya tiene un
+bautismo activo o corregido, o el sexo no corresponde al rol (padre varón, madre mujer, padrino
+varón, madrina mujer), el aviso aparece **al buscar**, no solo al guardar. El comportamiento se
+configura con atributos `data-` (rol del bloque, par tipo/número y `data-campo-persona` de cada
+campo rellenable); el relleno se hace siempre con `textContent`/`value`.
 
 ## Personas
 
@@ -711,22 +721,36 @@ individual de una persona.
 ### Endpoint de búsqueda por documento
 
 `GET /personas/api/persona/` (ruta `personas:api_persona`) alimenta el autocompletado de los
-formularios de partidas. Exige sesión (lo cubre `LoginRequiredMiddleware`). Parámetros:
+formularios de partidas. Exige sesión (lo cubre `LoginRequiredMiddleware`), **solo acepta GET**
+(responde `405` con `Allow: GET` en otro caso) y limita cada usuario a **60 consultas por
+minuto** (responde `429` al superarlo; el contador vive en la caché de Django). Parámetros:
 
 | Parámetro | Valores                          | Descripción                                     |
 | --------- | -------------------------------- | ----------------------------------------------- |
 | `rol`     | `fiel`, `padre`, `madre`, `padrino`, `madrina` | Tipo de persona a buscar.                    |
-| `tipo`    | p. ej. `CC`, `TI`, `RC`           | Tipo de documento (se normaliza).               |
-| `numero`  | dígitos                           | Número de documento.                            |
+| `tipo`    | p. ej. `CC`, `TI`, `RC`           | Tipo de documento (se normaliza y se valida con `validar_documento`). Opcional. |
+| `numero`  | dígitos o alfanumérico            | Número de documento.                            |
+
+La búsqueda **no está limitada al rol pedido**: se resuelve el `Documento` y se miran todas las
+filas (`Fiel`, `Padre`, `Madre`, `Padrino`) con prioridad Fiel > Padre > Madre > Padrino para
+los nombres. Si se omite `tipo`, se busca solo por número: con una sola coincidencia se
+completa el tipo en la respuesta; con varias se responde `200` con
+`{"encontrado": false, "varios": true, "mensaje": …}` pidiendo elegir el tipo.
 
 Respuestas:
 
-- `400` si falta `rol`, `tipo` o `numero` (o el `rol` no es válido).
-- `404` con `{"encontrado": false}` si no existe la persona.
-- `200` con `{"encontrado": true, "nombres": …, "apellidos": …}` y, solo para `rol=fiel`,
-  además `{"fecha_nacimiento": …, "municipio": <id>, "sexo": …}`. No se devuelve ningún otro
-  campo. El consumo desde el navegador se hace en `static/js/buscar_persona.js`, que escribe
-  siempre con `textContent`/`value` (nunca `innerHTML`).
+- `400` si falta `numero`, el `rol` no es válido o el número no pasa `validar_documento` para su
+  tipo.
+- `404` con `{"error": "No se encontró la persona."}` si el documento no existe o no
+  corresponde a ninguna persona de los cuatro roles.
+- `200` con, para cualquier rol: `{"encontrado", "tipo_documento", "numero_documento",
+  "nombres", "apellidos", "sexo_fiel", "editar_url"}` (la URL de edición de la persona
+  encontrada, para corregirla desde Consultar personas). Solo para `rol=fiel` se añaden
+  `{"fecha_nacimiento", "municipio", "sexo", "telefono", "bautismo_activo",
+  "bautismo_referencia"}`; `bautismo_referencia` es «Libro X · Folio Y · N.° Z» del bautismo
+  activo o corregido (vacío si no tiene). No se devuelve ningún id interno. El consumo desde el
+  navegador se hace en `static/js/buscar_persona.js`, que escribe siempre con
+  `textContent`/`value` (nunca `innerHTML`).
 
 Se conservan los endpoints heredados `personas:api_padre` (`/personas/api/padre/`) y
 `personas:api_madre` (`/personas/api/madre/`).

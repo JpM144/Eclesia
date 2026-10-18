@@ -32,7 +32,7 @@ from core.validators import (
 )
 from parroquias.models import Libro, Ministro
 from personas.consultas import FIEL, contar_partidas
-from personas.models import Fiel
+from personas.models import Fiel, Madre, Padre, Padrino
 from ubicacion.models import Departamento, Municipio, Pais
 
 
@@ -210,6 +210,7 @@ class BautismoForm(forms.Form):
             "fiel_fecha_nacimiento": "fecha_nacimiento",
             "fiel_municipio_nacimiento": "municipio",
             "fiel_sexo": "sexo",
+            "fiel_telefono": "telefono",
             "padre_nombre": "nombres",
             "padre_apellido": "apellidos",
             "madre_nombre": "nombres",
@@ -356,20 +357,22 @@ class BautismoForm(forms.Form):
 
         padre = self._validar_documento(datos, "padre", "El documento del padre", requerido=True)
         if padre:
-            if not datos.get("padre_nombre"):
-                self.add_error("padre_nombre", "Indique el nombre del padre.")
-            if not datos.get("padre_apellido"):
-                self.add_error("padre_apellido", "Indique el apellido del padre.")
+            if not self._persona_registrada(Padre, padre):
+                if not datos.get("padre_nombre"):
+                    self.add_error("padre_nombre", "Indique el nombre del padre.")
+                if not datos.get("padre_apellido"):
+                    self.add_error("padre_apellido", "Indique el apellido del padre.")
             padre["nombre"] = datos.get("padre_nombre", "")
             padre["apellido"] = datos.get("padre_apellido", "")
             self.documento_padre = padre
 
         madre = self._validar_documento(datos, "madre", "El documento de la madre", requerido=True)
         if madre:
-            if not datos.get("madre_nombre"):
-                self.add_error("madre_nombre", "Indique el nombre de la madre.")
-            if not datos.get("madre_apellido"):
-                self.add_error("madre_apellido", "Indique el apellido de la madre.")
+            if not self._persona_registrada(Madre, madre):
+                if not datos.get("madre_nombre"):
+                    self.add_error("madre_nombre", "Indique el nombre de la madre.")
+                if not datos.get("madre_apellido"):
+                    self.add_error("madre_apellido", "Indique el apellido de la madre.")
             madre["nombre"] = datos.get("madre_nombre", "")
             madre["apellido"] = datos.get("madre_apellido", "")
             self.documento_madre = madre
@@ -410,7 +413,7 @@ class BautismoForm(forms.Form):
             datos, "padrino", "El documento del padrino", requerido=False
         )
         if padrino:
-            if not datos.get("padrino_nombre"):
+            if not self._persona_registrada(Padrino, padrino) and not datos.get("padrino_nombre"):
                 self.add_error("padrino_nombre", "Indique el nombre del padrino.")
             padrino["nombre"] = datos.get("padrino_nombre", "")
             self.documento_padrino = padrino
@@ -419,7 +422,7 @@ class BautismoForm(forms.Form):
             datos, "madrina", "El documento de la madrina", requerido=False
         )
         if madrina:
-            if not datos.get("madrina_nombre"):
+            if not self._persona_registrada(Padrino, madrina) and not datos.get("madrina_nombre"):
                 self.add_error("madrina_nombre", "Indique el nombre de la madrina.")
             madrina["nombre"] = datos.get("madrina_nombre", "")
             self.documento_madrina = madrina
@@ -455,17 +458,30 @@ class BautismoForm(forms.Form):
             "madrina_numero_documento",
             "El padrino y la madrina no pueden tener el mismo documento.",
         )
-        self._validar_sexo_padrinos()
+        self._validar_sexo_personas()
 
-    def _validar_sexo_padrinos(self):
-        """c. 874: el padrino debe ser varón y la madrina, mujer.
+    def _validar_sexo_personas(self):
+        """c. 873 y c. 874: padre y padrino varones; madre y madrina mujeres.
 
-        El modelo ``Padrino`` no guarda el sexo: se toma del ``Fiel`` que
-        comparte el mismo documento, cuando existe y lo tiene registrado. Si
-        el documento no corresponde a ningún fiel conocido, no hay nada que
-        validar.
+        Los modelos ``Padre``, ``Madre`` y ``Padrino`` no guardan el sexo: se
+        toma del ``Fiel`` que comparte el mismo documento, cuando existe y lo
+        tiene registrado. Si el documento no corresponde a ningún fiel
+        conocido, no hay nada que validar. El navegador muestra el mismo aviso
+        al buscar (``sexo_fiel`` de la API), pero quien decide es el servidor.
         """
         reglas = (
+            (
+                self.documento_padre,
+                "padre_numero_documento",
+                Sexo.HOMBRE,
+                "El padre debe ser varón.",
+            ),
+            (
+                self.documento_madre,
+                "madre_numero_documento",
+                Sexo.MUJER,
+                "La madre debe ser mujer.",
+            ),
             (
                 self.documento_padrino,
                 "padrino_numero_documento",
@@ -488,6 +504,18 @@ class BautismoForm(forms.Form):
             ).first()
             if fiel and fiel.sexo and fiel.sexo != sexo_requerido:
                 self.add_error(campo, mensaje)
+
+    @staticmethod
+    def _persona_registrada(modelo, documento):
+        """¿Ya existe una persona de ese modelo con ese documento?
+
+        Si existe, el formulario no exige nombre ni apellido: se bloquean en
+        pantalla y el servicio reutiliza la fila guardada.
+        """
+        return modelo.objects.filter(
+            documento__tipo_documento=documento["tipo_documento"],
+            documento__numero_documento=documento["numero_documento"],
+        ).exists()
 
     def _validar_documento(self, datos, prefijo, etiqueta, requerido):
         campo_tipo = f"{prefijo}_tipo_documento"

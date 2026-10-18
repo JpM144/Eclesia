@@ -29,6 +29,18 @@ def registrar_historial(sacramento, accion, descripcion="", usuario=None):
     )
 
 
+def _documento_reutilizado_o_nuevo(tipo_doc, numero_doc):
+    """Documento por su par tipo/número: reutiliza el existente o crea uno validado."""
+    documento = Documento.objects.filter(
+        tipo_documento=tipo_doc, numero_documento=numero_doc
+    ).first()
+    if documento is None:
+        documento = Documento(tipo_documento=tipo_doc, numero_documento=numero_doc)
+        documento.full_clean()
+        documento.save()
+    return documento
+
+
 def _crear_o_reutilizar_fiel(datos_fiel):
     """Crea o reutiliza un Fiel según el documento."""
     tipo_doc = datos_fiel.get("tipo_documento")
@@ -36,10 +48,7 @@ def _crear_o_reutilizar_fiel(datos_fiel):
     if not tipo_doc or not numero_doc:
         return None, False
 
-    documento, _ = Documento.objects.get_or_create(
-        tipo_documento=tipo_doc,
-        numero_documento=numero_doc,
-    )
+    documento = _documento_reutilizado_o_nuevo(tipo_doc, numero_doc)
     fiel = Fiel.objects.filter(documento=documento).first()
     if fiel:
         # Reutilizar sin sobrescribir: solo rellenar campos vacíos
@@ -57,7 +66,7 @@ def _crear_o_reutilizar_fiel(datos_fiel):
             fiel.sexo = datos_fiel.get("sexo")
         fiel.save()
         return fiel, True
-    fiel = Fiel.objects.create(
+    fiel = Fiel(
         documento=documento,
         nombres=datos_fiel.get("nombres", ""),
         apellidos=datos_fiel.get("apellidos", ""),
@@ -66,6 +75,8 @@ def _crear_o_reutilizar_fiel(datos_fiel):
         telefono=datos_fiel.get("telefono", ""),
         sexo=datos_fiel.get("sexo"),
     )
+    fiel.full_clean()
+    fiel.save()
     return fiel, False
 
 
@@ -76,10 +87,7 @@ def _crear_o_reutilizar_padre(datos_padre):
     numero_doc = datos_padre.get("numero_documento")
     if not tipo_doc or not numero_doc:
         return None
-    documento, _ = Documento.objects.get_or_create(
-        tipo_documento=tipo_doc,
-        numero_documento=numero_doc,
-    )
+    documento = _documento_reutilizado_o_nuevo(tipo_doc, numero_doc)
     padre = Padre.objects.filter(documento=documento).first()
     if padre:
         if not padre.nombre and datos_padre.get("nombre"):
@@ -88,11 +96,13 @@ def _crear_o_reutilizar_padre(datos_padre):
             padre.apellido = datos_padre.get("apellido")
         padre.save()
         return padre
-    padre = Padre.objects.create(
+    padre = Padre(
         documento=documento,
         nombre=datos_padre.get("nombre", ""),
         apellido=datos_padre.get("apellido", ""),
     )
+    padre.full_clean()
+    padre.save()
     return padre
 
 
@@ -103,10 +113,7 @@ def _crear_o_reutilizar_madre(datos_madre):
     numero_doc = datos_madre.get("numero_documento")
     if not tipo_doc or not numero_doc:
         return None
-    documento, _ = Documento.objects.get_or_create(
-        tipo_documento=tipo_doc,
-        numero_documento=numero_doc,
-    )
+    documento = _documento_reutilizado_o_nuevo(tipo_doc, numero_doc)
     madre = Madre.objects.filter(documento=documento).first()
     if madre:
         if not madre.nombre and datos_madre.get("nombre"):
@@ -115,11 +122,13 @@ def _crear_o_reutilizar_madre(datos_madre):
             madre.apellido = datos_madre.get("apellido")
         madre.save()
         return madre
-    madre = Madre.objects.create(
+    madre = Madre(
         documento=documento,
         nombre=datos_madre.get("nombre", ""),
         apellido=datos_madre.get("apellido", ""),
     )
+    madre.full_clean()
+    madre.save()
     return madre
 
 
@@ -130,20 +139,19 @@ def _crear_o_reutilizar_padrino(datos_padrino):
     numero_doc = datos_padrino.get("numero_documento")
     if not tipo_doc or not numero_doc:
         return None
-    documento, _ = Documento.objects.get_or_create(
-        tipo_documento=tipo_doc,
-        numero_documento=numero_doc,
-    )
+    documento = _documento_reutilizado_o_nuevo(tipo_doc, numero_doc)
     padrino = Padrino.objects.filter(documento=documento).first()
     if padrino:
         if not padrino.nombre and datos_padrino.get("nombre"):
             padrino.nombre = datos_padrino.get("nombre")
         padrino.save()
         return padrino
-    padrino = Padrino.objects.create(
+    padrino = Padrino(
         documento=documento,
         nombre=datos_padrino.get("nombre", ""),
     )
+    padrino.full_clean()
+    padrino.save()
     return padrino
 
 

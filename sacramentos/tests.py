@@ -1362,6 +1362,115 @@ class BautismoServiceTests(BautismoBaseTests):
         with self.assertRaises(ValidationError):
             registrar_bautismo(datos, self.usuario)
 
+    def test_servicio_nombre_con_numeros_no_deja_nada_guardado(self):
+        # full_clean en cada persona nueva: si una falla, la transacción no
+        # deja ni documentos ni personas ni sacramentos a medias.
+        documentos_antes = Documento.objects.count()
+        with self.assertRaises(ValidationError):
+            registrar_bautismo(
+                {
+                    "partida": {
+                        "libro": self.libro,
+                        "fecha": date(2026, 6, 15),
+                        "parroquia": self.parroquia,
+                        "ministro": self.ministro,
+                        "observaciones": "",
+                    },
+                    "fiel": {
+                        "tipo_documento": TipoDocumento.CC,
+                        "numero_documento": "12345678",
+                        "nombres": "Luis",
+                        "apellidos": "Martínez Díaz",
+                        "fecha_nacimiento": date(2015, 5, 10),
+                        "municipio_nacimiento": self.municipio,
+                        "telefono": "",
+                        "sexo": Sexo.HOMBRE,
+                    },
+                    "padre": {
+                        "tipo_documento": TipoDocumento.CC,
+                        "numero_documento": "88888881",
+                        "nombre": "Juan123",
+                        "apellido": "Nuevo",
+                    },
+                    "madre": {},
+                    "padrino": {},
+                    "madrina": {},
+                    "tipo_hijo": TipoHijo.BIOLOGICO,
+                    "testigo_nombre": "",
+                    "doy_fe": self.parroco,
+                },
+                self.usuario,
+            )
+        self.assertEqual(Documento.objects.count(), documentos_antes)
+        self.assertFalse(Documento.objects.filter(numero_documento="88888881").exists())
+        self.assertFalse(Padre.objects.filter(nombre="Juan123").exists())
+        self.assertEqual(Sacramento.objects.count(), 0)
+
+    def test_servicio_crea_cada_persona_nueva_una_sola_vez(self):
+        form = BautismoForm(
+            self._datos_completos(
+                fiel_numero_documento="87654321",
+                fiel_nombres="Sofia",
+                padre_numero_documento="44444444",
+                padre_nombre="Nuevo",
+                padre_apellido="Padre",
+                madre_numero_documento="55555555",
+                madre_nombre="Nueva",
+                madre_apellido="Madre",
+                padrino_numero_documento="66666666",
+                padrino_nombre="Nuevo Padrino",
+            )
+        )
+        self.assertTrue(form.is_valid(), form.errors)
+        registrar_bautismo(form.datos_para_servicio(), self.usuario)
+        for numero in ("87654321", "44444444", "55555555", "66666666"):
+            self.assertEqual(Documento.objects.filter(numero_documento=numero).count(), 1, numero)
+        self.assertEqual(Padre.objects.filter(nombre="Nuevo").count(), 1)
+        self.assertEqual(Madre.objects.filter(nombre="Nueva").count(), 1)
+        self.assertEqual(Padrino.objects.filter(nombre="Nuevo Padrino").count(), 1)
+
+    def test_mismo_documento_como_padre_y_padrino_comparte_un_documento(self):
+        self._registrar_bautismo_desde_form(
+            fiel_numero_documento="87654321",
+            fiel_nombres="Sofia",
+            padre_numero_documento="44444444",
+            padre_nombre="Compartido",
+            padre_apellido="Documento",
+        )
+        self._registrar_bautismo_desde_form(
+            fiel_numero_documento="55555555",
+            fiel_nombres="Marta",
+            padre_numero_documento="11111111",
+            padrino_numero_documento="44444444",
+            padrino_nombre="Compartido Documento",
+        )
+        documentos = Documento.objects.filter(numero_documento="44444444")
+        self.assertEqual(documentos.count(), 1)
+        self.assertTrue(Padre.objects.filter(documento=documentos.first()).exists())
+        self.assertTrue(Padrino.objects.filter(documento=documentos.first()).exists())
+
+    def test_fiel_que_ya_es_padrino_se_puede_bautizar_reutilizando_documento(self):
+        Padrino.objects.create(
+            documento=self._crear_documento("91111111"), nombre="Carlos Padrino Viejo"
+        )
+        form = BautismoForm(
+            self._datos_completos(
+                fiel_numero_documento="91111111",
+                fiel_nombres="Carlos",
+                fiel_apellidos="Padrino Viejo",
+            )
+        )
+        self.assertTrue(form.is_valid(), form.errors)
+        bautismo, _ = registrar_bautismo(form.datos_para_servicio(), self.usuario)
+        fiel = bautismo.sacramento.fiel
+        self.assertEqual(fiel.nombres, "Carlos")
+        self.assertEqual(fiel.apellidos, "Padrino Viejo")
+        self.assertEqual(Documento.objects.filter(numero_documento="91111111").count(), 1)
+        # El Padrino conserva su nombre: el servicio no sobrescribe.
+        self.assertEqual(
+            Padrino.objects.get(documento=fiel.documento).nombre, "Carlos Padrino Viejo"
+        )
+
 
 class BautismoFormTests(BautismoBaseTests):
     def test_formulario_valido(self):
@@ -1384,9 +1493,22 @@ class BautismoFormTests(BautismoBaseTests):
         self.assertEqual(form.cleaned_data["fiel_numero_documento"], "12345678")
 
     def test_form_requiere_datos_padres(self):
-        datos = self._datos_completos(padre_nombre="")
+        datos = self._datos_completos(
+            padre_numero_documento="88888881", padre_nombre="", padre_apellido=""
+        )
         form = BautismoForm(datos)
         self.assertFalse(form.is_valid())
+        self.assertIn("padre_nombre", form.errors)
+
+    def test_form_no_requiere_nombre_de_padre_ya_registrado(self):
+        datos = self._datos_completos(padre_nombre="", padre_apellido="")
+        form = BautismoForm(datos)
+        self.assertTrue(form.is_valid(), form.errors)
+
+    def test_form_no_requiere_nombre_de_padrino_ya_registrado(self):
+        datos = self._datos_completos(padrino_nombre="")
+        form = BautismoForm(datos)
+        self.assertTrue(form.is_valid(), form.errors)
 
     def test_form_sexo_obligatorio(self):
         datos = self._datos_completos(fiel_sexo="")
@@ -1515,6 +1637,30 @@ class BautismoFormTests(BautismoBaseTests):
         form = BautismoForm(datos)
         self.assertTrue(form.is_valid(), form.errors)
 
+    def test_form_padre_mujer_conocida_falla_en_el_campo(self):
+        self._fiel_con_sexo("98765432", Sexo.MUJER)
+        datos = self._datos_completos(
+            padre_numero_documento="98765432",
+            padre_nombre="Pedro Conocido",
+            padre_apellido="Conocida",
+        )
+        form = BautismoForm(datos)
+        self.assertFalse(form.is_valid())
+        self.assertIn("padre_numero_documento", form.errors)
+        self.assertIn("El padre debe ser varón.", form.errors["padre_numero_documento"])
+
+    def test_form_madre_varon_conocido_falla_en_el_campo(self):
+        self._fiel_con_sexo("98765431", Sexo.HOMBRE)
+        datos = self._datos_completos(
+            madre_numero_documento="98765431",
+            madre_nombre="María Conocida",
+            madre_apellido="Conocido",
+        )
+        form = BautismoForm(datos)
+        self.assertFalse(form.is_valid())
+        self.assertIn("madre_numero_documento", form.errors)
+        self.assertIn("La madre debe ser mujer.", form.errors["madre_numero_documento"])
+
 
 class BautismoViewsTests(BautismoBaseTests):
     def setUp(self):
@@ -1590,8 +1736,23 @@ class BautismoViewsTests(BautismoBaseTests):
         self.assertTrue(payload["encontrado"])
         self.assertEqual(
             set(payload.keys()),
-            {"encontrado", "nombres", "apellidos", "fecha_nacimiento", "municipio", "sexo"},
+            {
+                "encontrado",
+                "tipo_documento",
+                "numero_documento",
+                "nombres",
+                "apellidos",
+                "sexo_fiel",
+                "editar_url",
+                "fecha_nacimiento",
+                "municipio",
+                "sexo",
+                "telefono",
+                "bautismo_activo",
+                "bautismo_referencia",
+            },
         )
+        self.assertFalse(payload["bautismo_activo"])
 
     def test_lista_bautismos_n1(self):
         self._registrar_bautismo_desde_form()

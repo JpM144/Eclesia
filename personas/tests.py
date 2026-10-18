@@ -2,6 +2,7 @@ from datetime import date
 from urllib.parse import quote
 
 from django.contrib.auth.models import User
+from django.core.cache import cache
 from django.db import IntegrityError, connection, transaction
 from django.db.models import ProtectedError
 from django.test import TestCase, override_settings
@@ -13,6 +14,8 @@ from core.choices import (
     CargoMinisterial,
     EstadoAnotacion,
     EstadoCivil,
+    EstadoRegistro,
+    Sexo,
     TipoAnotacionMarginal,
     TipoDocumento,
     TipoHijo,
@@ -1042,6 +1045,152 @@ class ApiPersonasTests(BasePersonasWebTests):
     def test_api_sin_numero_devuelve_400(self):
         self.assertEqual(self.client.get(reverse("personas:api_padre")).status_code, 400)
         self.assertEqual(self.client.get(reverse("personas:api_madre")).status_code, 400)
+
+
+class ApiPersonaBusquedaTests(BasePersonasWebTests):
+    """API ``personas:api_persona``: búsqueda entre roles, límite y respuestas."""
+
+    def setUp(self):
+        super().setUp()
+        # El límite de consultas usa la caché; cada test parte de cero.
+        cache.clear()
+
+    def _consultar(self, **params):
+        return self.client.get(reverse("personas:api_persona"), params)
+
+    def test_solo_acepta_get(self):
+        respuesta = self.client.post(reverse("personas:api_persona"), {})
+        self.assertEqual(respuesta.status_code, 405)
+        self.assertEqual(respuesta["Allow"], "GET")
+
+    def test_rol_invalido_devuelve_400(self):
+        respuesta = self._consultar(rol="ministro", tipo=TipoDocumento.CC, numero="12345")
+        self.assertEqual(respuesta.status_code, 400)
+
+    def test_numero_invalido_para_el_tipo_devuelve_400(self):
+        respuesta = self._consultar(rol="fiel", tipo=TipoDocumento.CC, numero="12ab")
+        self.assertEqual(respuesta.status_code, 400)
+        self.assertIn("solo números", respuesta.json()["error"])
+
+    def test_no_encontrado_devuelve_404(self):
+        respuesta = self._consultar(rol="fiel", tipo=TipoDocumento.CC, numero="00000")
+        self.assertEqual(respuesta.status_code, 404)
+
+    def test_encuentra_fiel_con_solo_los_campos_del_formulario(self):
+        self.crear_fiel("11111111", nombres="Ana", apellidos="López")
+        respuesta = self._consultar(rol="fiel", tipo=TipoDocumento.CC, numero="11111111")
+        self.assertEqual(respuesta.status_code, 200)
+        payload = respuesta.json()
+        self.assertTrue(payload["encontrado"])
+        self.assertEqual(payload["nombres"], "Ana")
+        self.assertEqual(payload["apellidos"], "López")
+        self.assertEqual(payload["tipo_documento"], TipoDocumento.CC)
+        self.assertEqual(payload["numero_documento"], "11111111")
+        self.assertNotIn("id", payload)
+        self.assertNotIn("fiel_id", payload)
+
+    def test_encuentra_fiel_registrado_como_padre(self):
+        # La persona existe solo como Padrino; se busca como bautizado.
+        documento = Documento.objects.create(
+            tipo_documento=TipoDocumento.CC, numero_documento="22222222"
+        )
+        Padrino.objects.create(documento=documento, nombre="Carlos Sánchez")
+        respuesta = self._consultar(rol="fiel", tipo=TipoDocumento.CC, numero="22222222")
+        self.assertEqual(respuesta.status_code, 200)
+        payload = respuesta.json()
+        payload = respuesta.json()
+        self.assertTrue(payload["encontrado"])
+        self.assertEqual(payload["nombres"], "Carlos Sánchez")
+        self.assertEqual(payload["apellidos"], "")
+        self.assertEqual(
+            payload["editar_url"],
+            reverse("personas:padrino_editar", args=[documento.padrino.pk]),
+        )
+
+    def test_encuentra_padre_registrado_como_fiel(self):
+        fiel = self.crear_fiel("33333333", nombres="Luis", apellidos="Martínez")
+        respuesta = self._consultar(rol="padre", tipo=TipoDocumento.CC, numero="33333333")
+        self.assertEqual(respuesta.status_code, 200)
+        payload = respuesta.json()
+        self.assertTrue(payload["encontrado"])
+        self.assertEqual(payload["nombres"], "Luis")
+        self.assertEqual(payload["apellidos"], "Martínez")
+        self.assertEqual(payload["editar_url"], reverse("personas:fiel_editar", args=[fiel.pk]))
+        # Solo los campos del rol: sin fecha ni municipio.
+        self.assertNotIn("fecha_nacimiento", payload)
+        self.assertNotIn("municipio", payload)
+
+    def test_sexo_fiel_disponible_para_roles_de_padres(self):
+        self.crear_fiel("44444444", nombres="Rosa", apellidos="Gómez")
+        Fiel.objects.filter(documento__numero_documento="44444444").update(sexo=Sexo.MUJER)
+        respuesta = self._consultar(rol="padre", tipo=TipoDocumento.CC, numero="44444444")
+        self.assertEqual(respuesta.json()["sexo_fiel"], Sexo.MUJER)
+
+    def test_sin_tipo_completa_el_tipo_con_una_coincidencia(self):
+        self.crear_fiel("55555555", nombres="Pedro", apellidos="Gómez")
+        respuesta = self._consultar(rol="fiel", numero="55555555")
+        self.assertEqual(respuesta.status_code, 200)
+        payload = respuesta.json()
+        self.assertTrue(payload["encontrado"])
+        self.assertEqual(payload["tipo_documento"], TipoDocumento.CC)
+
+    def test_sin_tipo_varias_coincidencias_pide_elegir_el_tipo(self):
+        self.crear_fiel("66666666", nombres="Ana", apellidos="López")
+        Documento.objects.create(tipo_documento=TipoDocumento.TI, numero_documento="66666666")
+        respuesta = self._consultar(rol="fiel", numero="66666666")
+        self.assertEqual(respuesta.status_code, 200)
+        payload = respuesta.json()
+        self.assertFalse(payload["encontrado"])
+        self.assertTrue(payload["varios"])
+        self.assertIn("elige el tipo de documento", payload["mensaje"])
+
+    def test_normaliza_puntos_y_espacios(self):
+        self.crear_fiel("77777777", nombres="Ana", apellidos="López")
+        respuesta = self._consultar(rol="fiel", tipo=TipoDocumento.CC, numero="7.777 7777")
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertTrue(respuesta.json()["encontrado"])
+
+    def test_bautismo_activo_devuelve_la_referencia(self):
+        fiel = self.crear_fiel("88888888", nombres="Juan", apellidos="Pérez")
+        self.crear_bautismo(fiel)
+        respuesta = self._consultar(rol="fiel", tipo=TipoDocumento.CC, numero="88888888")
+        payload = respuesta.json()
+        self.assertTrue(payload["bautismo_activo"])
+        self.assertIn("Libro", payload["bautismo_referencia"])
+        self.assertIn("Folio", payload["bautismo_referencia"])
+        self.assertIn("N.°", payload["bautismo_referencia"])
+
+    def test_bautismo_anulado_no_es_activo(self):
+        fiel = self.crear_fiel("99999990", nombres="Juan", apellidos="Pérez")
+        bautismo = self.crear_bautismo(fiel)
+        bautismo.sacramento.estado = EstadoRegistro.ANULADO
+        bautismo.sacramento.save(update_fields=["estado"])
+        respuesta = self._consultar(rol="fiel", tipo=TipoDocumento.CC, numero="99999990")
+        payload = respuesta.json()
+        self.assertFalse(payload["bautismo_activo"])
+        self.assertEqual(payload["bautismo_referencia"], "")
+
+    def test_respuesta_fiel_incluye_telefono_y_campos_editables(self):
+        self.crear_fiel("99999991", nombres="Ana", apellidos="López")
+        Fiel.objects.filter(documento__numero_documento="99999991").update(
+            telefono="3001234567", sexo=Sexo.MUJER
+        )
+        respuesta = self._consultar(rol="fiel", tipo=TipoDocumento.CC, numero="99999991")
+        payload = respuesta.json()
+        self.assertEqual(payload["telefono"], "3001234567")
+        self.assertEqual(payload["sexo"], Sexo.MUJER)
+        self.assertIn("fecha_nacimiento", payload)
+        self.assertIn("municipio", payload)
+
+    def test_limited_por_usuario_devuelve_429(self):
+        self.crear_fiel("11111111", nombres="Ana", apellidos="López")
+        params = {"rol": "fiel", "tipo": TipoDocumento.CC, "numero": "11111111"}
+        for _ in range(60):
+            respuesta = self._consultar(**params)
+            self.assertEqual(respuesta.status_code, 200)
+        respuesta = self._consultar(**params)
+        self.assertEqual(respuesta.status_code, 429)
+        self.assertIn("Demasiadas consultas", respuesta.json()["error"])
 
 
 # ---------------------------------------------------------------------------
