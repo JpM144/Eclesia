@@ -90,6 +90,7 @@ class TipoAnotacionMarginal(models.TextChoices):
     ADOPCION = "ADOPCION", "Adopción"
     DEFUNCION = "DEFUNCION", "Defunción"
     CORRECCION = "CORRECCION", "Corrección"
+    ANULACION = "ANULACION", "Anulación"
     OTRO = "OTRO", "Otro"
 
 

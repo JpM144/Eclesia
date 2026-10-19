@@ -1,6 +1,6 @@
 === ESPECIFICACIÓN ===
 1. core/choices.py
-   - TipoAnotacionMarginal: CONFIRMACION, MATRIMONIO, ORDEN_SAGRADO, PROFESION_RELIGIOSA, CAMBIO_RITO, ADOPCION, DEFUNCION, CORRECCION, OTRO.
+   - TipoAnotacionMarginal: CONFIRMACION, MATRIMONIO, ORDEN_SAGRADO, PROFESION_RELIGIOSA, CAMBIO_RITO, ADOPCION, DEFUNCION, CORRECCION, ANULACION ("Anulación"), OTRO.
    - EstadoAnotacion: ANOTADA ("Anotada"), POR_COMUNICAR ("Por comunicar"), COMUNICADA ("Comunicada"). Nada más.
    - AccionHistorial y ResultadoProclama: como están.
 2. DatosBautismoMixin (abstracto), todo opcional:
@@ -41,8 +41,8 @@ Formularios de corrección/anulación/eliminación: `MotivoForm` (campo `motivo`
 Servicio `sacramentos.services.registrar_bautismo(datos, usuario)`: dentro de `transaction.atomic`; crea o reutiliza (sin sobrescribir) Fiel/Padre/Madre/Padrino/Madrina; número con `siguiente_numero_partida(libro)`, **folio con `parroquias.services.folio_para_nueva_partida(libro)`** y **`fecha_registro = timezone.localdate()`**; `full_clean()` de Sacramento y Bautismo; historial con `AccionHistorial.CREACION`; devuelve `(bautismo, reutilizadas)`.
 
 Servicios `corregir_bautismo`, `anular_bautismo` y `eliminar_bautismo` (todos `@transaction.atomic`, con motivo obligatorio):
-- `corregir_bautismo`: vuelca los datos editados; los nombres y documentos de las personas ya vinculadas son de solo lectura (se corrigen desde su ficha) y `_sincronizar_personas` solo actualiza los datos mutables del bautizado (fecha y municipio de nacimiento, teléfono y sexo); no cambia libro/folio/número/fecha_registro; pasa la partida a `CORREGIDO` si estaba ACTIVO; añade historial `CORRECCION` y una `AnotacionMarginal` de tipo CORRECCION. Bloquea partidas ANULADAS.
-- `anular_bautismo`: pasa la partida a `ANULADO` (sigue ocupando su lugar en el libro); añade historial `ANULACION` y anotación CORRECCION. Bloquea partidas ya anuladas.
+- `corregir_bautismo`: vuelca los datos editados; los nombres y documentos de las personas ya vinculadas son de solo lectura (se corrigen desde su ficha) y `_sincronizar_personas` solo actualiza los datos mutables del bautizado (fecha y municipio de nacimiento, teléfono y sexo); no cambia libro/folio/número/fecha_registro. Regla común del mismo día (vía `_aplicar_correccion`, compartida con Primera Comunión): si `fecha_registro == hoy` la corrección queda solo en el historial y la partida sigue `ACTIVO` (sin anotación marginal, por lo que aún puede eliminarse si cumple las demás condiciones); si no, pasa a `CORREGIDO` y añade historial `CORRECCION` más una `AnotacionMarginal` de tipo CORRECCION. Bloquea partidas ANULADAS.
+- `anular_bautismo`: pasa la partida a `ANULADO` (sigue ocupando su lugar en el libro); añade historial `ANULACION` y anotación `ANULACION` («Partida anulada: {motivo}»). Bloquea partidas ya anuladas.
 - `eliminar_bautismo`: solo si `puede_eliminarse(bautismo)` —partida ACTIVA, última del libro (número más alto), con `fecha_registro` de hoy y sin anotaciones marginales (ni como partida anotada ni como origen)—; las partidas anuladas o corregidas nunca se eliminan (quedan como constancia). Guarda una copia en `PartidaEliminada` (snapshot con motivo y usuario) y borra el `Sacramento` (cascada de Bautismo, historial y anotaciones). Al eliminar la última partida se liberan su número y folio, y el siguiente registro los reutiliza sin dejar huecos. La partida eliminada no se puede recuperar desde la app. `motivo_no_eliminable` devuelve el mensaje exacto de cada condición.
 
 Folio automático (parroquias): `Libro.partidas_por_folio` (1–20, por defecto 3) indica cuántas partidas caben en cada folio. `folio_para_nueva_partida(libro)` reutiliza el último folio hasta llenarlo (`partidas_por_folio` alcanzadas, contando también las anuladas), pasa al siguiente y crea el `Folio` si no existe. Si supera `Libro.total_folios`, lanza `ValidationError` ("El libro está lleno…").
@@ -61,7 +61,7 @@ Pantallas (namespace `sacramentos`):
 - Lista `sacramentos:primera_comunion_lista` = `/sacramentos/primeras-comuniones/` (PrimeraComunionListView; hereda FiltrosPartidasMixin de BautismoListView: `?q=`, `?libro=`, `?anio=`, paginado 25, sin N+1).
 - Registro `sacramentos:primera_comunion_crear` = `/sacramentos/primeras-comuniones/nueva/` (PrimeraComunionCreateView + PrimeraComunionForm; acepta `?libro=` para precargar el libro; import perezoso del servicio).
 - Ficha `sacramentos:primera_comunion_detalle` = `/sacramentos/primeras-comuniones/<pk>/` (PrimeraComunionDetailView; hoja de partida con `datos_hoja_primera_comunion`, tarjeta "Constancia del bautismo" con enlace a la partida enlazada, historial y personas de la partida).
-- Editar, anular, eliminar y certificado quedan para el prompt 9b.
+- Editar, anular, eliminar y certificado: ver "ACCIONES DE PRIMERA COMUNIÓN (prompt 9b)".
 
 Mecanismo reutilizable de reglas `sacramentos/reglas.py` (servidor SIEMPRE, no se salta con el POST):
 - Niveles: `BLOQUEA` (error sin campo, no guarda), `ADVIERTE` (no guarda hasta marcar «Verificado / excepción autorizada» y escribir el motivo; ambas cosas se revalidan en el servidor; cada aceptación queda en el historial con código, motivo y usuario), `RECUERDA` (solo informa).
@@ -79,4 +79,29 @@ Hoja y ficha: `padres_de_primera_comunion(primera)` devuelve el padre y la madre
 Integración: `personas:api_persona` añade para fiel con bautismo activo `bautismo_id`, `bautismo_url`, `bautismo_parroquia`, `bautismo_fecha`, `bautismo_padre` y `bautismo_madre` (sin bautismo la respuesta conserva exactamente los campos de siempre); `buscar_persona.js` rellena padre/madre, muestra el enlace "Ver partida de bautismo" cuando el bloque lleva `data-mostrar-bautismo` y guarda el pk en la casilla oculta `data-bautismo-id`, limpiándola en 404 y al cambiar el número; sidebar con "Primera Comunión" habilitado y activo por `actual` (no por `ns`).
 
 Sin cambios de migración (el modelo ya tenía todo) y sin cambios en `cargar_datos_demo` (crea 8 partidas: 7 enlazadas + 1 externa).
+=== FIN IMPLEMENTADO ===
+
+=== IMPLEMENTADO: ACCIONES DE PRIMERA COMUNIÓN (prompt 9b) ===
+Rutas nuevas (todas solo POST para ejecutar, GET para el formulario de confirmación):
+- Editar `sacramentos:primera_comunion_editar` = `/sacramentos/primeras-comuniones/<pk>/editar/` (`PrimeraComunionUpdateView`).
+- Anular `sacramentos:primera_comunion_anular` = `/sacramentos/primeras-comuniones/<pk>/anular/` (`PrimeraComunionAnularView`).
+- Eliminar `sacramentos:primera_comunion_eliminar` = `/sacramentos/primeras-comuniones/<pk>/eliminar/` (`PrimeraComunionEliminarView`).
+- Certificado `sacramentos:primera_comunion_certificado` = `/sacramentos/primeras-comuniones/<pk>/certificado/` (`PrimeraComunionCertificadoView`).
+
+Generalizaciones en `sacramentos/services.py` (Bautismo y Primera Comunión comparten la regla de corrección):
+- `_sacramento_de(partida)` devuelve el `Sacramento` subyacente (o la propia instancia) y `motivo_no_eliminable`/`puede_eliminarse` aceptan partida o `Sacramento`. Mientras no haya anulación de matrimonio/confirmación, el estado en JSON no se toca.
+- `_aplicar_correccion(sacramento, usuario, motivo)` centraliza la regla común de corrección (mismo día vs. otro día, historial y anotación); `corregir_bautismo` y `corregir_primera_comunion` son envoltorios. `_pasar_a_corregido(sacramento, usuario)` deja la partida en `CORREGIDO`.
+- `anular_sacramento(sacramento, usuario, motivo)` centraliza la anulación; `anular_bautismo` y `anular_primera_comunion` son envoltorios. La nota marginal se registra con `_registrar_anotacion_anulacion` (tipo `ANULACION`).
+- `_guardar_partida_eliminada(sacramento, resumen, usuario, motivo)` centraliza el snapshot en `PartidaEliminada`; `eliminar_bautismo` y `eliminar_primera_comunion` (con `_resumen_primera_comunion`) lo usan.
+- `datos_cierre_certificado(sacramento, solicitud, usuario, doy_fe=None)` arma el pie; `datos_certificado_bautismo` y `datos_certificado_primera_comunion` son envoltorios. `datos_hoja_primera_comunion(primera, para_certificado=False)` comparte el parcial de hoja.
+
+Editar (`corregir_primera_comunion`): motivo obligatorio. Bloquea partidas anuladas. El libro, folio, número y `fecha_registro` no cambian; se pueden cambiar constancia del bautismo (enlazada ↔ externa), fecha, ministro, padres (solo con bautismo externo) y observaciones. La identidad del comulgante (tipo/número de documento, nombres, apellidos) es de solo lectura (`disabled` en `PrimeraComunionEditarForm`; Django ignora los valores POST de campos `disabled`), pero sus datos mutables (nacimiento, sexo, teléfono, municipio) sí se sincronizan. Regla del mismo día (compartida con Bautismo vía `_aplicar_correccion`): si `fecha_registro == hoy` la corrección queda solo en el historial y la partida sigue `ACTIVO` (sin anotación marginal); si no, pasa a `CORREGIDO` con anotación `CORRECCION`. Re-evalúa P1–P5 con `excluir_sacramento=primera.sacramento` (la propia partida no bloquea por P2) y registra cada advertencia aceptada como «Regla {codigo} verificada: {motivo}». `PrimeraComunionEditarForm` expone `aviso_partidas` = `contar_partidas(FIEL, fiel) - 1` (partidas del comulgante donde se verá el cambio).
+
+Anular (`anular_primera_comunion`): motivo obligatorio, estado `ANULADO`, historial `ANULACION` y anotación `ANULACION` («Partida anulada: {motivo}»); conserva el número. Una partida anulada no cuenta para P2 (`ESTADOS_VIGENTES = (ACTIVO, CORREGIDO)`), no se edita, no se anula de nuevo y no se certifica.
+
+Eliminar (`eliminar_primera_comunion`): mismas condiciones y mensajes que Bautismo vía `motivo_no_eliminable` (ACTIVA, última del libro, registrada hoy, sin anotaciones marginales). Guarda el snapshot `PartidaEliminada` con `tipo=PRIMERA_COMUNION`, resumen, motivo y usuario antes de borrar el `Sacramento` (cascada de partida, historial y anotaciones). Al borrar la última se liberan número y folio.
+
+Certificado (`PrimeraComunionCertificadoView`): GET con `SolicitudCertificadoForm` sin registrar historial; POST válido registra `AccionHistorial.CERTIFICADO` y renderiza `certificados/certificado.html` (extiende `certificados/base_certificado.html`). Título «CERTIFICADO DE PRIMERA COMUNIÓN», frase «El suscrito párroco certifica que en el Libro de Primera Comunión de {parroquia} se encuentra la siguiente partida:», marca de agua con `core/iconos/caliz.svg`, personas solo con su nombre (sin tipo ni número de documento) y nunca los padres biológicos de una adopción. Partida anulada → mensaje «No se puede expedir un certificado de una partida anulada.» y redirección a la ficha. Comparte `datos_cierre_certificado` con el certificado de bautismo.
+
+Ficha (`primera_comunion_detalle.html`): barra de acciones con Editar/Anular solo en estados editables, Eliminar solo si `puede_eliminarse` (si no, botón deshabilitado con `motivo_no_eliminable`) y Certificado salvo en anuladas.
 === FIN IMPLEMENTADO ===

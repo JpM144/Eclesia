@@ -619,13 +619,15 @@ informativo.
 Siguiendo las reglas de los libros parroquiales (las partidas no se borran ni se
 sobrescriben), la ficha ofrece acciones según el estado:
 
-- **Corregir** (`corregir_bautismo`, estado `CORREGIDO`): vuelca los datos editados
+- **Corregir** (`corregir_bautismo`): vuelca los datos editados
   —incluidos los datos mutables del bautizado (los nombres y documentos de las personas ya
   vinculadas son de solo lectura y se corrigen desde su ficha)— sin cambiar libro, folio,
-  número ni fecha de registro; exige `motivo`, guarda historial `CORRECCION` y una anotación
-  marginal de tipo `CORRECCION`. No se puede corregir una partida anulada.
+  número ni fecha de registro; exige `motivo` y guarda historial `CORRECCION`. Regla del mismo
+  día: si se registró **hoy** el cambio queda solo en el historial y la partida sigue `ACTIVO`
+  (aún eliminable); **otro día** pasa a `CORREGIDO` y añade una anotación marginal de tipo
+  `CORRECCION`. No se puede corregir una partida anulada.
 - **Anular** (`anular_bautismo`, estado `ANULADO`): conserva la partida en el libro, exige
-  `motivo` y guarda historial `ANULACION` y anotación `CORRECCION`.
+  `motivo` y guarda historial `ANULACION` y anotación `ANULACION` («Partida anulada: {motivo}»).
 - **Eliminar** (`eliminar_bautismo`): solo si la partida está **ACTIVA**, es la **última del
   libro**, se registró **hoy** y **no tiene anotaciones marginales** (ni como partida anotada
   ni como origen); las partidas anuladas o corregidas nunca se eliminan (quedan como
@@ -679,8 +681,8 @@ campo rellenable); el relleno se hace siempre con `textContent`/`value`.
 
 ## Sacramentos: Primera Comunión
 
-Registro de partidas de Primera Comunión (prompt 9a). Editar, anular, eliminar y certificado
-quedan para el prompt 9b.
+Registro, edición, anulación, eliminación y certificado de partidas de Primera Comunión
+(prompts 9a y 9b).
 
 ### Pantallas
 
@@ -696,8 +698,9 @@ quedan para el prompt 9b.
 - **Ficha** `sacramentos:primera_comunion_detalle` = `/sacramentos/primeras-comuniones/<pk>/`
   (`PrimeraComunionDetailView`): hoja de partida (`datos_hoja_primera_comunion`, icono
   `caliz.svg`), tarjeta «Constancia del bautismo» con enlace a la partida enlazada cuando
-  existe, historial y personas de la partida. Solo botones Volver/Imprimir (sin
-  Editar/Anular/Eliminar).
+  existe, historial y personas de la partida. Barra de acciones con Editar/Anular solo en
+  estados editables, Eliminar únicamente cuando se cumple `puede_eliminarse` (deshabilitado con
+  el motivo en caso contrario), Certificado salvo en partidas anuladas, y Volver/Imprimir.
 
 ### Reglas sacramentales P1–P5
 
@@ -730,6 +733,52 @@ padre y madre del bautismo enlazado si existe, guarda los datos externos si no, 
 el historial la CREACION más una entrada «Regla {codigo} verificada: {motivo}» por cada
 advertencia aceptada. No se usa AnotacionMarginal (el tipo no existe para PC; ver
 docs/libros_parroquiales.md regla 7).
+
+### Editar, anular y eliminar partidas
+
+Las mismas reglas de los libros parroquiales que en Bautismo (la regla de corrección es
+común a ambos):
+
+- **Editar** `sacramentos:primera_comunion_editar` = `/sacramentos/primeras-comuniones/<pk>/editar/`
+  (`PrimeraComunionUpdateView` + `PrimeraComunionEditarForm`): exige `motivo` y permite cambiar
+  la constancia del bautismo (enlazada o externa), la fecha, el ministro, los padres (solo con
+  bautismo externo) y las observaciones. El libro, el folio, el número, la fecha de registro y
+  la identidad del comulgante (tipo/número de documento, nombres y apellidos) quedan fijos
+  (`disabled`): para corregir a la persona se usa su ficha o, si está mal, se anula la partida y
+  se registra otra. Si se corrige el **mismo día** del registro el cambio queda solo en el
+  historial (la partida sigue `ACTIVO`); **otro día** la partida pasa a `CORREGIDO` y se añade
+  una anotación marginal de tipo `CORRECCION`. Se revalidan P1–P5 (P2 excluye la propia partida)
+  y cada advertencia aceptada queda en el historial. No se puede editar una partida anulada.
+- **Anular** `sacramentos:primera_comunion_anular` = `/sacramentos/primeras-comuniones/<pk>/anular/`
+  (`PrimeraComunionAnularView`): exige `motivo`, conserva la partida y su número, la deja en
+  `ANULADO` y guarda historial `ANULACION` más anotación `ANULACION` («Partida anulada: {motivo}»).
+- **Eliminar** `sacramentos:primera_comunion_eliminar` = `/sacramentos/primeras-comuniones/<pk>/eliminar/`
+  (`PrimeraComunionEliminarView`): solo si `puede_eliminarse` (ACTIVA, última del libro,
+  registrada hoy y sin anotaciones marginales); guarda la copia en `PartidaEliminada` (tipo
+  `PRIMERA_COMUNION`) con el resumen y el motivo antes de borrar el `Sacramento` y, en cascada,
+  la partida, el historial y las anotaciones. Las partidas anuladas o corregidas nunca se
+  eliminan (quedan como constancia). Al borrar la última partida se liberan número y folio.
+
+### Certificado
+
+La ficha ofrece **Certificado** (excepto en partidas anuladas), que lleva a
+`sacramentos:primera_comunion_certificado` =
+`/sacramentos/primeras-comuniones/<pk>/certificado/` (`PrimeraComunionCertificadoView`, un
+`FormView` con `SolicitudCertificadoForm`). El GET muestra la solicitud —sin registrar nada en
+el historial—; el POST válido registra `AccionHistorial.CERTIFICADO` («Certificado expedido a …
+(relación) para …») y renderiza el certificado imprimible con `certificados/certificado.html`.
+Una partida anulada redirige a la ficha con el mensaje «No se puede expedir un certificado de
+una partida anulada.».
+
+El certificado reutiliza el parcial de la hoja (`hoja_partida.html` con `ocultar_estado=True` e
+`incluir_cierre=True`) y el mismo `certificados/base_certificado.html` que el de bautismo: título
+«CERTIFICADO DE PRIMERA COMUNIÓN», frase «El suscrito párroco certifica que en el Libro de
+Primera Comunión de {parroquia} se encuentra la siguiente partida:», marca de agua con el cáliz,
+personas solo con su nombre (sin documento) y sin los padres biológicos de una adopción. Los
+datos los arman `datos_hoja_primera_comunion(primera, para_certificado=True)` y
+`datos_certificado_primera_comunion(primera, solicitud, usuario)`, ambos sobre el
+`datos_cierre_certificado` compartido. El PDF cabe en **una hoja carta** (`@page size: letter`
+en `static/css/certificado.css`).
 
 ## Personas
 

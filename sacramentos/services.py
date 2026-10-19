@@ -236,14 +236,28 @@ def _aplicar_datos_bautismo(bautismo, fiel, padre, madre, padrino, madrina, dato
     bautismo.doy_fe = doy_fe
 
 
-def _registrar_anotacion_correccion(sacramento, motivo):
-    """Anota en el margen de la partida la corrección o anulación (tipo CORRECCION)."""
+def _registrar_anotacion(sacramento, tipo, descripcion):
+    """Anota en el margen de la partida un movimiento con su tipo y descripción."""
     return AnotacionMarginal.objects.create(
         sacramento=sacramento,
-        tipo=TipoAnotacionMarginal.CORRECCION,
+        tipo=tipo,
         fecha=timezone.localdate(),
-        descripcion=motivo,
+        descripcion=descripcion,
         estado=EstadoAnotacion.ANOTADA,
+    )
+
+
+def _registrar_anotacion_correccion(sacramento, motivo):
+    """Anota en el margen de la partida la corrección (tipo CORRECCION)."""
+    return _registrar_anotacion(sacramento, TipoAnotacionMarginal.CORRECCION, motivo)
+
+
+def _registrar_anotacion_anulacion(sacramento, motivo):
+    """Anota en el margen de la partida la anulación (tipo ANULACION)."""
+    return _registrar_anotacion(
+        sacramento,
+        TipoAnotacionMarginal.ANULACION,
+        f"Partida anulada: {motivo}",
     )
 
 
@@ -396,15 +410,42 @@ def _pasar_a_corregido(sacramento, usuario):
     sacramento.modificado_por = usuario
 
 
+def _aplicar_correccion(sacramento, usuario, motivo):
+    """Regla común de corrección de una partida, sea del sacramento que sea.
+
+    Bloquea las partidas anuladas. Si la partida se registró hoy (``fecha_registro``
+    == hoy), la corrección queda solo en el historial y la partida sigue ``ACTIVO``,
+    así que aún puede eliminarse si cumple las demás condiciones; si se registró
+    otro día, pasa a ``CORREGIDO`` y se anota también en el margen. En ambos casos
+    se registra quién modificó la partida y el movimiento en el historial.
+
+    Returns:
+        bool: ``True`` si la corrección es del mismo día del registro.
+    """
+    if sacramento.estado == EstadoRegistro.ANULADO:
+        raise ValidationError("No se puede corregir una partida anulada.")
+    mismo_dia = sacramento.fecha_registro == timezone.localdate()
+    if mismo_dia:
+        sacramento.modificado_por = usuario
+    else:
+        _pasar_a_corregido(sacramento, usuario)
+    registrar_historial(sacramento, AccionHistorial.CORRECCION, motivo, usuario)
+    if not mismo_dia:
+        _registrar_anotacion_correccion(sacramento, motivo)
+    return mismo_dia
+
+
 @transaction.atomic
 def corregir_bautismo(bautismo, datos, usuario, motivo):
     """Corrige los datos de una partida de bautismo (no cambia su lugar en el libro).
 
-    Guarda la corrección con el motivo en el historial y anota la corrección en el
-    margen de la partida. La partida pasa a estado ``CORREGIDO`` si estaba activa.
+    Guarda la corrección con el motivo en el historial. Si la partida se registró
+    el mismo día, queda ``ACTIVO`` y el cambio solo consta en el historial; pasado
+    ese día pasa a ``CORREGIDO`` y se anota también en el margen. Bloquea partidas
+    anuladas.
     """
     sacramento = bautismo.sacramento
-    _pasar_a_corregido(sacramento, usuario)
+    _aplicar_correccion(sacramento, usuario, motivo)
 
     fiel, padre, madre, padrino, madrina, _ = _personas_desde_datos(datos)
     _sincronizar_personas(datos, fiel)
@@ -415,8 +456,6 @@ def corregir_bautismo(bautismo, datos, usuario, motivo):
     bautismo.full_clean()
     bautismo.save()
 
-    registrar_historial(sacramento, AccionHistorial.CORRECCION, motivo, usuario)
-    _registrar_anotacion_correccion(sacramento, motivo)
     return bautismo
 
 
@@ -436,13 +475,7 @@ def corregir_primera_comunion(primera_comunion, datos, usuario, motivo):
     usuario.
     """
     sacramento = primera_comunion.sacramento
-    if sacramento.estado == EstadoRegistro.ANULADO:
-        raise ValidationError("No se puede corregir una partida anulada.")
-    mismo_dia = sacramento.fecha_registro == timezone.localdate()
-    if mismo_dia:
-        sacramento.modificado_por = usuario
-    else:
-        _pasar_a_corregido(sacramento, usuario)
+    _aplicar_correccion(sacramento, usuario, motivo)
 
     fiel = sacramento.fiel
     _sincronizar_personas(datos, fiel)
@@ -482,9 +515,6 @@ def corregir_primera_comunion(primera_comunion, datos, usuario, motivo):
     primera_comunion.full_clean()
     primera_comunion.save()
 
-    registrar_historial(sacramento, AccionHistorial.CORRECCION, motivo, usuario)
-    if not mismo_dia:
-        _registrar_anotacion_correccion(sacramento, motivo)
     for codigo, motivo_regla in datos.get("reglas_aceptadas", []):
         registrar_historial(
             sacramento,
@@ -500,7 +530,7 @@ def anular_sacramento(sacramento, usuario, motivo):
     """Anula la partida de cualquier sacramento conservándola en el libro.
 
     Solo se anulan partidas activas o corregidas. Guarda el motivo en el historial
-    y lo anota en el margen de la partida.
+    y lo anota en el margen de la partida como anulación.
     """
     if sacramento.estado == EstadoRegistro.ANULADO:
         raise ValidationError("La partida ya está anulada.")
@@ -510,7 +540,7 @@ def anular_sacramento(sacramento, usuario, motivo):
     sacramento.save(update_fields=["estado", "modificado_por", "modificado_en"])
 
     registrar_historial(sacramento, AccionHistorial.ANULACION, motivo, usuario)
-    _registrar_anotacion_correccion(sacramento, motivo)
+    _registrar_anotacion_anulacion(sacramento, motivo)
     return sacramento
 
 

@@ -1836,13 +1836,40 @@ class BautismoCorreccionTests(BautismoBaseTests):
             form.cleaned_data["motivo"],
         )
 
-    def test_corregir_actualiza_datos_y_marca_corregido(self):
+    def test_corregir_mismo_dia_deja_activa_y_solo_historial(self):
         bautismo, _ = self._registrar_bautismo_desde_form()
         self._corregir(bautismo, fiel_fecha_nacimiento=date(2016, 1, 1))
         bautismo.refresh_from_db()
         bautismo.sacramento.refresh_from_db()
         self.assertEqual(bautismo.sacramento.fiel.fecha_nacimiento, date(2016, 1, 1))
+        self.assertEqual(bautismo.sacramento.estado, EstadoRegistro.ACTIVO)
+        self.assertTrue(
+            HistorialSacramento.objects.filter(
+                sacramento=bautismo.sacramento, accion=AccionHistorial.CORRECCION
+            ).exists()
+        )
+        self.assertFalse(
+            AnotacionMarginal.objects.filter(
+                sacramento=bautismo.sacramento, tipo=TipoAnotacionMarginal.CORRECCION
+            ).exists()
+        )
+
+    def test_corregir_otro_dia_actualiza_datos_y_marca_corregido(self):
+        bautismo, _ = self._registrar_bautismo_desde_form()
+        Sacramento.objects.filter(pk=bautismo.sacramento.pk).update(
+            fecha_registro=timezone.localdate() - timedelta(days=1)
+        )
+        bautismo.sacramento.refresh_from_db()
+        self._corregir(bautismo, fiel_fecha_nacimiento=date(2016, 1, 1))
+        bautismo.refresh_from_db()
+        bautismo.sacramento.refresh_from_db()
+        self.assertEqual(bautismo.sacramento.fiel.fecha_nacimiento, date(2016, 1, 1))
         self.assertEqual(bautismo.sacramento.estado, EstadoRegistro.CORREGIDO)
+        self.assertTrue(
+            AnotacionMarginal.objects.filter(
+                sacramento=bautismo.sacramento, tipo=TipoAnotacionMarginal.CORRECCION
+            ).exists()
+        )
 
     def test_corregir_no_permite_cambiar_el_nombre_del_fiel(self):
         bautismo, _ = self._registrar_bautismo_desde_form()
@@ -1863,6 +1890,10 @@ class BautismoCorreccionTests(BautismoBaseTests):
 
     def test_corregir_guarda_historial_y_anotacion(self):
         bautismo, _ = self._registrar_bautismo_desde_form()
+        Sacramento.objects.filter(pk=bautismo.sacramento.pk).update(
+            fecha_registro=timezone.localdate() - timedelta(days=1)
+        )
+        bautismo.sacramento.refresh_from_db()
         self._corregir(bautismo, motivo="Error en el apellido")
         historial = HistorialSacramento.objects.filter(
             sacramento=bautismo.sacramento, accion=AccionHistorial.CORRECCION
@@ -1954,11 +1985,12 @@ class BautismoAnulacionTests(BautismoBaseTests):
                 sacramento=bautismo.sacramento, accion=AccionHistorial.ANULACION
             ).exists()
         )
-        self.assertTrue(
-            AnotacionMarginal.objects.filter(
-                sacramento=bautismo.sacramento, tipo=TipoAnotacionMarginal.CORRECCION
-            ).exists()
+        anotacion = AnotacionMarginal.objects.get(
+            sacramento=bautismo.sacramento, tipo=TipoAnotacionMarginal.ANULACION
         )
+        self.assertEqual(anotacion.get_tipo_display(), "Anulación")
+        self.assertIn("Partida duplicada", anotacion.descripcion)
+        self.assertIn("anulada", anotacion.descripcion)
 
     def test_anular_partida_ya_anulada_lanza_error(self):
         bautismo, _ = self._registrar_bautismo_desde_form()
@@ -2029,17 +2061,30 @@ class BautismoEliminacionTests(BautismoBaseTests):
 
     def test_no_elimina_partida_corregida(self):
         bautismo, _ = self._registrar_bautismo_desde_form()
+        Sacramento.objects.filter(pk=bautismo.sacramento.pk).update(
+            fecha_registro=timezone.localdate() - timedelta(days=1)
+        )
+        bautismo.sacramento.refresh_from_db()
         self._corregir(bautismo)
         bautismo.sacramento.refresh_from_db()
         self.assertEqual(bautismo.sacramento.estado, EstadoRegistro.CORREGIDO)
-        self.assertEqual(
-            motivo_no_eliminable(bautismo),
-            "Las partidas corregidas no se eliminan, quedan como constancia",
-        )
-        with self.assertRaisesMessage(ValidationError, "Las partidas corregidas no se eliminan"):
+        self.assertFalse(puede_eliminarse(bautismo))
+        self.assertIsNotNone(motivo_no_eliminable(bautismo))
+        with self.assertRaises(ValidationError):
             eliminar_bautismo(bautismo, self.usuario, "Se intenta")
         self.assertTrue(Bautismo.objects.filter(pk=bautismo.pk).exists())
         self.assertFalse(PartidaEliminada.objects.exists())
+
+    def test_eliminable_si_se_corrige_el_mismo_dia(self):
+        bautismo, _ = self._registrar_bautismo_desde_form()
+        self._corregir(bautismo)
+        bautismo.sacramento.refresh_from_db()
+        self.assertEqual(bautismo.sacramento.estado, EstadoRegistro.ACTIVO)
+        self.assertIsNone(motivo_no_eliminable(bautismo))
+        self.assertTrue(puede_eliminarse(bautismo))
+        eliminar_bautismo(bautismo, self.usuario, "Partida duplicada")
+        self.assertFalse(Bautismo.objects.filter(pk=bautismo.pk).exists())
+        self.assertTrue(PartidaEliminada.objects.exists())
 
     def test_no_elimina_si_no_es_la_ultima(self):
         primero, _ = self._registrar_bautismo_desde_form()
@@ -2110,7 +2155,7 @@ class BautismoAccionesViewsTests(BautismoBaseTests):
         bautismo.refresh_from_db()
         bautismo.sacramento.refresh_from_db()
         self.assertEqual(bautismo.sacramento.fiel.fecha_nacimiento, date(2016, 1, 1))
-        self.assertEqual(bautismo.sacramento.estado, EstadoRegistro.CORREGIDO)
+        self.assertEqual(bautismo.sacramento.estado, EstadoRegistro.ACTIVO)
 
     def test_editar_partida_anulada_redirige(self):
         bautismo, _ = self._registrar_bautismo_desde_form()
@@ -2203,7 +2248,7 @@ class BautismoAccionesViewsTests(BautismoBaseTests):
             ),
             original,
         )
-        self.assertEqual(sacramento.estado, EstadoRegistro.CORREGIDO)
+        self.assertEqual(sacramento.estado, EstadoRegistro.ACTIVO)
         self.assertEqual(sacramento.modificado_por_id, self.usuario.pk)
 
     def test_anular_get_y_post(self):
@@ -2498,6 +2543,7 @@ class BautismoHojaTests(BautismoPartidasBaseTests):
         anular_bautismo(bautismo, self.usuario, "Partida duplicada")
         respuesta = self._detalle(bautismo)
         self.assertContains(respuesta, "Notas marginales")
+        self.assertContains(respuesta, "Anulación")
         self.assertContains(respuesta, "Partida duplicada")
         self.assertContains(respuesta, "ANULADA")
         self.assertContains(respuesta, "insignia-estado--anulado")
@@ -2530,6 +2576,10 @@ class BautismoHojaTests(BautismoPartidasBaseTests):
 
     def test_detalle_corregido_muestra_editar_y_anular_sin_eliminar(self):
         bautismo, _ = self._registrar_bautismo_desde_form()
+        Sacramento.objects.filter(pk=bautismo.sacramento.pk).update(
+            fecha_registro=timezone.localdate() - timedelta(days=1)
+        )
+        bautismo.sacramento.refresh_from_db()
         datos = self._datos_completos()
         datos["motivo"] = "Corrección de datos"
         form = BautismoEditarForm(datos, bautismo=bautismo)
@@ -2621,6 +2671,16 @@ class BautismoCertificadoTests(BautismoPartidasBaseTests):
         respuesta = self.client.post(self._url(bautismo), {})
         self.assertEqual(respuesta.status_code, 200)
         self.assertTemplateUsed(respuesta, "certificados/solicitud_certificado.html")
+        self.assertFalse(self._hay_certificado_en_historial())
+
+    def test_certificado_post_sin_csrf_falla(self):
+        from django.test import Client
+
+        bautismo = self._crear_partida(numero=1)
+        cliente = Client(enforce_csrf_checks=True)
+        cliente.force_login(self.usuario)
+        respuesta = cliente.post(self._url(bautismo), self._datos_solicitud())
+        self.assertEqual(respuesta.status_code, 403)
         self.assertFalse(self._hay_certificado_en_historial())
 
     def test_certificado_solicitante_solo_letras(self):
@@ -3406,6 +3466,14 @@ class PrimeraComunionVistaTests(PrimeraComunionBaseTests):
             respuesta, reverse("sacramentos:bautismo_detalle", args=[primera.bautismo.pk])
         )
 
+    def test_detalle_anulada_muestra_nota_de_anulacion(self):
+        primera = self._registrar()
+        anular_primera_comunion(primera, self.usuario, "Partida duplicada")
+        respuesta = self.client.get(self._url_detalle(primera))
+        self.assertContains(respuesta, "Notas marginales")
+        self.assertContains(respuesta, "Anulación")
+        self.assertContains(respuesta, "Partida duplicada")
+
     def test_detalle_404(self):
         respuesta = self.client.get(self._url_detalle(PrimeraComunion(sacramento_id=99999)))
         self.assertEqual(respuesta.status_code, 404)
@@ -3756,11 +3824,12 @@ class PrimeraComunionAnulacionTests(PrimeraComunionAccionesBaseTests):
                 sacramento=primera.sacramento, accion=AccionHistorial.ANULACION
             ).exists()
         )
-        self.assertTrue(
-            AnotacionMarginal.objects.filter(
-                sacramento=primera.sacramento, tipo=TipoAnotacionMarginal.CORRECCION
-            ).exists()
+        anotacion = AnotacionMarginal.objects.get(
+            sacramento=primera.sacramento, tipo=TipoAnotacionMarginal.ANULACION
         )
+        self.assertEqual(anotacion.get_tipo_display(), "Anulación")
+        self.assertIn("Partida duplicada", anotacion.descripcion)
+        self.assertIn("anulada", anotacion.descripcion)
         self.assertIsNotNone(primera.sacramento.numero)
 
     def test_anular_partida_ya_anulada_lanza_error(self):

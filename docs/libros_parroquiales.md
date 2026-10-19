@@ -5,7 +5,7 @@ Fuentes: Orientaciones de la Conferencia Episcopal Española sobre libros sacram
 3. En cada parroquia hay un solo libro abierto por tipo. En un libro cerrado no se inscriben partidas nuevas.
 4. Las partidas se numeran en orden cronológico y correlativo dentro de cada libro. Se citan como "Libro L, folio F, número N".
 5. Cada libro tiene un índice alfabético por apellidos.
-6. Las partidas no se borran ni se sobrescriben. Un error se corrige con una nota firmada; los cambios de fondo necesitan un documento de respaldo. Una partida mal hecha se anula y se hace una nueva. (En la app: estado ANULADO o CORREGIDO, motivo obligatorio, historial y anotación marginal de tipo CORRECCION.)
+6. Las partidas no se borran ni se sobrescriben. Un error se corrige con una nota firmada; los cambios de fondo necesitan un documento de respaldo. Una partida mal hecha se anula y se hace una nueva. (En la app: estado ANULADO o CORREGIDO, motivo obligatorio, historial y anotación marginal de tipo CORRECCION al corregir y ANULACION al anular; la corrección del mismo día del registro queda solo en el historial y la partida sigue ACTIVA.)
 7. El margen izquierdo de las partidas de bautismo es para anotaciones de confirmación, matrimonio, orden sagrado, profesión religiosa, cambio de rito, adopción y correcciones.
 8. Los certificados copian la partida tal cual; donde falta un dato se pone una línea o "dato no presentado"; llevan la firma del párroco y el sello.
 === FIN REGLAS ===
