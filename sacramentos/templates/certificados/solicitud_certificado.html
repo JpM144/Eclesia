@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
-{% block title %}Certificado de bautismo{% endblock %}
-{% block heading %}Certificado de bautismo{% endblock %}
+{% block title %}{{ titulo_solicitud }} - Sistema de Gestión Parroquial{% endblock %}
+{% block heading %}{{ titulo_solicitud }}{% endblock %}
 
 {% block content %}
 <div class="card">
@@ -10,7 +10,7 @@
   </div>
   <div class="card-body">
     <p class="text-muted">
-      Partida de <strong>{{ bautismo.sacramento.fiel }}</strong>
+      Partida de <strong>{{ partida_fiel }}</strong>
       (Folio {{ sacramento.folio.numero_folio }}, N.° {{ sacramento.numero }}).
       Complete los datos de quien solicita el certificado.
     </p>
@@ -29,7 +29,7 @@
       <button type="submit" class="btn btn-primary">
         <i class="fas fa-file-alt"></i> Generar certificado
       </button>
-      <a href="{% url 'sacramentos:bautismo_detalle' bautismo.pk %}" class="btn btn-secondary">Cancelar</a>
+      <a href="{{ url_detalle }}" class="btn btn-secondary">Cancelar</a>
     </form>
   </div>
 </div>

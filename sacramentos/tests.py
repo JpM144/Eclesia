@@ -41,7 +41,12 @@ from parroquias.services import (
 from personas.models import Documento, Fiel, Madre, Padre, Padrino
 from ubicacion.models import Departamento, Municipio, Pais
 
-from .forms import BautismoEditarForm, BautismoForm
+from .forms import (
+    BautismoEditarForm,
+    BautismoForm,
+    PrimeraComunionEditarForm,
+    PrimeraComunionForm,
+)
 from .models import (
     AnotacionMarginal,
     Bautismo,
@@ -59,14 +64,28 @@ from .models import (
     Sacramento,
     TestigoMatrimonio,
 )
+from .reglas import (
+    ADVIERTE,
+    BLOQUEA,
+    RECUERDA,
+    MixinReglas,
+    Regla,
+    edad_en_fecha,
+    evaluar_reglas,
+)
 from .services import (
     anular_bautismo,
+    anular_primera_comunion,
     corregir_bautismo,
+    corregir_primera_comunion,
+    datos_certificado_primera_comunion,
     eliminar_bautismo,
+    eliminar_primera_comunion,
     motivo_no_eliminable,
     puede_eliminarse,
     registrar_bautismo,
     registrar_historial,
+    registrar_primera_comunion,
 )
 
 
@@ -2736,3 +2755,1565 @@ class BautismoCertificadoTests(BautismoPartidasBaseTests):
         respuesta = self.client.post(self._url(bautismo), self._datos_solicitud())
         self.assertContains(respuesta, "hoja-ornamento-pie")
         self.assertNotContains(respuesta, "hoja-cierre-ornamento")
+
+
+# ---------------------------------------------------------------------------
+# Mecanismo reutilizable de reglas sacramentales (sacramentos/reglas.py)
+# ---------------------------------------------------------------------------
+
+
+class _FormularioReglasDummy(MixinReglas):
+    """Formulario vacío que usa el mecanismo de reglas, para las pruebas."""
+
+    def __init__(self, *args, **kwargs):
+        self._reglas = kwargs.pop("reglas", [])
+        super().__init__(*args, **kwargs)
+
+    def reglas_de(self, datos):
+        return self._reglas
+
+
+class ReglasMecanismosTests(TestCase):
+    def test_regla_con_nivel_desconocido_lanza_valueerror(self):
+        with self.assertRaises(ValueError):
+            Regla("X1", "INVENTADO", "Mensaje.")
+
+    def test_regla_texto_incluye_codigo_entre_corchetes(self):
+        regla = Regla("P1", BLOQUEA, "No consta el bautismo.")
+        self.assertEqual(regla.texto(), "[P1] No consta el bautismo.")
+
+    def test_evaluar_reglas_separa_por_nivel(self):
+        bloqueo = Regla("B1", BLOQUEA, "Bloqueado.")
+        advertencia = Regla("A1", ADVIERTE, "Revisar.")
+        recuerdo = Regla("R1", RECUERDA, "Acordar.")
+        resultado = evaluar_reglas([recuerdo, bloqueo, advertencia])
+        self.assertEqual(resultado.bloqueos, [bloqueo])
+        self.assertEqual(resultado.advertencias, [advertencia])
+        self.assertEqual(resultado.recuerdos, [recuerdo])
+
+    def test_edad_en_fecha(self):
+        nacimiento = date(2015, 5, 10)
+        self.assertEqual(edad_en_fecha(nacimiento, date(2026, 5, 9)), 10)
+        self.assertEqual(edad_en_fecha(nacimiento, date(2026, 5, 10)), 11)
+        self.assertEqual(edad_en_fecha(nacimiento, date(2026, 12, 31)), 11)
+        self.assertIsNone(edad_en_fecha(None, date(2026, 1, 1)))
+        self.assertIsNone(edad_en_fecha(nacimiento, None))
+
+    def test_bloquea_agrega_error_sin_campo(self):
+        regla = Regla("X1", BLOQUEA, "No se puede guardar.")
+        formulario = _FormularioReglasDummy({}, reglas=[regla])
+        self.assertFalse(formulario.is_valid())
+        self.assertIn("[X1] No se puede guardar.", formulario.non_field_errors())
+        self.assertEqual(formulario.advertencias_pendientes, [])
+
+    def test_adviete_sin_casilla_no_guarda(self):
+        regla = Regla("X1", ADVIERTE, "Revisa la edad.")
+        formulario = _FormularioReglasDummy({}, reglas=[regla])
+        self.assertFalse(formulario.is_valid())
+        self.assertEqual(formulario.advertencias_pendientes, [regla])
+        errores = str(formulario.non_field_errors())
+        self.assertIn("[X1] Revisa la edad.", errores)
+        self.assertIn("Verificado / excepción autorizada", errores)
+
+    def test_adviete_con_casilla_sin_motivo_no_guarda(self):
+        regla = Regla("X1", ADVIERTE, "Revisa la edad.")
+        formulario = _FormularioReglasDummy({"reglas_verificadas": True}, reglas=[regla])
+        self.assertFalse(formulario.is_valid())
+        self.assertIn("motivo", str(formulario.non_field_errors()).lower())
+        self.assertEqual(formulario.advertencias_aceptadas, [])
+
+    def test_adviete_con_casilla_y_motivo_es_valido(self):
+        regla = Regla("X1", ADVIERTE, "Revisa la edad.")
+        formulario = _FormularioReglasDummy(
+            {"reglas_verificadas": True, "reglas_motivo": "Excepción del párroco."},
+            reglas=[regla],
+        )
+        self.assertTrue(formulario.is_valid(), formulario.errors)
+        self.assertEqual(formulario.advertencias_aceptadas, [(regla, "Excepción del párroco.")])
+
+    def test_recuerda_no_bloquea_el_guardado(self):
+        regla = Regla("X1", RECUERDA, "Acordar la confesión.")
+        formulario = _FormularioReglasDummy({}, reglas=[regla])
+        self.assertTrue(formulario.is_valid(), formulario.errors)
+        self.assertEqual([r.codigo for r in formulario.recuerdos_visibles], ["X1"])
+
+    def test_recuerdos_visibles_muestra_los_iniciales_en_el_get(self):
+        inicial = Regla("R0", RECUERDA, "Visible desde el GET.")
+
+        class _ConInicial(_FormularioReglasDummy):
+            def reglas_iniciales(self):
+                return [inicial]
+
+        formulario = _ConInicial()
+        self.assertEqual([r.codigo for r in formulario.recuerdos_visibles], ["R0"])
+
+
+# ---------------------------------------------------------------------------
+# Primera Comunión: reglas P1-P5, servicio y vistas (prompt 9a)
+# ---------------------------------------------------------------------------
+
+
+class PrimeraComunionBaseTests(TestCase):
+    def setUp(self):
+        pais = Pais.objects.create(nombre="Colombia")
+        departamento = Departamento.objects.create(nombre="Cundinamarca", pais=pais)
+        self.municipio = Municipio.objects.create(nombre="Bogotá", departamento=departamento)
+        self.parroquia = Parroquia.objects.create(
+            nombre="San Pedro Claver",
+            municipio=self.municipio,
+            direccion="Calle 1 # 2-34",
+        )
+        self.libro_pc = Libro.objects.create(
+            nombre="Primeras Comuniones 2026",
+            tipo_libro=TipoLibro.PRIMERA_COMUNION,
+            detalle="Registro de primeras comuniones",
+            fecha_apertura=date(2026, 1, 1),
+            estado=EstadoLibro.ABIERTO,
+            parroquia=self.parroquia,
+        )
+        self.folio_pc = Folio.objects.create(libro=self.libro_pc, numero_folio=1)
+        self.libro_bautismos = Libro.objects.create(
+            nombre="Bautismos 2026",
+            tipo_libro=TipoLibro.BAUTISMOS,
+            detalle="Registro de bautismos",
+            fecha_apertura=date(2026, 1, 1),
+            estado=EstadoLibro.ABIERTO,
+            parroquia=self.parroquia,
+        )
+        self.folio_bautismos = Folio.objects.create(libro=self.libro_bautismos, numero_folio=1)
+        self.ministro = Ministro.objects.create(
+            documento=self._crear_documento("1234567890"),
+            nombre="Carlos",
+            apellido="Gómez",
+            cargo=CargoMinisterial.PARROCO,
+        )
+        self.parroco = Ministro.objects.create(
+            documento=self._crear_documento("7777777777"),
+            nombre="Pedro",
+            apellido="Ruiz",
+            cargo=CargoMinisterial.PARROCO,
+            parroquia=self.parroquia,
+        )
+        self.padre = Padre.objects.create(
+            documento=self._crear_documento("11111111"), nombre="José", apellido="Pérez"
+        )
+        self.madre = Madre.objects.create(
+            documento=self._crear_documento("22222222"), nombre="María", apellido="Gómez"
+        )
+        self.usuario = self._crear_usuario()
+
+    def _crear_documento(self, numero_documento, tipo_documento=TipoDocumento.CC):
+        documento, _ = Documento.objects.get_or_create(
+            tipo_documento=tipo_documento, numero_documento=numero_documento
+        )
+        return documento
+
+    def _crear_usuario(self, username="admin", **kwargs):
+        from django.contrib.auth import get_user_model
+
+        User = get_user_model()
+        user = User(username=username, **kwargs)
+        user.set_password("admin123")
+        user.save()
+        return user
+
+    def _crear_comulgante_bautizado(
+        self,
+        numero_documento="12345678",
+        fecha_nacimiento=date(2015, 5, 10),
+        fecha_bautismo=date(2016, 3, 15),
+        numero_bautismo=1,
+        **kwargs_fiel,
+    ):
+        """Fiel con partida de bautismo enlazada en el sistema."""
+        fiel = Fiel.objects.create(
+            documento=self._crear_documento(numero_documento),
+            nombres=kwargs_fiel.pop("nombres", "Luis"),
+            apellidos=kwargs_fiel.pop("apellidos", "Martínez Díaz"),
+            fecha_nacimiento=fecha_nacimiento,
+            municipio_nacimiento=self.municipio,
+            sexo=Sexo.HOMBRE,
+            **kwargs_fiel,
+        )
+        sacramento = Sacramento.objects.create(
+            tipo=TipoSacramento.BAUTISMO,
+            fiel=fiel,
+            libro=self.libro_bautismos,
+            folio=self.folio_bautismos,
+            numero=numero_bautismo,
+            fecha=fecha_bautismo,
+            fecha_registro=fecha_bautismo,
+            parroquia=self.parroquia,
+            ministro=self.ministro,
+        )
+        bautismo = Bautismo.objects.create(
+            sacramento=sacramento,
+            padre=self.padre,
+            madre=self.madre,
+            tipo_hijo=TipoHijo.BIOLOGICO,
+            quien_firma=self.ministro,
+            doy_fe=self.ministro,
+        )
+        return fiel, bautismo
+
+    def _datos(self, **extra):
+        """Datos válidos del formulario (comulgante bautizado en el sistema)."""
+        return {
+            "libro": self.libro_pc,
+            "fecha": date(2026, 6, 15),
+            "ministro": self.ministro,
+            "doy_fe": self.parroco,
+            "observaciones": "",
+            "fiel_tipo_documento": TipoDocumento.CC,
+            "fiel_numero_documento": "12345678",
+            "fiel_nombres": "Luis",
+            "fiel_apellidos": "Martínez Díaz",
+            "fiel_fecha_nacimiento": date(2015, 5, 10),
+            "fiel_municipio_nacimiento": self.municipio,
+            "fiel_sexo": Sexo.HOMBRE,
+            "fiel_telefono": "",
+            "bautismo": "",
+            "bautismo_fecha": "",
+            "bautismo_parroquia": "",
+            "bautismo_diocesis": "",
+            "bautismo_libro": "",
+            "bautismo_folio": "",
+            "bautismo_numero": "",
+            "bautismo_observaciones": "",
+            **extra,
+        }
+
+    def _datos_post(self, **extra):
+        """Igual que ``_datos`` pero con PK en los campos de modelo (para el cliente)."""
+        datos = self._datos(**extra)
+        for campo in ("libro", "ministro", "doy_fe", "fiel_municipio_nacimiento"):
+            if hasattr(datos.get(campo), "pk"):
+                datos[campo] = datos[campo].pk
+        return datos
+
+    def _datos_bautismo_externo(self, **extra):
+        """Documento sin fiel en el sistema, con bautismo de otra parroquia completo."""
+        datos = self._datos(
+            fiel_numero_documento="87654321",
+            fiel_nombres="Ana",
+            fiel_apellidos="García López",
+            fiel_fecha_nacimiento=date(2015, 5, 10),
+            bautismo_fecha=date(2016, 3, 20),
+            bautismo_parroquia="Santa Ana de Chía",
+            bautismo_libro=2,
+            bautismo_folio=3,
+            bautismo_numero=45,
+        )
+        datos.update(extra)
+        return datos
+
+    def _datos_post_externo(self, **extra):
+        datos = self._datos_bautismo_externo(**extra)
+        for campo in ("libro", "ministro", "doy_fe", "fiel_municipio_nacimiento"):
+            if hasattr(datos.get(campo), "pk"):
+                datos[campo] = datos[campo].pk
+        return datos
+
+
+class PrimeraComunionReglasTests(PrimeraComunionBaseTests):
+    """Reglas P1 a P5 de la Primera Comunión (docs/requisitos_sacramentos.md)."""
+
+    def test_p1_sin_bautismo_bloquea(self):
+        self._crear_comulgante_bautizado()
+        datos = self._datos()  # sin bautismo enlazado ni externo: documento no coincide
+        datos["fiel_numero_documento"] = "99999999"
+        formulario = PrimeraComunionForm(datos)
+        self.assertFalse(formulario.is_valid())
+        errores = str(formulario.non_field_errors())
+        self.assertIn("[P1]", errores)
+        self.assertIn("No consta el bautismo", errores)
+
+    def test_p1_bautismo_enlazado_por_documento_es_valido(self):
+        self._crear_comulgante_bautizado()
+        formulario = PrimeraComunionForm(self._datos())
+        self.assertTrue(formulario.is_valid(), formulario.errors)
+        self.assertIsNotNone(formulario.bautismo_sistema)
+
+    def test_p1_bautismo_enlazado_por_casilla_oculta_es_valido(self):
+        fiel, bautismo = self._crear_comulgante_bautizado()
+        formulario = PrimeraComunionForm(self._datos(bautismo=bautismo.pk))
+        self.assertTrue(formulario.is_valid(), formulario.errors)
+        self.assertEqual(formulario.bautismo_sistema, bautismo)
+
+    def test_p1_bautismo_externo_completo_es_valido(self):
+        formulario = PrimeraComunionForm(self._datos_bautismo_externo())
+        self.assertTrue(formulario.is_valid(), formulario.errors)
+        self.assertIsNone(formulario.bautismo_sistema)
+        self.assertIsNotNone(formulario.datos_bautismo_externo)
+
+    def test_p1_bautismo_externo_incompleto_bloquea(self):
+        formulario = PrimeraComunionForm(
+            self._datos_bautismo_externo(bautismo_parroquia="", bautismo_libro="")
+        )
+        self.assertFalse(formulario.is_valid())
+        self.assertIn("bautismo_parroquia", formulario.errors)
+        self.assertIn("bautismo_libro", formulario.errors)
+        # sin los cinco datos no hay constancia: P1 sigue bloqueando.
+        self.assertIn("[P1]", str(formulario.non_field_errors()))
+
+    def test_p1_casilla_oculta_con_bautismo_inexistente_bloquea(self):
+        self._crear_comulgante_bautizado()
+        formulario = PrimeraComunionForm(self._datos(bautismo=99999))
+        self.assertFalse(formulario.is_valid())
+        self.assertIn("bautismo", formulario.errors)
+        self.assertIn("no existe o no está activo", str(formulario.errors["bautismo"]))
+
+    def test_p1_casilla_oculta_con_bautismo_de_otra_persona_bloquea(self):
+        self._crear_comulgante_bautizado(numero_documento="12345678")
+        _, bautismo_ajeno = self._crear_comulgante_bautizado(
+            numero_documento="55555555",
+            fecha_nacimiento=date(2014, 1, 1),
+            fecha_bautismo=date(2015, 2, 2),
+            numero_bautismo=2,
+        )
+        datos = self._datos()
+        datos["fiel_numero_documento"] = "12345678"
+        datos["bautismo"] = bautismo_ajeno.pk
+        formulario = PrimeraComunionForm(datos)
+        self.assertFalse(formulario.is_valid())
+        self.assertIn("no corresponde a esta persona", str(formulario.errors["bautismo"]))
+
+    def test_p2_ya_registrada_bloquea_con_la_referencia(self):
+        fiel, bautismo = self._crear_comulgante_bautizado()
+        previa = PrimeraComunion.objects.create(
+            sacramento=Sacramento.objects.create(
+                tipo=TipoSacramento.PRIMERA_COMUNION,
+                fiel=fiel,
+                libro=self.libro_pc,
+                folio=self.folio_pc,
+                numero=7,
+                fecha=date(2025, 6, 1),
+                fecha_registro=date(2025, 6, 1),
+                parroquia=self.parroquia,
+                ministro=self.ministro,
+            ),
+            edad=10,
+            bautismo=bautismo,
+            doy_fe=self.parroco,
+        )
+        self.assertIsNotNone(previa)
+        formulario = PrimeraComunionForm(self._datos())
+        self.assertFalse(formulario.is_valid())
+        errores = str(formulario.non_field_errors())
+        self.assertIn("[P2]", errores)
+        self.assertIn("Libro", errores)
+        self.assertIn("Folio", errores)
+        self.assertIn("N.° 7", errores)
+
+    def test_p3_fecha_futura_bloquea(self):
+        self._crear_comulgante_bautizado()
+        formulario = PrimeraComunionForm(
+            self._datos(fecha=timezone.localdate() + timedelta(days=10))
+        )
+        self.assertFalse(formulario.is_valid())
+        self.assertIn("no puede ser en el futuro", str(formulario.non_field_errors()))
+
+    def test_p3_fecha_anterior_al_nacimiento_bloquea(self):
+        self._crear_comulgante_bautizado()
+        formulario = PrimeraComunionForm(self._datos(fecha=date(2015, 1, 1)))
+        self.assertFalse(formulario.is_valid())
+        errores = str(formulario.non_field_errors())
+        self.assertIn("[P3]", errores)
+        self.assertIn("anterior", errores)
+        self.assertIn("nacimiento", errores)
+
+    def test_p3_fecha_anterior_al_bautismo_bloquea(self):
+        # Bautismo externo posterior a la fecha de la comunión pedida.
+        formulario = PrimeraComunionForm(self._datos_bautismo_externo(fecha=date(2016, 1, 10)))
+        self.assertFalse(formulario.is_valid())
+        errores = str(formulario.non_field_errors())
+        self.assertIn("[P3]", errores)
+        self.assertIn("anterior a la del bautismo", errores)
+
+    def _datos_nino(self, **extra):
+        """Comulgante de dos años con bautismo externo: dispara solo la P4."""
+        hoy = timezone.localdate()
+        nacimiento = hoy - timedelta(days=730)
+        return self._datos_bautismo_externo(
+            fiel_numero_documento="44443333",
+            fiel_nombres="Mateo",
+            fiel_fecha_nacimiento=nacimiento,
+            fecha=hoy - timedelta(days=5),
+            bautismo_fecha=nacimiento + timedelta(days=20),
+            **extra,
+        )
+
+    def test_p4_menor_de_edad_advierte_y_no_guarda_sin_casilla(self):
+        formulario = PrimeraComunionForm(self._datos_nino())
+        self.assertFalse(formulario.is_valid())
+        errores = str(formulario.non_field_errors())
+        self.assertIn("[P4]", errores)
+        self.assertIn("Verificado / excepción autorizada", errores)
+        self.assertEqual(len(formulario.advertencias_pendientes), 1)
+        self.assertEqual(formulario.advertencias_pendientes[0].codigo, "P4")
+
+    def test_p4_post_manipulado_con_casilla_sin_motivo_no_guarda(self):
+        formulario = PrimeraComunionForm(self._datos_nino(reglas_verificadas=True))
+        self.assertFalse(formulario.is_valid())
+        self.assertIn("motivo", str(formulario.non_field_errors()).lower())
+        self.assertEqual(formulario.advertencias_aceptadas, [])
+
+    def test_p4_con_casilla_y_motivo_es_valida_y_queda_registrada(self):
+        formulario = PrimeraComunionForm(
+            self._datos_nino(
+                reglas_verificadas=True,
+                reglas_motivo="Excepción autorizada por el párroco: causa justa.",
+            )
+        )
+        self.assertTrue(formulario.is_valid(), formulario.errors)
+        self.assertEqual(len(formulario.advertencias_aceptadas), 1)
+        codigo, motivo = (
+            formulario.advertencias_aceptadas[0][0].codigo,
+            (formulario.advertencias_aceptadas[0][1]),
+        )
+        self.assertEqual(codigo, "P4")
+        self.assertIn("causa justa", motivo)
+        datos = formulario.datos_para_servicio()
+        self.assertEqual(datos["reglas_aceptadas"][0][0], "P4")
+
+    def test_p5_se_recuerda_siempre_y_no_bloquea(self):
+        self._crear_comulgante_bautizado()
+        formulario = PrimeraComunionForm(self._datos())
+        self.assertTrue(formulario.is_valid(), formulario.errors)
+        codigos = [r.codigo for r in formulario.recuerdos_visibles]
+        self.assertIn("P5", codigos)
+
+    def test_bloqueos_no_se_superan_enviando_la_casilla_del_formulario(self):
+        # Manipular el POST (casilla + motivo) no saltea un BLOQUEA como P1.
+        datos = self._datos(
+            fiel_numero_documento="99999999",
+            reglas_verificadas=True,
+            reglas_motivo="Intento de salteo.",
+        )
+        formulario = PrimeraComunionForm(datos)
+        self.assertFalse(formulario.is_valid())
+        self.assertIn("[P1]", str(formulario.non_field_errors()))
+        self.assertEqual(formulario.advertencias_aceptadas, [])
+
+    def test_libro_cerrado_no_admite_partidas(self):
+        self._crear_comulgante_bautizado()
+        self.libro_pc.estado = EstadoLibro.CERRADO
+        self.libro_pc.fecha_cierre = timezone.localdate()
+        self.libro_pc.save()
+        formulario = PrimeraComunionForm(self._datos())
+        self.assertFalse(formulario.is_valid())
+        # El select solo ofrece libros abiertos: el libro cerrado ni siquiera
+        # está en las opciones.
+        self.assertIn("libro", formulario.errors)
+
+
+class PrimeraComunionServicioTests(PrimeraComunionBaseTests):
+    def _registrar_desde_form(self, **extra):
+        self._crear_comulgante_bautizado()
+        formulario = PrimeraComunionForm(self._datos(**extra))
+        self.assertTrue(formulario.is_valid(), formulario.errors)
+        return registrar_primera_comunion(formulario.datos_para_servicio(), self.usuario)
+
+    def test_registrar_crea_sacramento_y_primera_comunion(self):
+        primera, reutilizadas = self._registrar_desde_form()
+        self.assertEqual(primera.sacramento.tipo, TipoSacramento.PRIMERA_COMUNION)
+        self.assertEqual(primera.sacramento.fiel.nombres, "Luis")
+        self.assertEqual(primera.sacramento.estado, EstadoRegistro.ACTIVO)
+        self.assertEqual(primera.sacramento.fecha, date(2026, 6, 15))
+        self.assertIsNotNone(primera.sacramento.numero)
+        self.assertIsNotNone(primera.sacramento.folio)
+        self.assertEqual(reutilizadas, ["fiel"])
+
+    def test_registrar_calcula_edad_y_copia_padre_y_madre_del_bautismo(self):
+        primera, _ = self._registrar_desde_form()
+        self.assertEqual(primera.edad, 11)
+        self.assertEqual(primera.padre, self.padre)
+        self.assertEqual(primera.madre, self.madre)
+        self.assertIsNotNone(primera.bautismo)
+        self.assertIsNone(primera.fecha_bautismo)
+
+    def test_registrar_con_bautismo_externo_guarda_los_datos(self):
+        formulario = PrimeraComunionForm(
+            self._datos_bautismo_externo(bautismo_diocesis="Diócesis de Zipaquirá")
+        )
+        self.assertTrue(formulario.is_valid(), formulario.errors)
+        primera, reutilizadas = registrar_primera_comunion(
+            formulario.datos_para_servicio(), self.usuario
+        )
+        self.assertIsNone(primera.bautismo)
+        self.assertIsNone(primera.padre)
+        self.assertEqual(primera.fecha_bautismo, date(2016, 3, 20))
+        self.assertEqual(primera.parroquia_bautismo, "Santa Ana de Chía")
+        self.assertEqual(primera.libro_bautismo, 2)
+        self.assertEqual(primera.folio_bautismo, 3)
+        self.assertEqual(primera.numero_bautismo, 45)
+        self.assertIn("Diócesis: Diócesis de Zipaquirá.", primera.observaciones_bautismo)
+        self.assertEqual(reutilizadas, [])
+
+    def test_advertencia_aceptada_queda_en_el_historial(self):
+        hoy = timezone.localdate()
+        nacimiento = hoy - timedelta(days=730)
+        formulario = PrimeraComunionForm(
+            self._datos_bautismo_externo(
+                fiel_numero_documento="44443333",
+                fiel_nombres="Mateo",
+                fiel_fecha_nacimiento=nacimiento,
+                fecha=hoy - timedelta(days=5),
+                bautismo_fecha=nacimiento + timedelta(days=20),
+                reglas_verificadas=True,
+                reglas_motivo="Causa justa certificada por el párroco.",
+            )
+        )
+        self.assertTrue(formulario.is_valid(), formulario.errors)
+        primera, _ = registrar_primera_comunion(formulario.datos_para_servicio(), self.usuario)
+        historial = HistorialSacramento.objects.filter(sacramento=primera.sacramento)
+        entrada = historial.filter(descripcion__contains="Regla P4 verificada").first()
+        self.assertIsNotNone(entrada)
+        self.assertIn("Causa justa certificada por el párroco.", entrada.descripcion)
+        self.assertEqual(entrada.usuario, self.usuario)
+
+    def test_registrar_historial_de_creacion(self):
+        primera, _ = self._registrar_desde_form()
+        entrada = HistorialSacramento.objects.filter(
+            sacramento=primera.sacramento, accion=AccionHistorial.CREACION
+        ).first()
+        self.assertIsNotNone(entrada)
+        self.assertEqual(entrada.usuario, self.usuario)
+
+
+class PrimeraComunionVistaTests(PrimeraComunionBaseTests):
+    def setUp(self):
+        super().setUp()
+        self.client.force_login(self.usuario)
+
+    def _url_crear(self):
+        return reverse("sacramentos:primera_comunion_crear")
+
+    def _url_lista(self):
+        return reverse("sacramentos:primera_comunion_lista")
+
+    def _url_detalle(self, primera):
+        return reverse("sacramentos:primera_comunion_detalle", args=[primera.pk])
+
+    def _registrar(self, **extra):
+        self._crear_comulgante_bautizado()
+        formulario = PrimeraComunionForm(self._datos(**extra))
+        self.assertTrue(formulario.is_valid(), formulario.errors)
+        primera, _ = registrar_primera_comunion(formulario.datos_para_servicio(), self.usuario)
+        return primera
+
+    def test_listas_y_formulario_requieren_sesion(self):
+        self.client.logout()
+        for url in (
+            self._url_lista(),
+            self._url_crear(),
+            reverse("sacramentos:primera_comunion_detalle", args=[99999]),
+        ):
+            respuesta = self.client.get(url)
+            self.assertEqual(respuesta.status_code, 302)
+
+    def test_lista_muestra_los_comulgantes(self):
+        self._registrar()
+        respuesta = self.client.get(self._url_lista())
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertContains(respuesta, "Luis")
+        self.assertContains(respuesta, "Martínez Díaz")
+
+    def test_crear_get_acepta_libro_por_parametro(self):
+        respuesta = self.client.get(self._url_crear(), {"libro": self.libro_pc.pk})
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertEqual(respuesta.context["form"].initial["libro"], self.libro_pc)
+
+    def test_crear_post_valido_redirige_al_detalle(self):
+        self._crear_comulgante_bautizado()
+        total_antes = PrimeraComunion.objects.count()
+        respuesta = self.client.post(self._url_crear(), self._datos_post(), follow=True)
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertEqual(PrimeraComunion.objects.count(), total_antes + 1)
+        self.assertContains(respuesta, "PARTIDA DE PRIMERA COMUNIÓN")
+        self.assertContains(respuesta, "Luis")
+
+    def test_crear_post_bloqueado_no_guarda(self):
+        total_antes = PrimeraComunion.objects.count()
+        datos = self._datos_post(fiel_numero_documento="99999999")
+        respuesta = self.client.post(self._url_crear(), datos)
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertEqual(PrimeraComunion.objects.count(), total_antes)
+        self.assertContains(respuesta, "[P1]")
+
+    def test_las_reglas_se_renderizan_dentro_del_formulario(self):
+        hoy = timezone.localdate()
+        nacimiento = hoy - timedelta(days=730)
+        datos = self._datos_post_externo(
+            fiel_numero_documento="44443333",
+            fiel_nombres="Mateo",
+            fiel_fecha_nacimiento=nacimiento,
+            fecha=hoy - timedelta(days=5),
+            bautismo_fecha=nacimiento + timedelta(days=20),
+        )
+        respuesta = self.client.post(self._url_crear(), datos)
+        contenido = respuesta.content.decode()
+        posicion_libro = contenido.index('name="libro"')
+        inicio = contenido.rfind("<form", 0, posicion_libro)
+        fin = contenido.index("</form>", posicion_libro)
+        bloque = contenido[inicio:fin]
+        for campo in ("reglas_verificadas", "reglas_motivo"):
+            self.assertIn(f'name="{campo}"', bloque, campo)
+
+    def test_crear_post_con_advertencia_sin_casilla_no_guarda(self):
+        hoy = timezone.localdate()
+        nacimiento = hoy - timedelta(days=730)
+        total_antes = PrimeraComunion.objects.count()
+        datos = self._datos_post_externo(
+            fiel_numero_documento="44443333",
+            fiel_nombres="Mateo",
+            fiel_fecha_nacimiento=nacimiento,
+            fecha=hoy - timedelta(days=5),
+            bautismo_fecha=nacimiento + timedelta(days=20),
+        )
+        respuesta = self.client.post(self._url_crear(), datos)
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertEqual(PrimeraComunion.objects.count(), total_antes)
+        self.assertContains(respuesta, "Verificado / excepción autorizada")
+
+    def test_crear_post_advertencia_aceptada_guarda_y_registra_el_motivo(self):
+        hoy = timezone.localdate()
+        nacimiento = hoy - timedelta(days=730)
+        datos = self._datos_post_externo(
+            fiel_numero_documento="44443333",
+            fiel_nombres="Mateo",
+            fiel_fecha_nacimiento=nacimiento,
+            fecha=hoy - timedelta(days=5),
+            bautismo_fecha=nacimiento + timedelta(days=20),
+            reglas_verificadas="on",
+            reglas_motivo="Excepción autorizada: causa justa.",
+        )
+        respuesta = self.client.post(self._url_crear(), datos, follow=True)
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertContains(respuesta, "PARTIDA DE PRIMERA COMUNIÓN")
+        historial = HistorialSacramento.objects.filter(descripcion__contains="Regla P4 verificada")
+        self.assertEqual(historial.count(), 1)
+        self.assertIn("causa justa", historial.first().descripcion)
+
+    def test_detalle_muestra_hoja_y_enlace_al_bautismo(self):
+        primera = self._registrar()
+        respuesta = self.client.get(self._url_detalle(primera))
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertContains(respuesta, "PARTIDA DE PRIMERA COMUNIÓN")
+        self.assertContains(respuesta, "Constancia del bautismo")
+        self.assertContains(respuesta, "Ver partida de bautismo")
+        self.assertContains(
+            respuesta, reverse("sacramentos:bautismo_detalle", args=[primera.bautismo.pk])
+        )
+
+    def test_detalle_404(self):
+        respuesta = self.client.get(self._url_detalle(PrimeraComunion(sacramento_id=99999)))
+        self.assertEqual(respuesta.status_code, 404)
+
+    def test_api_persona_con_bautismo_incluye_los_datos_extra(self):
+        self._crear_comulgante_bautizado(numero_documento="66667777")
+        respuesta = self.client.get(
+            reverse("personas:api_persona"),
+            {"rol": "fiel", "tipo": TipoDocumento.CC, "numero": "66667777"},
+        )
+        self.assertEqual(respuesta.status_code, 200)
+        payload = respuesta.json()
+        self.assertTrue(payload["bautismo_activo"])
+        self.assertIn("bautismo_id", payload)
+        self.assertIn("bautismo_url", payload)
+        self.assertIn("bautismo_parroquia", payload)
+        self.assertIn("bautismo_fecha", payload)
+        self.assertIn("bautismo_padre", payload)
+        self.assertIn("bautismo_madre", payload)
+        self.assertIn("San Pedro Claver", payload["bautismo_parroquia"])
+        self.assertIn("José", payload["bautismo_padre"])
+
+    def _filas_de_la_hoja(self, primera):
+        respuesta = self.client.get(self._url_detalle(primera))
+        self.assertEqual(respuesta.status_code, 200)
+        return respuesta, {
+            fila["etiqueta"]: fila["valor"] for fila in respuesta.context["hoja"]["filas"]
+        }
+
+    def test_hoja_toma_padre_y_madre_de_la_partida_de_bautismo(self):
+        primera = self._registrar()
+        PrimeraComunion.objects.filter(pk=primera.pk).update(padre=None, madre=None)
+        respuesta, filas = self._filas_de_la_hoja(primera)
+        self.assertEqual(filas["Padre"], f"{self.padre} ({self.padre.documento})")
+        self.assertEqual(filas["Madre"], f"{self.madre} ({self.madre.documento})")
+        nombres = [persona["nombre"] for persona in respuesta.context["personas_partida"]]
+        self.assertIn(str(self.padre), nombres)
+        self.assertIn(str(self.madre), nombres)
+
+    def test_detalle_de_pc_no_muestra_padres_biologicos(self):
+        primera = self._registrar()
+        bautismo = primera.bautismo
+        bautismo.padre_biologico_nombre = "Ramiro Biológico"
+        bautismo.madre_biologica_nombre = "Alba Biológica"
+        bautismo.save()
+        respuesta, filas = self._filas_de_la_hoja(primera)
+        self.assertEqual(filas["Padre"], f"{self.padre} ({self.padre.documento})")
+        self.assertNotContains(respuesta, "Ramiro Biológico")
+        self.assertNotContains(respuesta, "Alba Biológica")
+
+    def test_hoja_padres_del_bautismo_externo_usa_los_escritos_en_el_formulario(self):
+        datos = self._datos_post_externo(
+            padre_tipo_documento=TipoDocumento.CC,
+            padre_numero_documento="33333333",
+            padre_nombre="Pedro",
+            padre_apellido="Sánchez",
+            madre_tipo_documento=TipoDocumento.CC,
+            madre_numero_documento="44444444",
+            madre_nombre="Laura",
+            madre_apellido="Herrera",
+        )
+        respuesta = self.client.post(self._url_crear(), datos, follow=True)
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertContains(respuesta, "PARTIDA DE PRIMERA COMUNIÓN")
+        padre = Padre.objects.get(documento__numero_documento="33333333")
+        madre = Madre.objects.get(documento__numero_documento="44444444")
+        filas = {fila["etiqueta"]: fila["valor"] for fila in respuesta.context["hoja"]["filas"]}
+        self.assertEqual(filas["Padre"], f"{padre} ({padre.documento})")
+        self.assertEqual(filas["Madre"], f"{madre} ({madre.documento})")
+
+    def test_con_bautismo_enlazado_se_ignoran_los_padres_escritos(self):
+        self._crear_comulgante_bautizado()
+        datos = self._datos(
+            padre_tipo_documento=TipoDocumento.CC,
+            padre_numero_documento="55555555",
+            padre_nombre="Impostor",
+            padre_apellido="Falso",
+        )
+        formulario = PrimeraComunionForm(datos)
+        self.assertTrue(formulario.is_valid(), formulario.errors)
+        primera, _ = registrar_primera_comunion(formulario.datos_para_servicio(), self.usuario)
+        self.assertEqual(primera.padre_id, self.padre.pk)
+        self.assertEqual(primera.madre_id, self.madre.pk)
+        self.assertFalse(Padre.objects.filter(documento__numero_documento="55555555").exists())
+
+    def test_hoja_muestra_la_edad_en_anos(self):
+        primera = self._registrar()
+        PrimeraComunion.objects.filter(pk=primera.pk).update(edad=12)
+        _, filas = self._filas_de_la_hoja(primera)
+        self.assertEqual(filas["Edad en la fecha"], "12 años")
+        PrimeraComunion.objects.filter(pk=primera.pk).update(edad=1)
+        _, filas = self._filas_de_la_hoja(primera)
+        self.assertEqual(filas["Edad en la fecha"], "1 año")
+
+    def test_padre_externo_nuevo_sin_nombre_no_guarda(self):
+        total_antes = PrimeraComunion.objects.count()
+        datos = self._datos_post_externo(
+            padre_tipo_documento=TipoDocumento.CC,
+            padre_numero_documento="33333333",
+        )
+        respuesta = self.client.post(self._url_crear(), datos)
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertIn("padre_nombre", respuesta.context["form"].errors)
+        self.assertEqual(PrimeraComunion.objects.count(), total_antes)
+
+    def test_padres_externos_con_el_mismo_documento_no_guardan(self):
+        datos = self._datos_post_externo(
+            padre_tipo_documento=TipoDocumento.CC,
+            padre_numero_documento="33333333",
+            padre_nombre="Pedro",
+            padre_apellido="Sánchez",
+            madre_tipo_documento=TipoDocumento.CC,
+            madre_numero_documento="33333333",
+            madre_nombre="Laura",
+            madre_apellido="Herrera",
+        )
+        respuesta = self.client.post(self._url_crear(), datos)
+        self.assertIn("madre_numero_documento", respuesta.context["form"].errors)
+
+    def test_padre_externo_no_puede_tener_el_documento_del_comulgante(self):
+        datos = self._datos_post_externo(
+            padre_tipo_documento=TipoDocumento.CC,
+            padre_numero_documento="87654321",
+            padre_nombre="Pedro",
+            padre_apellido="Sánchez",
+        )
+        respuesta = self.client.post(self._url_crear(), datos)
+        self.assertIn("padre_numero_documento", respuesta.context["form"].errors)
+
+    def test_formulario_muestra_los_campos_de_padres_para_bautismo_externo(self):
+        respuesta = self.client.get(self._url_crear())
+        self.assertEqual(respuesta.status_code, 200)
+        for campo in (
+            "padre_tipo_documento",
+            "padre_numero_documento",
+            "padre_nombre",
+            "padre_apellido",
+            "madre_tipo_documento",
+            "madre_numero_documento",
+            "madre_nombre",
+            "madre_apellido",
+        ):
+            self.assertContains(respuesta, f'name="{campo}"')
+        self.assertContains(respuesta, 'data-campo-persona="padre" readonly')
+
+
+class PrimeraComunionAccionesBaseTests(PrimeraComunionBaseTests):
+    """Utilidades comunes para corregir, anular, eliminar y certificar PC."""
+
+    contador = 0
+
+    def setUp(self):
+        super().setUp()
+        self.client.force_login(self.usuario)
+
+    def _url(self, nombre, primera):
+        return reverse(f"sacramentos:{nombre}", args=[primera.pk])
+
+    def _registrar(self, **extra):
+        self._crear_comulgante_bautizado()
+        formulario = PrimeraComunionForm(self._datos(**extra))
+        self.assertTrue(formulario.is_valid(), formulario.errors)
+        primera, _ = registrar_primera_comunion(formulario.datos_para_servicio(), self.usuario)
+        return primera
+
+    def _registrar_otro(self, numero_documento="87654321"):
+        self._crear_comulgante_bautizado(
+            numero_documento=numero_documento,
+            nombres="Sofia",
+            apellidos="Ríos",
+            fecha_nacimiento=date(2014, 2, 2),
+            fecha_bautismo=date(2015, 3, 3),
+            numero_bautismo=2,
+        )
+        formulario = PrimeraComunionForm(
+            self._datos(
+                fiel_numero_documento=numero_documento,
+                fiel_nombres="Sofia",
+                fiel_apellidos="Ríos",
+                fiel_fecha_nacimiento=date(2014, 2, 2),
+            )
+        )
+        self.assertTrue(formulario.is_valid(), formulario.errors)
+        primera, _ = registrar_primera_comunion(formulario.datos_para_servicio(), self.usuario)
+        return primera
+
+    def _registrar_externo(self, **extra):
+        formulario = PrimeraComunionForm(self._datos_bautismo_externo(**extra))
+        self.assertTrue(formulario.is_valid(), formulario.errors)
+        primera, _ = registrar_primera_comunion(formulario.datos_para_servicio(), self.usuario)
+        return primera
+
+    def _datos_editar(self, **extra):
+        motivo = extra.pop("motivo", "Corrección de prueba")
+        datos = self._datos(**extra)
+        datos["motivo"] = motivo
+        return datos
+
+    def _datos_editar_post(self, **extra):
+        motivo = extra.pop("motivo", "Corrección de prueba")
+        datos = self._datos_post(**extra)
+        datos["motivo"] = motivo
+        return datos
+
+    def _corregir(self, primera, **extra):
+        form = PrimeraComunionEditarForm(self._datos_editar(**extra), primera=primera)
+        self.assertTrue(form.is_valid(), form.errors)
+        return corregir_primera_comunion(
+            primera,
+            form.datos_para_servicio(),
+            self.usuario,
+            form.cleaned_data["motivo"],
+        )
+
+
+class PrimeraComunionCorreccionTests(PrimeraComunionAccionesBaseTests):
+    def test_corregir_mismo_dia_deja_activa_y_solo_historial(self):
+        primera = self._registrar()
+        self._corregir(primera, fiel_fecha_nacimiento=date(2016, 1, 1))
+        primera.sacramento.refresh_from_db()
+        self.assertEqual(primera.sacramento.estado, EstadoRegistro.ACTIVO)
+        self.assertTrue(
+            HistorialSacramento.objects.filter(
+                sacramento=primera.sacramento, accion=AccionHistorial.CORRECCION
+            ).exists()
+        )
+        self.assertFalse(
+            AnotacionMarginal.objects.filter(
+                sacramento=primera.sacramento, tipo=TipoAnotacionMarginal.CORRECCION
+            ).exists()
+        )
+
+    def test_corregir_otro_dia_marca_corregido_y_anota(self):
+        primera = self._registrar()
+        Sacramento.objects.filter(pk=primera.sacramento.pk).update(
+            fecha_registro=timezone.localdate() - timedelta(days=1)
+        )
+        primera.sacramento.refresh_from_db()
+        self._corregir(primera, fiel_fecha_nacimiento=date(2016, 1, 1))
+        primera.sacramento.refresh_from_db()
+        self.assertEqual(primera.sacramento.estado, EstadoRegistro.CORREGIDO)
+        self.assertEqual(primera.sacramento.fiel.fecha_nacimiento, date(2016, 1, 1))
+        self.assertTrue(
+            AnotacionMarginal.objects.filter(
+                sacramento=primera.sacramento, tipo=TipoAnotacionMarginal.CORRECCION
+            ).exists()
+        )
+
+    def test_corregir_no_permite_cambiar_el_nombre_del_comulgante(self):
+        primera = self._registrar()
+        self._corregir(primera, fiel_nombres="Otro Nombre")
+        primera.sacramento.refresh_from_db()
+        self.assertEqual(primera.sacramento.fiel.nombres, "Luis")
+
+    def test_corregir_no_cambia_ubicacion_en_el_libro_ni_fecha_registro(self):
+        primera = self._registrar()
+        folio = primera.sacramento.folio
+        numero = primera.sacramento.numero
+        fecha_registro = primera.sacramento.fecha_registro
+        self._corregir(primera, fiel_fecha_nacimiento=date(2016, 1, 1))
+        primera.sacramento.refresh_from_db()
+        self.assertEqual(primera.sacramento.folio, folio)
+        self.assertEqual(primera.sacramento.numero, numero)
+        self.assertEqual(primera.sacramento.fecha_registro, fecha_registro)
+
+    def test_corregir_guarda_historial_con_motivo_y_usuario(self):
+        primera = self._registrar()
+        self._corregir(primera, motivo="Error en la fecha")
+        entrada = HistorialSacramento.objects.filter(
+            sacramento=primera.sacramento, accion=AccionHistorial.CORRECCION
+        ).first()
+        self.assertIsNotNone(entrada)
+        self.assertEqual(entrada.descripcion, "Error en la fecha")
+        self.assertEqual(entrada.usuario, self.usuario)
+
+    def test_corregir_partida_anulada_lanza_error(self):
+        primera = self._registrar()
+        anular_primera_comunion(primera, self.usuario, "Anulada")
+        with self.assertRaises(ValidationError):
+            self._corregir(primera)
+
+
+class PrimeraComunionEditarFormTests(PrimeraComunionAccionesBaseTests):
+    def _otra_partida_del_mismo_fiel(self, fiel):
+        return Sacramento.objects.create(
+            tipo=TipoSacramento.CONFIRMACION,
+            fiel=fiel,
+            libro=self.libro_pc,
+            folio=self.folio_pc,
+            numero=99,
+            fecha=date(2026, 6, 16),
+            fecha_registro=date(2026, 6, 16),
+            parroquia=self.parroquia,
+        )
+
+    def test_bloquea_libro_y_identidad_del_comulgante(self):
+        primera = self._registrar()
+        form = PrimeraComunionEditarForm(primera=primera)
+        for campo in (
+            "libro",
+            "fiel_tipo_documento",
+            "fiel_numero_documento",
+            "fiel_nombres",
+            "fiel_apellidos",
+        ):
+            self.assertTrue(form.fields[campo].disabled, campo)
+
+    def test_datos_no_identitarios_del_comulgante_siguen_editables(self):
+        primera = self._registrar()
+        form = PrimeraComunionEditarForm(primera=primera)
+        for campo in ("fiel_fecha_nacimiento", "fiel_sexo", "fiel_telefono"):
+            self.assertFalse(form.fields[campo].disabled, campo)
+
+    def test_padres_bloqueados_con_bautismo_enlazado(self):
+        primera = self._registrar()
+        form = PrimeraComunionEditarForm(primera=primera)
+        for campo in ("padre_nombre", "padre_numero_documento", "madre_nombre"):
+            self.assertTrue(form.fields[campo].disabled, campo)
+
+    def test_padres_editables_con_bautismo_externo(self):
+        primera = self._registrar_externo()
+        form = PrimeraComunionEditarForm(primera=primera)
+        for campo in ("padre_nombre", "padre_numero_documento", "madre_nombre"):
+            self.assertFalse(form.fields[campo].disabled, campo)
+
+    def test_p2_no_bloquea_la_propia_partida(self):
+        primera = self._registrar()
+        form = PrimeraComunionEditarForm(self._datos_editar(), primera=primera)
+        self.assertTrue(form.is_valid(), form.errors)
+        self.assertEqual(form.excluir_sacramento, primera.sacramento)
+
+    def test_aviso_partidas_cuenta_otras_partidas(self):
+        primera = self._registrar()
+        # El comulgante ya tiene su bautismo: una partida distinta a esta.
+        self.assertEqual(PrimeraComunionEditarForm(primera=primera).aviso_partidas, 1)
+        self._otra_partida_del_mismo_fiel(primera.sacramento.fiel)
+        self.assertEqual(PrimeraComunionEditarForm(primera=primera).aviso_partidas, 2)
+
+
+class PrimeraComunionAnulacionTests(PrimeraComunionAccionesBaseTests):
+    def test_anular_marca_estado_y_guarda_historial_y_anotacion(self):
+        primera = self._registrar()
+        anular_primera_comunion(primera, self.usuario, "Partida duplicada")
+        primera.sacramento.refresh_from_db()
+        self.assertEqual(primera.sacramento.estado, EstadoRegistro.ANULADO)
+        self.assertTrue(
+            HistorialSacramento.objects.filter(
+                sacramento=primera.sacramento, accion=AccionHistorial.ANULACION
+            ).exists()
+        )
+        self.assertTrue(
+            AnotacionMarginal.objects.filter(
+                sacramento=primera.sacramento, tipo=TipoAnotacionMarginal.CORRECCION
+            ).exists()
+        )
+        self.assertIsNotNone(primera.sacramento.numero)
+
+    def test_anular_partida_ya_anulada_lanza_error(self):
+        primera = self._registrar()
+        anular_primera_comunion(primera, self.usuario, "Anulada")
+        with self.assertRaises(ValidationError):
+            anular_primera_comunion(primera, self.usuario, "Otra vez")
+
+    def test_anulada_no_cuenta_para_p2(self):
+        primera = self._registrar()
+        anular_primera_comunion(primera, self.usuario, "Anulada")
+        form = PrimeraComunionForm(self._datos())
+        self.assertTrue(form.is_valid(), form.errors)
+
+
+class PrimeraComunionEliminacionTests(PrimeraComunionAccionesBaseTests):
+    def _crear_anotacion(self, **extra):
+        datos = {
+            "tipo": TipoAnotacionMarginal.CORRECCION,
+            "fecha": timezone.localdate(),
+            "descripcion": "Nota",
+            **extra,
+        }
+        return AnotacionMarginal.objects.create(**datos)
+
+    def test_eliminar_ultima_activa_de_hoy_crea_snapshot_y_libera_numero(self):
+        primera = self._registrar()
+        sacramento = primera.sacramento
+        numero = sacramento.numero
+        folio_numero = sacramento.folio.numero_folio
+        pk = primera.pk
+        sacramento_pk = sacramento.pk
+        self.assertTrue(puede_eliminarse(primera))
+        self.assertIsNone(motivo_no_eliminable(primera))
+
+        eliminar_primera_comunion(primera, self.usuario, "Partida duplicada")
+
+        self.assertFalse(Sacramento.objects.filter(pk=sacramento_pk).exists())
+        self.assertFalse(PrimeraComunion.objects.filter(pk=pk).exists())
+        partida = PartidaEliminada.objects.get()
+        self.assertEqual(partida.tipo, TipoSacramento.PRIMERA_COMUNION)
+        self.assertEqual(partida.numero, numero)
+        self.assertEqual(partida.folio_numero, folio_numero)
+        self.assertEqual(partida.motivo, "Partida duplicada")
+        self.assertEqual(partida.eliminado_por, self.usuario)
+        self.assertIn("Luis", partida.resumen)
+
+        nueva = self._registrar_otro()
+        self.assertEqual(nueva.sacramento.numero, numero)
+        self.assertEqual(nueva.sacramento.folio.numero_folio, folio_numero)
+
+    def test_no_elimina_partida_anulada(self):
+        primera = self._registrar()
+        anular_primera_comunion(primera, self.usuario, "Anulada")
+        with self.assertRaisesMessage(ValidationError, "Las partidas anuladas no se eliminan"):
+            eliminar_primera_comunion(primera, self.usuario, "Se intenta")
+        self.assertTrue(PrimeraComunion.objects.filter(pk=primera.pk).exists())
+        self.assertFalse(PartidaEliminada.objects.exists())
+
+    def test_no_elimina_partida_corregida(self):
+        primera = self._registrar()
+        Sacramento.objects.filter(pk=primera.sacramento.pk).update(
+            fecha_registro=timezone.localdate() - timedelta(days=1)
+        )
+        primera.sacramento.refresh_from_db()
+        self._corregir(primera)
+        primera.sacramento.refresh_from_db()
+        self.assertEqual(primera.sacramento.estado, EstadoRegistro.CORREGIDO)
+        self.assertFalse(puede_eliminarse(primera))
+        self.assertIsNotNone(motivo_no_eliminable(primera))
+        with self.assertRaises(ValidationError):
+            eliminar_primera_comunion(primera, self.usuario, "Se intenta")
+        self.assertTrue(PrimeraComunion.objects.filter(pk=primera.pk).exists())
+        self.assertFalse(PartidaEliminada.objects.exists())
+
+    def test_no_elimina_si_no_es_la_ultima(self):
+        primera = self._registrar()
+        self._registrar_otro()
+        with self.assertRaisesMessage(ValidationError, "última partida del libro"):
+            eliminar_primera_comunion(primera, self.usuario, "Se intenta")
+        self.assertTrue(PrimeraComunion.objects.filter(pk=primera.pk).exists())
+        self.assertFalse(PartidaEliminada.objects.exists())
+
+    def test_no_elimina_si_no_se_registro_hoy(self):
+        primera = self._registrar()
+        Sacramento.objects.filter(pk=primera.sacramento.pk).update(
+            fecha_registro=timezone.localdate() - timedelta(days=1)
+        )
+        primera = PrimeraComunion.objects.get(pk=primera.pk)
+        with self.assertRaisesMessage(ValidationError, "registrada hoy"):
+            eliminar_primera_comunion(primera, self.usuario, "Se intenta")
+        self.assertFalse(PartidaEliminada.objects.exists())
+
+    def test_no_elimina_si_tiene_anotacion_como_partida_anotada(self):
+        primera = self._registrar()
+        self._crear_anotacion(sacramento=primera.sacramento, estado=EstadoAnotacion.ANOTADA)
+        with self.assertRaisesMessage(ValidationError, "notas marginales"):
+            eliminar_primera_comunion(primera, self.usuario, "Se intenta")
+        self.assertFalse(PartidaEliminada.objects.exists())
+
+    def test_no_elimina_si_es_origen_de_una_anotacion(self):
+        primera = self._registrar()
+        self._crear_anotacion(sacramento_origen=primera.sacramento)
+        with self.assertRaisesMessage(ValidationError, "notas marginales"):
+            eliminar_primera_comunion(primera, self.usuario, "Se intenta")
+        self.assertFalse(PartidaEliminada.objects.exists())
+
+
+class PrimeraComunionAccionesViewsTests(PrimeraComunionAccionesBaseTests):
+    def test_detalle_activo_elegible_muestra_editar_anular_y_eliminar(self):
+        primera = self._registrar()
+        respuesta = self.client.get(self._url("primera_comunion_detalle", primera))
+        self.assertContains(respuesta, self._url("primera_comunion_editar", primera))
+        self.assertContains(respuesta, self._url("primera_comunion_anular", primera))
+        self.assertContains(respuesta, self._url("primera_comunion_eliminar", primera))
+
+    def test_detalle_anulado_no_permite_ninguna_accion(self):
+        primera = self._registrar()
+        anular_primera_comunion(primera, self.usuario, "Anulada")
+        respuesta = self.client.get(self._url("primera_comunion_detalle", primera))
+        self.assertNotContains(respuesta, self._url("primera_comunion_editar", primera))
+        self.assertNotContains(respuesta, self._url("primera_comunion_anular", primera))
+        self.assertNotContains(respuesta, self._url("primera_comunion_eliminar", primera))
+        self.assertNotContains(respuesta, self._url("primera_comunion_certificado", primera))
+
+    def test_detalle_eliminar_deshabilitado_con_motivo_si_no_puede(self):
+        primera = self._registrar()
+        self._registrar_otro()
+        respuesta = self.client.get(self._url("primera_comunion_detalle", primera))
+        self.assertNotContains(respuesta, self._url("primera_comunion_eliminar", primera))
+        self.assertContains(respuesta, "No se puede eliminar esta partida:")
+        self.assertContains(respuesta, "última partida del libro")
+
+    def test_acciones_inexistentes_dan_404(self):
+        for nombre in (
+            "primera_comunion_editar",
+            "primera_comunion_anular",
+            "primera_comunion_eliminar",
+            "primera_comunion_certificado",
+        ):
+            url = reverse(f"sacramentos:{nombre}", args=[999999])
+            self.assertEqual(self.client.get(url).status_code, 404, nombre)
+
+    def test_acciones_requieren_login(self):
+        primera = self._registrar()
+        self.client.logout()
+        for nombre in (
+            "primera_comunion_editar",
+            "primera_comunion_anular",
+            "primera_comunion_eliminar",
+            "primera_comunion_certificado",
+        ):
+            url = self._url(nombre, primera)
+            self.assertNotEqual(self.client.get(url).status_code, 200, nombre)
+            self.assertNotEqual(self.client.post(url, {}).status_code, 200, nombre)
+
+    def test_editar_get_y_post_otro_dia_marca_corregido(self):
+        primera = self._registrar()
+        Sacramento.objects.filter(pk=primera.sacramento.pk).update(
+            fecha_registro=timezone.localdate() - timedelta(days=1)
+        )
+        primera.refresh_from_db()
+        primera.sacramento.refresh_from_db()
+        self.assertEqual(
+            self.client.get(self._url("primera_comunion_editar", primera)).status_code, 200
+        )
+        datos = self._datos_editar_post(fiel_fecha_nacimiento=date(2016, 1, 1))
+        respuesta = self.client.post(self._url("primera_comunion_editar", primera), datos)
+        self.assertRedirects(respuesta, self._url("primera_comunion_detalle", primera))
+        primera.sacramento.refresh_from_db()
+        self.assertEqual(primera.sacramento.estado, EstadoRegistro.CORREGIDO)
+
+    def test_editar_partida_anulada_redirige(self):
+        primera = self._registrar()
+        anular_primera_comunion(primera, self.usuario, "Anulada")
+        respuesta = self.client.get(self._url("primera_comunion_editar", primera))
+        self.assertRedirects(respuesta, self._url("primera_comunion_detalle", primera))
+
+    def test_editar_muestra_aviso_de_partidas_compartidas(self):
+        primera = self._registrar()
+        Sacramento.objects.create(
+            tipo=TipoSacramento.CONFIRMACION,
+            fiel=primera.sacramento.fiel,
+            libro=self.libro_pc,
+            folio=self.folio_pc,
+            numero=99,
+            fecha=date(2026, 6, 16),
+            fecha_registro=date(2026, 6, 16),
+            parroquia=self.parroquia,
+        )
+        respuesta = self.client.get(self._url("primera_comunion_editar", primera))
+        self.assertContains(
+            respuesta,
+            "Este cambio también se verá en las 2 partidas donde aparece el comulgante.",
+        )
+
+    def test_editar_ignora_campos_protegidos_del_post(self):
+        primera = self._registrar()
+        sacramento = primera.sacramento
+        original = (
+            sacramento.libro_id,
+            sacramento.folio_id,
+            sacramento.numero,
+            sacramento.fecha_registro,
+            sacramento.creado_por_id,
+        )
+        datos = self._datos_editar_post(fiel_fecha_nacimiento=date(2016, 1, 1))
+        datos.update(
+            {
+                "numero": 999,
+                "folio": 999,
+                "fecha_registro": date(2020, 1, 1),
+                "estado": EstadoRegistro.ANULADO,
+                "creado_por": 999,
+                "modificado_por": 999,
+            }
+        )
+        respuesta = self.client.post(self._url("primera_comunion_editar", primera), datos)
+        self.assertRedirects(respuesta, self._url("primera_comunion_detalle", primera))
+        sacramento.refresh_from_db()
+        self.assertEqual(
+            (
+                sacramento.libro_id,
+                sacramento.folio_id,
+                sacramento.numero,
+                sacramento.fecha_registro,
+                sacramento.creado_por_id,
+            ),
+            original,
+        )
+        self.assertEqual(sacramento.modificado_por_id, self.usuario.pk)
+
+    def test_anular_get_y_post(self):
+        primera = self._registrar()
+        self.assertEqual(
+            self.client.get(self._url("primera_comunion_anular", primera)).status_code, 200
+        )
+        respuesta = self.client.post(
+            self._url("primera_comunion_anular", primera), {"motivo": "Partida duplicada"}
+        )
+        self.assertRedirects(respuesta, self._url("primera_comunion_detalle", primera))
+        primera.sacramento.refresh_from_db()
+        self.assertEqual(primera.sacramento.estado, EstadoRegistro.ANULADO)
+
+    def test_anular_post_sin_csrf_falla(self):
+        from django.test import Client
+
+        primera = self._registrar()
+        cliente = Client(enforce_csrf_checks=True)
+        cliente.force_login(self.usuario)
+        respuesta = cliente.post(self._url("primera_comunion_anular", primera), {"motivo": "x"})
+        self.assertEqual(respuesta.status_code, 403)
+        primera.sacramento.refresh_from_db()
+        self.assertEqual(primera.sacramento.estado, EstadoRegistro.ACTIVO)
+
+    def test_get_no_ejecuta_la_anulacion_ni_la_eliminacion(self):
+        primera = self._registrar()
+        self.client.get(self._url("primera_comunion_anular", primera))
+        self.client.get(self._url("primera_comunion_eliminar", primera))
+        primera.sacramento.refresh_from_db()
+        self.assertEqual(primera.sacramento.estado, EstadoRegistro.ACTIVO)
+        self.assertTrue(PrimeraComunion.objects.filter(pk=primera.pk).exists())
+
+    def test_eliminar_partida_elegible_borra_y_redirige_a_la_lista(self):
+        primera = self._registrar()
+        pk = primera.pk
+        self.assertEqual(
+            self.client.get(self._url("primera_comunion_eliminar", primera)).status_code, 200
+        )
+        respuesta = self.client.post(
+            self._url("primera_comunion_eliminar", primera), {"motivo": "Se elimina"}
+        )
+        self.assertRedirects(respuesta, reverse("sacramentos:primera_comunion_lista"))
+        self.assertFalse(PrimeraComunion.objects.filter(pk=pk).exists())
+        self.assertTrue(PartidaEliminada.objects.exists())
+
+    def test_eliminar_partida_anulada_redirige_sin_borrar(self):
+        primera = self._registrar()
+        anular_primera_comunion(primera, self.usuario, "Anulada")
+        respuesta = self.client.get(self._url("primera_comunion_eliminar", primera))
+        self.assertRedirects(respuesta, self._url("primera_comunion_detalle", primera))
+        respuesta = self.client.post(
+            self._url("primera_comunion_eliminar", primera), {"motivo": "Se intenta"}
+        )
+        self.assertRedirects(respuesta, self._url("primera_comunion_detalle", primera))
+        self.assertTrue(PrimeraComunion.objects.filter(pk=primera.pk).exists())
+        self.assertFalse(PartidaEliminada.objects.exists())
+
+
+class PrimeraComunionCertificadoTests(PrimeraComunionAccionesBaseTests):
+    """Certificado imprimible de Primera Comunión: solicitud, cierre e historial."""
+
+    contador = 0
+
+    def _fiel(self):
+        type(self).contador += 1
+        numero = f"71000000{type(self).contador}"
+        return Fiel.objects.create(
+            documento=self._crear_documento(numero),
+            nombres="Fiel",
+            apellidos="Prueba",
+            fecha_nacimiento=date(2000, 1, 1),
+        )
+
+    def _crear_partida(self, *, numero=1, estado=EstadoRegistro.ACTIVO, fiel=None, bautismo=None):
+        sacramento = Sacramento.objects.create(
+            tipo=TipoSacramento.PRIMERA_COMUNION,
+            fiel=fiel or self._fiel(),
+            libro=self.libro_pc,
+            folio=self.folio_pc,
+            numero=numero,
+            fecha=date(2026, 6, 15),
+            fecha_registro=date(2026, 6, 15),
+            parroquia=self.parroquia,
+            ministro=self.ministro,
+            estado=estado,
+        )
+        datos = {
+            "sacramento": sacramento,
+            "edad": 11,
+            "doy_fe": self.parroco,
+        }
+        if bautismo is not None:
+            datos.update(
+                {
+                    "bautismo": bautismo,
+                    "padre": bautismo.padre,
+                    "madre": bautismo.madre,
+                }
+            )
+        else:
+            datos.update(
+                {
+                    "padre": self.padre,
+                    "madre": self.madre,
+                    "fecha_bautismo": date(2016, 3, 15),
+                    "parroquia_bautismo": "Santa Ana de Chía",
+                    "libro_bautismo": 2,
+                    "folio_bautismo": 3,
+                    "numero_bautismo": 45,
+                }
+            )
+        return PrimeraComunion.objects.create(**datos)
+
+    def _url(self, primera):
+        return reverse("sacramentos:primera_comunion_certificado", args=[primera.pk])
+
+    def _datos_solicitud(self, **extra):
+        datos = {
+            "solicitante": "María Solicitante",
+            "tipo_documento": TipoDocumento.CC,
+            "numero_documento": "12345678",
+            "relacion": RelacionCertificado.PADRE_MADRE,
+            "finalidad": FinalidadCertificado.MATRIMONIO,
+            "finalidad_otro": "",
+        }
+        datos.update(extra)
+        return datos
+
+    def _hay_certificado_en_historial(self):
+        return HistorialSacramento.objects.filter(accion=AccionHistorial.CERTIFICADO).exists()
+
+    def test_certificado_requiere_login(self):
+        primera = self._crear_partida()
+        self.client.logout()
+        respuesta = self.client.get(self._url(primera))
+        self.assertNotEqual(respuesta.status_code, 200)
+        self.assertFalse(self._hay_certificado_en_historial())
+
+    def test_certificado_404(self):
+        respuesta = self.client.get(
+            reverse("sacramentos:primera_comunion_certificado", args=[9999])
+        )
+        self.assertEqual(respuesta.status_code, 404)
+
+    def test_get_muestra_formulario(self):
+        primera = self._crear_partida()
+        respuesta = self.client.get(self._url(primera))
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertTemplateUsed(respuesta, "certificados/solicitud_certificado.html")
+        self.assertFalse(self._hay_certificado_en_historial())
+
+    def test_post_valido_emite_certificado_y_registra_historial(self):
+        primera = self._crear_partida()
+        respuesta = self.client.post(self._url(primera), self._datos_solicitud())
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertTemplateUsed(respuesta, "certificados/certificado.html")
+        self.assertContains(respuesta, "María Solicitante")
+        self.assertContains(respuesta, "Matrimonio")
+        self.assertContains(respuesta, "Pedro Ruiz")
+
+        historial = HistorialSacramento.objects.get(accion=AccionHistorial.CERTIFICADO)
+        self.assertEqual(historial.sacramento, primera.sacramento)
+        self.assertEqual(historial.usuario, self.usuario)
+        self.assertIn("María Solicitante", historial.descripcion)
+
+    def test_post_invalido_no_emite_certificado(self):
+        primera = self._crear_partida()
+        respuesta = self.client.post(self._url(primera), {})
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertTemplateUsed(respuesta, "certificados/solicitud_certificado.html")
+        self.assertFalse(self._hay_certificado_en_historial())
+
+    def test_certificado_solicitante_solo_letras(self):
+        primera = self._crear_partida()
+        respuesta = self.client.post(
+            self._url(primera), self._datos_solicitud(solicitante="María 123")
+        )
+        self.assertContains(respuesta, "solo admite letras")
+        self.assertFalse(self._hay_certificado_en_historial())
+
+    def test_certificado_valida_documento_segun_tipo(self):
+        primera = self._crear_partida()
+        respuesta = self.client.post(
+            self._url(primera), self._datos_solicitud(numero_documento="12")
+        )
+        self.assertContains(respuesta, "5 y 15")
+        self.assertFalse(self._hay_certificado_en_historial())
+
+    def test_finalidad_otro_exige_texto(self):
+        primera = self._crear_partida()
+        respuesta = self.client.post(
+            self._url(primera), self._datos_solicitud(finalidad=FinalidadCertificado.OTRO)
+        )
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertFalse(self._hay_certificado_en_historial())
+
+    def test_finalidad_otro_usa_el_texto(self):
+        primera = self._crear_partida()
+        respuesta = self.client.post(
+            self._url(primera),
+            self._datos_solicitud(
+                finalidad=FinalidadCertificado.OTRO, finalidad_otro="Trámite de visa"
+            ),
+        )
+        self.assertContains(respuesta, "Trámite de visa")
+
+    def test_partida_anulada_no_emite_certificado(self):
+        primera = self._crear_partida(estado=EstadoRegistro.ANULADO)
+        destino = reverse("sacramentos:primera_comunion_detalle", args=[primera.pk])
+        self.assertRedirects(self.client.get(self._url(primera)), destino)
+        self.assertRedirects(self.client.post(self._url(primera), self._datos_solicitud()), destino)
+        self.assertFalse(self._hay_certificado_en_historial())
+
+    def test_certificado_post_sin_csrf_falla(self):
+        from django.test import Client
+
+        primera = self._crear_partida()
+        cliente = Client(enforce_csrf_checks=True)
+        cliente.force_login(self.usuario)
+        respuesta = cliente.post(self._url(primera), self._datos_solicitud())
+        self.assertEqual(respuesta.status_code, 403)
+        self.assertFalse(self._hay_certificado_en_historial())
+
+    def test_certificado_no_muestra_padres_biologicos(self):
+        fiel, bautismo = self._crear_comulgante_bautizado(numero_documento="73111111")
+        bautismo.padre_biologico_nombre = "Anacleto Biológico"
+        bautismo.madre_biologica_nombre = "Berta Biológica"
+        bautismo.save()
+        primera = self._crear_partida(fiel=fiel, bautismo=bautismo)
+        respuesta = self.client.post(self._url(primera), self._datos_solicitud())
+        self.assertNotContains(respuesta, "Anacleto Biológico")
+        self.assertNotContains(respuesta, "Berta Biológica")
+
+    def test_certificado_muestra_diocesis_y_pie_configurados(self):
+        primera = self._crear_partida()
+        with override_settings(NOMBRE_DIOCESIS="Diócesis de Prueba"):
+            respuesta = self.client.post(self._url(primera), self._datos_solicitud())
+        self.assertContains(respuesta, "Diócesis de Prueba")
+        self.assertContains(respuesta, "Fe que une, sacramentos que dan vida")
+
+    def test_certificado_oculta_insignia_de_estado(self):
+        primera = self._crear_partida()
+        respuesta = self.client.post(self._url(primera), self._datos_solicitud())
+        self.assertNotContains(respuesta, "insignia-estado")
+
+    def test_certificado_usa_el_icono_del_caliz(self):
+        primera = self._crear_partida()
+        respuesta = self.client.post(self._url(primera), self._datos_solicitud())
+        self.assertContains(respuesta, "M24 27v9M17 40h14")
+
+    def test_firma_secretario_solo_con_ese_rol(self):
+        primera = self._crear_partida()
+        respuesta = self.client.post(self._url(primera), self._datos_solicitud())
+        self.assertNotContains(respuesta, "Secretario(a)")
+
+        PerfilUsuario.objects.create(usuario=self.usuario, rol=RolUsuario.SECRETARIO)
+        respuesta = self.client.post(self._url(primera), self._datos_solicitud())
+        self.assertContains(respuesta, "Secretario(a)")
+        self.assertContains(respuesta, self.usuario.username)
+
+    def test_detalle_muestra_enlace_certificado(self):
+        primera = self._crear_partida()
+        respuesta = self.client.get(
+            reverse("sacramentos:primera_comunion_detalle", args=[primera.pk])
+        )
+        self.assertContains(respuesta, self._url(primera))
+
+    def test_detalle_anulado_no_muestra_enlace_certificado(self):
+        primera = self._crear_partida(estado=EstadoRegistro.ANULADO)
+        respuesta = self.client.get(
+            reverse("sacramentos:primera_comunion_detalle", args=[primera.pk])
+        )
+        self.assertNotContains(respuesta, self._url(primera))
+
+    def test_certificado_titulo_y_consta_propios(self):
+        primera = self._crear_partida(numero=3)
+        with override_settings(NOMBRE_PARROQUIA="San Pedro Claver"):
+            respuesta = self.client.post(self._url(primera), self._datos_solicitud())
+        self.assertContains(respuesta, "CERTIFICADO DE PRIMERA COMUNIÓN")
+        self.assertNotContains(respuesta, "PARTIDA DE PRIMERA COMUNIÓN")
+        self.assertContains(
+            respuesta,
+            "El suscrito párroco certifica que en el Libro de Primera Comunión de "
+            "San Pedro Claver se encuentra la siguiente partida:",
+        )
+
+    def test_certificado_solo_muestra_el_documento_del_comulgante(self):
+        primera = self._crear_partida()
+        respuesta = self.client.post(self._url(primera), self._datos_solicitud())
+        self.assertContains(respuesta, str(primera.sacramento.fiel.documento))
+        self.assertNotContains(respuesta, "11111111")  # documento del padre
+        self.assertNotContains(respuesta, "22222222")  # documento de la madre
+        self.assertNotContains(respuesta, "1234567890")  # documento del ministro
+        self.assertNotContains(respuesta, "7777777777")  # documento del párroco
+
+    def test_certificado_firma_del_parroco_sin_cargo_pegado(self):
+        primera = self._crear_partida()
+        respuesta = self.client.post(self._url(primera), self._datos_solicitud())
+        self.assertContains(respuesta, '<span class="hoja-firma-nombre">Pedro Ruiz</span>')
+        self.assertContains(respuesta, '<span class="hoja-firma-rol">Párroco</span>')
+
+    def test_certificado_ministro_con_cargo_sin_documento(self):
+        primera = self._crear_partida()
+        respuesta = self.client.post(self._url(primera), self._datos_solicitud())
+        self.assertContains(respuesta, "Carlos Gómez - Párroco")
+        self.assertNotContains(respuesta, "1234567890")
+
+    def test_certificado_usa_ornamento_nuevo_sin_el_viejo(self):
+        primera = self._crear_partida()
+        respuesta = self.client.post(self._url(primera), self._datos_solicitud())
+        self.assertContains(respuesta, "hoja-ornamento-pie")
+        self.assertNotContains(respuesta, "hoja-cierre-ornamento")
+
+    def test_datos_cierre_certificado_primera_comunion(self):
+        from .forms import SolicitudCertificadoForm
+
+        primera = self._crear_partida()
+        form = SolicitudCertificadoForm(self._datos_solicitud())
+        self.assertTrue(form.is_valid(), form.errors)
+        cierre = datos_certificado_primera_comunion(
+            primera, form.datos_para_servicio(), self.usuario
+        )
+        self.assertEqual(cierre["parroco"], "Pedro Ruiz")
+        self.assertEqual(cierre["solicitante"], "María Solicitante")
+        self.assertIn("Matrimonio", cierre["finalidad"])

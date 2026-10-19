@@ -1,0 +1,168 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Primera Comunión - Sistema de Gestión Parroquial{% endblock %}
+{% block heading %}Primera Comunión{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/bautismo_lista.css' %}">
+{% endblock %}
+
+{% block content %}
+{% url 'sacramentos:primera_comunion_lista' as url_lista %}
+{% url 'sacramentos:primera_comunion_crear' as url_crear %}
+<div class="card">
+  <div class="card-header">
+    <div class="row align-items-center">
+      <div class="col-lg-8">
+        <form method="get" role="search" class="form-inline">
+          <input type="search" name="q" value="{{ q }}" class="form-control form-control-sm mr-2 mb-1"
+                 placeholder="Buscar por nombre o número..." aria-label="Buscar primeras comuniones">
+          <select name="libro" class="form-control form-control-sm mr-2 mb-1" aria-label="Filtrar por libro">
+            <option value="">Todos los libros</option>
+            {% for libro in libros %}
+              <option value="{{ libro.pk }}" {% if filtro_libro == libro.pk|stringformat:"s" %}selected{% endif %}>
+                {{ libro.nombre }}
+              </option>
+            {% endfor %}
+          </select>
+          <select name="anio" class="form-control form-control-sm mr-2 mb-1" aria-label="Filtrar por año">
+            <option value="">Todos los años</option>
+            {% for anio in anios %}
+              <option value="{{ anio }}" {% if filtro_anio == anio|stringformat:"s" %}selected{% endif %}>
+                {{ anio }}
+              </option>
+            {% endfor %}
+          </select>
+          <select name="estado" class="form-control form-control-sm mr-2 mb-1" aria-label="Filtrar por estado">
+            <option value="">Todos los estados</option>
+            {% for valor, etiqueta in estados %}
+              <option value="{{ valor }}" {% if filtro_estado == valor %}selected{% endif %}>{{ etiqueta }}</option>
+            {% endfor %}
+          </select>
+          {% if mostrar_parroquia %}
+            <select name="parroquia" class="form-control form-control-sm mr-2 mb-1" aria-label="Filtrar por parroquia">
+              <option value="">Todas las parroquias</option>
+              {% for parroquia in parroquias_con_libros %}
+                <option value="{{ parroquia.pk }}"
+                        {% if filtro_parroquia == parroquia.pk|stringformat:"s" %}selected{% endif %}>
+                  {{ parroquia.nombre }}
+                </option>
+              {% endfor %}
+            </select>
+          {% endif %}
+          <button type="submit" class="btn btn-default btn-sm mb-1" title="Aplicar filtros">
+            <i class="fas fa-filter" aria-hidden="true"></i> Filtrar
+          </button>
+          {% if hay_filtros %}
+            <a href="{{ url_lista }}" class="btn btn-link btn-sm mb-1">Limpiar filtros</a>
+          {% endif %}
+        </form>
+      </div>
+      <div class="col-lg-4 text-right mt-2 mt-lg-0">
+        <a href="{{ url_crear }}" class="btn btn-tema btn-sm">
+          <i class="fas fa-plus" aria-hidden="true"></i> Registrar Primera Comunión
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <div class="card-body p-0">
+    {% if primeras_comuniones %}
+      <div class="table-responsive">
+        <table class="table table-striped table-hover table-sm tabla-partidas">
+          <thead>
+            <tr>
+              <th>N.° de partida</th>
+              <th class="oculta-movil">Folio</th>
+              <th class="oculta-movil">Libro</th>
+              <th>Fecha</th>
+              <th>Comulgante</th>
+              <th class="oculta-movil">Bautismo</th>
+              {% if mostrar_parroquia %}<th class="oculta-movil">Parroquia</th>{% endif %}
+              <th>Estado</th>
+              <th class="text-right oculta-movil" style="width: 60px;">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for primera in primeras_comuniones %}
+              <tr class="fila-clicable" data-href="{% url 'sacramentos:primera_comunion_detalle' primera.pk %}">
+                <td>{{ primera.sacramento.numero }}</td>
+                <td class="oculta-movil">{{ primera.sacramento.folio.numero_folio }}</td>
+                <td class="oculta-movil">{{ primera.sacramento.folio.libro }}</td>
+                <td>{{ primera.sacramento.fecha|date:"d/m/Y" }}</td>
+                <td class="celda-bautizado">
+                  {% if primera.sacramento.fiel %}
+                    {{ primera.sacramento.fiel }}
+                    {% if primera.sacramento.fiel.documento_id %}
+                      <span class="bautizado-documento">{{ primera.sacramento.fiel.documento }}</span>
+                    {% endif %}
+                  {% else %}
+                    —
+                  {% endif %}
+                </td>
+                <td class="oculta-movil">
+                  {% if primera.bautismo_id %}
+                    <a href="{% url 'sacramentos:bautismo_detalle' primera.bautismo_id %}" title="Ver partida de bautismo">
+                      Enlazado
+                    </a>
+                  {% else %}
+                    Externo
+                  {% endif %}
+                </td>
+                {% if mostrar_parroquia %}
+                  <td class="oculta-movil">{{ primera.sacramento.folio.libro.parroquia|default:"—" }}</td>
+                {% endif %}
+                <td>
+                  <span class="insignia-estado insignia-estado--{{ primera.sacramento.estado|lower }}">
+                    {{ primera.sacramento.get_estado_display }}
+                  </span>
+                </td>
+                <td class="text-right celda-accion oculta-movil">
+                  <a href="{% url 'sacramentos:primera_comunion_detalle' primera.pk %}"
+                     class="enlace-ver" title="Ver partida" aria-label="Ver partida">
+                    <i class="fas fa-eye" aria-hidden="true"></i>
+                  </a>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% elif hay_filtros %}
+      {% include "includes/estado_vacio.html" with icono="core/iconos/documento-reloj.svg" titulo="No hay resultados con estos filtros" texto="Prueba con otros criterios o límpialos para ver todo de nuevo." boton_texto="Limpiar filtros" boton_url=url_lista %}
+    {% else %}
+      {% include "includes/estado_vacio.html" with icono="core/iconos/documento-reloj.svg" titulo="Aún no hay primeras comuniones registradas" texto="Registra la primera Primera Comunión para comenzar." boton_texto="Registrar Primera Comunión" boton_url=url_crear %}
+    {% endif %}
+  </div>
+
+  {% if is_paginated %}
+    <div class="card-footer clearfix">
+      <span class="float-left text-muted">
+        Página {{ page_obj.number }} de {{ paginator.num_pages }}
+        ({{ paginator.count }} registros)
+      </span>
+      <ul class="pagination pagination-sm m-0 float-right">
+        {% if page_obj.has_previous %}
+          <li class="page-item">
+            <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if consulta_filtros %}&{{ consulta_filtros }}{% endif %}">&laquo;</a>
+          </li>
+        {% else %}
+          <li class="page-item disabled"><span class="page-link">&laquo;</span></li>
+        {% endif %}
+        {% if page_obj.has_next %}
+          <li class="page-item">
+            <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if consulta_filtros %}&{{ consulta_filtros }}{% endif %}">&raquo;</a>
+          </li>
+        {% else %}
+          <li class="page-item disabled"><span class="page-link">&raquo;</span></li>
+        {% endif %}
+      </ul>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/filas_clicables.js' %}"></script>
+{% endblock %}

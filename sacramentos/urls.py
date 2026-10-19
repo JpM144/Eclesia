@@ -20,4 +20,39 @@ urlpatterns = [
         views.BautismoEliminarView.as_view(),
         name="bautismo_eliminar",
     ),
+    path(
+        "primeras-comuniones/",
+        views.PrimeraComunionListView.as_view(),
+        name="primera_comunion_lista",
+    ),
+    path(
+        "primeras-comuniones/nueva/",
+        views.PrimeraComunionCreateView.as_view(),
+        name="primera_comunion_crear",
+    ),
+    path(
+        "primeras-comuniones/<int:pk>/",
+        views.PrimeraComunionDetailView.as_view(),
+        name="primera_comunion_detalle",
+    ),
+    path(
+        "primeras-comuniones/<int:pk>/editar/",
+        views.PrimeraComunionUpdateView.as_view(),
+        name="primera_comunion_editar",
+    ),
+    path(
+        "primeras-comuniones/<int:pk>/anular/",
+        views.PrimeraComunionAnularView.as_view(),
+        name="primera_comunion_anular",
+    ),
+    path(
+        "primeras-comuniones/<int:pk>/eliminar/",
+        views.PrimeraComunionEliminarView.as_view(),
+        name="primera_comunion_eliminar",
+    ),
+    path(
+        "primeras-comuniones/<int:pk>/certificado/",
+        views.PrimeraComunionCertificadoView.as_view(),
+        name="primera_comunion_certificado",
+    ),
 ]

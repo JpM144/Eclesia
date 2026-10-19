@@ -23,16 +23,15 @@
         </li>
 
         <li class="nav-item">
-          <a href="{% url 'sacramentos:bautismo_lista' %}" class="nav-link{% if ns == 'sacramentos' %} active{% endif %}" title="Bautismos">
+          <a href="{% url 'sacramentos:bautismo_lista' %}" class="nav-link{% if 'bautismo' in actual %} active{% endif %}" title="Bautismos">
             <span class="nav-icon icono-menu">{% include "core/iconos/gota.svg" %}</span>
             <p class="p-con-etiqueta"><span class="texto-item">Bautismos</span></p>
           </a>
         </li>
         <li class="nav-item">
-          {# TODO: enlazar cuando exista la pantalla #}
-          <a class="nav-link deshabilitado" aria-disabled="true" title="Primera Comunión">
+          <a href="{% url 'sacramentos:primera_comunion_lista' %}" class="nav-link{% if 'primera_comunion' in actual %} active{% endif %}" title="Primera Comunión">
             <span class="nav-icon icono-menu">{% include "core/iconos/caliz.svg" %}</span>
-            <p class="p-con-etiqueta"><span class="texto-item">Primera Comunión</span><span class="etiqueta-pronto">Pronto</span></p>
+            <p class="p-con-etiqueta"><span class="texto-item">Primera Comunión</span></p>
           </a>
         </li>
         <li class="nav-item">

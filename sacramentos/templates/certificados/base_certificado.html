@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% comment %}
+Base del certificado imprimible de cualquier sacramento.
+
+Recibe:
+  hoja          – datos de la hoja de la partida (ver hoja_partida.html), con
+                  ``incluir_cierre`` en verdadero para añadir el pie de firmas
+  certificado   – datos del pie (solicitante, finalidad, fecha, firmas…)
+  url_detalle   – enlace de vuelta a la ficha de la partida
+
+Las plantillas hijas definen el título y el encabezado. Nunca se marca
+contenido como seguro: todos los valores se imprimen escapados.
+{% endcomment %}
+
+{% block extra_css %}
+  <link rel="stylesheet" href="{% static 'css/hoja_partida.css' %}">
+  <link rel="stylesheet" href="{% static 'css/certificado.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="certificado-barra d-print-none">
+  <button type="button" class="btn btn-primary" onclick="window.print()">
+    <i class="fas fa-print"></i> Imprimir
+  </button>
+  <a href="{{ url_detalle }}" class="btn btn-secondary">
+    Volver a la partida
+  </a>
+</div>
+
+{% include "sacramentos/partials/hoja_partida.html" with titulo=hoja.titulo tipo_libro=hoja.tipo_libro referencia=hoja.referencia parroquia=hoja.parroquia diocesis=hoja.diocesis consta=hoja.consta filas=hoja.filas icono_agua=hoja.icono_agua notas=hoja.notas estado=hoja.estado estado_etiqueta=hoja.estado_etiqueta ocultar_estado=hoja.ocultar_estado incluir_cierre=hoja.incluir_cierre certificado=certificado %}
+
+<footer class="certificado-pie">
+  <span class="certificado-pie-linea" aria-hidden="true"></span>
+  <span class="certificado-pie-texto">{{ hoja.parroquia }} · Fe que une, sacramentos que dan vida</span>
+  <span class="certificado-pie-linea" aria-hidden="true"></span>
+</footer>
+{% endblock %}

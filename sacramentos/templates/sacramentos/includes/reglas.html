@@ -1,0 +1,44 @@
+{% comment %}
+Advertencias y recuerdos de las reglas sacramentales del formulario.
+Se incluye con `with form=form` desde el alta de cada sacramento.
+
+Las advertencias pendientes muestran la casilla «Verificado / excepción
+autorizada» y el motivo, ambos obligatorios para poder guardar; el servidor
+vuelve a comprobarlo, así que manipular el POST no las salta.
+{% endcomment %}
+{% if form.advertencias_pendientes %}
+  <div class="alert alert-warning">
+    <p class="mb-2"><strong>Advertencias de las reglas sacramentales</strong></p>
+    {% for regla in form.advertencias_pendientes %}
+      <p class="mb-1">[{{ regla.codigo }}] {{ regla.mensaje }}</p>
+    {% endfor %}
+    <div class="form-group mb-0">
+      <div class="form-check">
+        {{ form.reglas_verificadas }}
+        <label class="form-check-label ml-1" for="{{ form.reglas_verificadas.id_for_label }}">
+          {{ form.reglas_verificadas.label }}
+        </label>
+      </div>
+      {% for error in form.reglas_verificadas.errors %}
+        <div class="text-danger small">{{ error }}</div>
+      {% endfor %}
+      <div class="mt-2">
+        {% include "sacramentos/includes/campo.html" with campo=form.reglas_motivo %}
+      </div>
+    </div>
+  </div>
+{% endif %}
+{% if form.advertencias_aceptadas %}
+  <div class="alert alert-info">
+    {% for regla, motivo in form.advertencias_aceptadas %}
+      <p class="mb-1">[{{ regla.codigo }}] {{ regla.mensaje }} — Verificada: {{ motivo }}</p>
+    {% endfor %}
+  </div>
+{% endif %}
+{% if form.recuerdos_visibles %}
+  <div class="alert alert-info">
+    {% for regla in form.recuerdos_visibles %}
+      <p class="mb-1">[{{ regla.codigo }}] {{ regla.mensaje }}</p>
+    {% endfor %}
+  </div>
+{% endif %}

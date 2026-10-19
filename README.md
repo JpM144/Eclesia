@@ -73,14 +73,16 @@ comparando `request.resolver_match.url_name` con el nombre de la ruta:
 ```
 
 Cuando se agregue una ruta nueva se usa el mismo patrón con el nombre de esa ruta.
-**Bautismos** ya tiene pantalla y enlaza a `sacramentos:bautismo_lista` (queda activo con
-`ns == 'sacramentos'`). Los tres sacramentos restantes (Primera Comunión, Confirmaciones y
-Matrimonios) aún no tienen pantalla: aparecen atenuados (clase `deshabilitado`,
-`aria-disabled="true"`, sin `href`), con la etiqueta **Pronto** y con los mismos íconos SVG
-del dashboard; llevan el comentario `{# TODO: enlazar cuando exista la pantalla #}`. Su
-etiqueta se maqueta como `<p class="p-con-etiqueta"><span class="texto-item">…</span>
+**Bautismos** y **Primera Comunión** ya tienen pantalla y enlazan a
+`sacramentos:bautismo_lista` y `sacramentos:primera_comunion_lista` (cada uno queda activo
+por su propio nombre: `{% if 'bautismo' in actual %}` y `{% if 'primera_comunion' in actual %}`).
+Los dos sacramentos restantes (Confirmaciones y Matrimonios) aún no tienen pantalla:
+aparecen atenuados (clase `deshabilitado`, `aria-disabled="true"`, sin `href`), con la
+etiqueta **Pronto** y con los mismos íconos SVG del dashboard; llevan el comentario
+`{# TODO: enlazar cuando exista la pantalla #}`. Su etiqueta se maqueta como
+`<p class="p-con-etiqueta"><span class="texto-item">…</span>
 <span class="etiqueta-pronto">Pronto</span></p>`: el texto se recorta con puntos y la
-píldora **Pronto** nunca se comprime ni se corta, aun en ítems largos como "Primera Comunión".
+píldora **Pronto** nunca se comprime ni se corta, aun en ítems largos.
 
 El orden del menú es: **Inicio**, Bautismos, Primera Comunión, Confirmaciones, Matrimonios,
 **Libros**, **Consultar personas** y el desplegable **Catálogos** (Parroquias, Ministros,
@@ -675,6 +677,60 @@ varón, madrina mujer), el aviso aparece **al buscar**, no solo al guardar. El c
 configura con atributos `data-` (rol del bloque, par tipo/número y `data-campo-persona` de cada
 campo rellenable); el relleno se hace siempre con `textContent`/`value`.
 
+## Sacramentos: Primera Comunión
+
+Registro de partidas de Primera Comunión (prompt 9a). Editar, anular, eliminar y certificado
+quedan para el prompt 9b.
+
+### Pantallas
+
+- **Lista** `sacramentos:primera_comunion_lista` = `/sacramentos/primeras-comuniones/`
+  (`PrimeraComunionListView`): columnas N.°, Folio, Libro, Fecha, Comulgante, Bautismo
+  («Enlazado»/«Externo»), Parroquia, Estado y acciones; mismos filtros que la lista de
+  bautismos (`?q=`, `?libro=`, `?anio=`), paginado 25 y sin N+1. Reutiliza
+  `static/css/bautismo_lista.css`, `includes/estado_vacio.html` y `filas_clicables.js`.
+- **Registro** `sacramentos:primera_comunion_crear` = `/sacramentos/primeras-comuniones/nueva/`
+  (`PrimeraComunionCreateView` + `PrimeraComunionForm`; acepta `?libro=` para precargar el
+  libro). Tras guardar redirige a la ficha con mensaje «Partida registrada: Libro X, Folio Y,
+  N.° Z».
+- **Ficha** `sacramentos:primera_comunion_detalle` = `/sacramentos/primeras-comuniones/<pk>/`
+  (`PrimeraComunionDetailView`): hoja de partida (`datos_hoja_primera_comunion`, icono
+  `caliz.svg`), tarjeta «Constancia del bautismo» con enlace a la partida enlazada cuando
+  existe, historial y personas de la partida. Solo botones Volver/Imprimir (sin
+  Editar/Anular/Eliminar).
+
+### Reglas sacramentales P1–P5
+
+Mecanismo reutilizable en `sacramentos/reglas.py` (también servirá para Confirmación y
+Matrimonio). Tres niveles: **BLOQUEA** (error sin campo, no guarda), **ADVIERTE** (no guarda
+hasta marcar «Verificado / excepción autorizada» y escribir el motivo; ambas cosas se
+revalidan en el servidor y cada aceptación queda en el historial con código, motivo y
+usuario) y **RECUERDA** (solo informa). Las reglas se evalúan **siempre** en el servidor
+(`MixinReglas.clean()`): manipular el POST no las saltea.
+
+| Regla | Nivel | Condición                                                    |
+| ----- | ----- | ------------------------------------------------------------ |
+| P1    | BLOQUEA | Sin bautismo (ni enlazado ni externo completo) (c. 842).    |
+| P2    | BLOQUEA | Ya tiene Primera Comunión activa o corregida (con referencia). |
+| P3    | BLOQUEA | Fecha futura, anterior al nacimiento o anterior al bautismo. |
+| P4    | ADVIERTE | Edad < `EDAD_USO_RAZON` (7) en la fecha (c. 914; c. 97 §2). |
+| P5    | RECUERDA | Confesión sacramental previa (c. 914); no bloquea.          |
+
+El bautismo puede venir **enlazado** (la casilla oculta `bautismo` que llena
+`buscar_persona.js` con `data-mostrar-bautismo`, o la búsqueda por documento) o registrado
+con sus **datos externos** (fecha, parroquia, libro, folio y número obligatorios; la diócesis
+viaja en `observaciones_bautismo` como «Diócesis: X.», sin migración).
+
+### Servicio
+
+`sacramentos.services.registrar_primera_comunion(datos, usuario)` (transacción única): crea
+el Sacramento PRIMERA_COMUNION con folio, número y fecha de registro automáticos y la
+PrimeraComunion con la **edad calculada en el servidor** (sin campo de migración), copia
+padre y madre del bautismo enlazado si existe, guarda los datos externos si no, y registra en
+el historial la CREACION más una entrada «Regla {codigo} verificada: {motivo}» por cada
+advertencia aceptada. No se usa AnotacionMarginal (el tipo no existe para PC; ver
+docs/libros_parroquiales.md regla 7).
+
 ## Personas
 
 Padres, madres, padrinos y fieles no se administran desde el menú: se crean dentro de cada
@@ -748,8 +804,12 @@ Respuestas:
   encontrada, para corregirla desde Consultar personas). Solo para `rol=fiel` se añaden
   `{"fecha_nacimiento", "municipio", "sexo", "telefono", "bautismo_activo",
   "bautismo_referencia"}`; `bautismo_referencia` es «Libro X · Folio Y · N.° Z» del bautismo
-  activo o corregido (vacío si no tiene). No se devuelve ningún id interno. El consumo desde el
-  navegador se hace en `static/js/buscar_persona.js`, que escribe siempre con
+  activo o corregido (vacío si no tiene). Si `bautismo_activo` es `true` se añaden además
+  `bautismo_id` (pk de la partida, para enlazarla en el formulario de Primera Comunión),
+  `bautismo_url` (URL de su ficha), `bautismo_parroquia`, `bautismo_fecha` (ISO) y
+  `bautismo_padre`/`bautismo_madre`; un fiel sin bautismo responde exactamente con los campos
+  de siempre. No se devuelve ningún id interno salvo los del bautismo enlazado. El consumo
+  desde el navegador se hace en `static/js/buscar_persona.js`, que escribe siempre con
   `textContent`/`value` (nunca `innerHTML`).
 
 Se conservan los endpoints heredados `personas:api_padre` (`/personas/api/padre/`) y

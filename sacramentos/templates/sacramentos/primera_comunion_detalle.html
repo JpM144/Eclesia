@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Partida de Primera Comunión - Sistema de Gestión Parroquial{% endblock %}
+{% block heading %}Partida de Primera Comunión{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/hoja_partida.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="no-print d-flex flex-wrap align-items-center justify-content-between mb-3">
+  <div>
+    <h1 class="h4 mb-1">Primera Comunión</h1>
+    <p class="text-muted mb-0">{{ hoja.referencia }}</p>
+  </div>
+  <div class="mt-2 mt-md-0">
+    {% if puede_editar %}
+      <a href="{% url 'sacramentos:primera_comunion_editar' primera_comunion.pk %}" class="btn btn-info btn-sm">
+        <i class="fas fa-pencil-alt" aria-hidden="true"></i> Editar
+      </a>
+    {% endif %}
+    {% if puede_anular %}
+      <a href="{% url 'sacramentos:primera_comunion_anular' primera_comunion.pk %}" class="btn btn-warning btn-sm">
+        <i class="fas fa-ban" aria-hidden="true"></i> Anular
+      </a>
+    {% endif %}
+    {% if puede_eliminar %}
+      <a href="{% url 'sacramentos:primera_comunion_eliminar' primera_comunion.pk %}" class="btn btn-danger btn-sm">
+        <i class="fas fa-trash" aria-hidden="true"></i> Eliminar
+      </a>
+    {% else %}
+      <button type="button" class="btn btn-danger btn-sm" disabled title="{{ motivo_no_eliminable }}">
+        <i class="fas fa-trash" aria-hidden="true"></i> Eliminar
+      </button>
+    {% endif %}
+    {% if puede_certificar %}
+      <a href="{% url 'sacramentos:primera_comunion_certificado' primera_comunion.pk %}" class="btn btn-primary btn-sm">
+        <i class="fas fa-file-alt" aria-hidden="true"></i> Certificado
+      </a>
+    {% endif %}
+    <a href="{% url 'sacramentos:primera_comunion_lista' %}" class="btn btn-secondary btn-sm">
+      <i class="fas fa-arrow-left" aria-hidden="true"></i> Volver a la lista
+    </a>
+    <button type="button" class="btn btn-default btn-sm" onclick="window.print()">
+      <i class="fas fa-print" aria-hidden="true"></i> Imprimir
+    </button>
+  </div>
+</div>
+
+{% if not puede_eliminar and motivo_no_eliminable %}
+  <div class="no-print alert alert-light border py-2 mb-3">
+    <i class="fas fa-info-circle" aria-hidden="true"></i>
+    No se puede eliminar esta partida: {{ motivo_no_eliminable }}
+  </div>
+{% endif %}
+
+{% if bautismo_enlace %}
+  <div class="no-print alert alert-light border d-flex flex-wrap align-items-center justify-content-between mb-3">
+    <div>
+      <p class="mb-0"><strong>Constancia del bautismo</strong></p>
+      <p class="mb-0 text-muted small">
+        Bautizado en {{ bautismo_parroquia }} · {{ bautismo_referencia }}
+      </p>
+    </div>
+    <a href="{{ bautismo_enlace }}" class="btn btn-outline-primary btn-sm mt-2 mt-md-0">
+      <i class="fas fa-tint" aria-hidden="true"></i> Ver partida de bautismo
+    </a>
+  </div>
+{% endif %}
+
+{% include "sacramentos/partials/hoja_partida.html" with titulo=hoja.titulo tipo_libro=hoja.tipo_libro referencia=hoja.referencia parroquia=hoja.parroquia diocesis=hoja.diocesis consta=hoja.consta filas=hoja.filas icono_agua=hoja.icono_agua notas=hoja.notas estado=hoja.estado estado_etiqueta=hoja.estado_etiqueta %}
+
+<div class="no-print row mt-3">
+  <div class="col-lg-6">
+    <div class="card mb-3">
+      <div class="card-header">
+        <h2 class="card-title h6 mb-0">Historial de la partida</h2>
+      </div>
+      <div class="card-body p-0">
+        {% if historial %}
+          <div class="table-responsive">
+            <table class="table table-sm mb-0">
+              <thead>
+                <tr>
+                  <th>Fecha</th>
+                  <th>Acción</th>
+                  <th>Descripción</th>
+                  <th>Usuario</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for entrada in historial %}
+                  <tr>
+                    <td>{{ entrada.fecha|date:"d/m/Y H:i" }}</td>
+                    <td>{{ entrada.get_accion_display }}</td>
+                    <td>{{ entrada.descripcion|default:"—" }}</td>
+                    <td>{{ entrada.usuario|default:"—" }}</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <p class="text-muted p-3 mb-0">Sin movimientos registrados.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-6">
+    <div class="card mb-3">
+      <div class="card-header">
+        <h2 class="card-title h6 mb-0">Personas de la partida</h2>
+      </div>
+      <div class="card-body">
+        {% if personas_partida %}
+          <ul class="relaciones-lista mb-0">
+            {% for persona in personas_partida %}
+              <li>
+                <span class="text-muted">{{ persona.rol }}:</span>
+                {% if persona.documento_id %}
+                  <a href="{% url 'personas:ficha' persona.documento_id %}">{{ persona.nombre }}</a>
+                {% else %}
+                  {{ persona.nombre }}
+                {% endif %}
+              </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p class="text-muted mb-0">Sin personas registradas.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

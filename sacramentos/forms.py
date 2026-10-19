@@ -10,7 +10,9 @@ anidado que consume ``registrar_bautismo``.
 """
 
 from django import forms
+from django.conf import settings
 from django.core.exceptions import ValidationError
+from django.utils import timezone
 
 from core.choices import (
     EstadoLibro,
@@ -34,6 +36,12 @@ from parroquias.models import Libro, Ministro
 from personas.consultas import FIEL, contar_partidas
 from personas.models import Fiel, Madre, Padre, Padrino
 from ubicacion.models import Departamento, Municipio, Pais
+
+from .models import Bautismo, PrimeraComunion
+from .reglas import ADVIERTE, BLOQUEA, RECUERDA, MixinReglas, Regla, edad_en_fecha
+
+# Estados en los que una partida cuenta para las reglas de duplicidad.
+ESTADOS_VIGENTES = (EstadoRegistro.ACTIVO, EstadoRegistro.CORREGIDO)
 
 
 class LibroBautismoChoiceField(forms.ModelChoiceField):
@@ -832,3 +840,679 @@ class SolicitudCertificadoForm(forms.Form):
                 f"({relacion_display}) para {finalidad_display}."
             ),
         }
+
+
+REGLA_P1_SIN_BAUTISMO = Regla(
+    "P1",
+    BLOQUEA,
+    "No consta el bautismo; sin bautismo no se puede registrar la Primera "
+    "Comunión (c. 842). Enlace la partida de bautismo del sistema o complete "
+    "los datos del bautismo de otra parroquia.",
+)
+REGLA_P5_CONFESION = Regla(
+    "P5",
+    RECUERDA,
+    "Verifica la confesión sacramental previa (c. 914); la aplicación no registra confesiones.",
+)
+
+
+class LibroPrimeraComunionChoiceField(forms.ModelChoiceField):
+    """Select de los libros de primeras comuniones abiertos de las parroquias."""
+
+    def __init__(self, **kwargs):
+        kwargs.setdefault(
+            "queryset",
+            Libro.objects.filter(
+                tipo_libro=TipoLibro.PRIMERA_COMUNION, estado=EstadoLibro.ABIERTO
+            ).select_related("parroquia"),
+        )
+        kwargs.setdefault("label", "Libro de primeras comuniones")
+        kwargs.setdefault("empty_label", "---------")
+        super().__init__(**kwargs)
+
+
+class PrimeraComunionForm(MixinReglas):
+    """Registro de una Primera Comunión (partida, comulgante y constancia del bautismo).
+
+    Aplica las reglas P1 a P5 de docs/requisitos_sacramentos.md mediante el
+    mecanismo de ``sacramentos.reglas``: P1, P2 y P3 bloquean; P4 es una
+    advertencia que exige la casilla de verificación y el motivo; P5 se recuerda
+    siempre. El bautismo puede venir enlazado a una partida del sistema (la
+    casilla oculta ``bautismo`` o la búsqueda por documento) o registrado con
+    sus datos externos (fecha, parroquia, libro, folio y número obligatorios).
+    Los padres se escriben aquí solo cuando el bautismo es externo; con
+    bautismo enlazado los toma la partida de ese bautismo y estos campos se
+    ignoran.
+    """
+
+    # --- Partida ---
+    libro = LibroPrimeraComunionChoiceField()
+    fecha = forms.DateField(
+        label="Fecha de la Primera Comunión",
+        widget=forms.DateInput(attrs={"type": "date"}),
+    )
+    ministro = forms.ModelChoiceField(
+        queryset=Ministro.objects.all(),
+        label="Ministro que celebró",
+    )
+    doy_fe = forms.ModelChoiceField(
+        queryset=Ministro.objects.all(),
+        label="Párroco que da fe",
+    )
+    observaciones = forms.CharField(
+        label="Observaciones",
+        required=False,
+        widget=forms.Textarea(attrs={"rows": 3}),
+    )
+
+    # --- Comulgante (fiel) ---
+    fiel_tipo_documento = forms.ChoiceField(
+        choices=[("", "---------"), *TipoDocumento.choices],
+        label="Tipo de documento del comulgante",
+        required=False,
+    )
+    fiel_numero_documento = forms.CharField(
+        max_length=30, label="Número de documento del comulgante", required=False
+    )
+    fiel_nombres = forms.CharField(max_length=255, label="Nombres del comulgante")
+    fiel_apellidos = forms.CharField(max_length=255, label="Apellidos del comulgante")
+    fiel_fecha_nacimiento = forms.DateField(
+        label="Fecha de nacimiento",
+        widget=forms.DateInput(attrs={"type": "date"}),
+    )
+    fiel_pais = forms.ModelChoiceField(
+        queryset=Pais.objects.all(),
+        label="País de nacimiento",
+        required=False,
+        widget=widget_cascada("pais"),
+    )
+    fiel_departamento = forms.ModelChoiceField(
+        queryset=Departamento.objects.all(),
+        label="Departamento de nacimiento",
+        required=False,
+        widget=widget_cascada("departamento", url="/ubicacion/api/departamentos/"),
+    )
+    fiel_municipio_nacimiento = forms.ModelChoiceField(
+        queryset=Municipio.objects.all(),
+        label="Municipio de nacimiento",
+        required=False,
+        widget=widget_cascada("municipio", url="/ubicacion/api/municipios/"),
+    )
+    fiel_telefono = forms.CharField(max_length=20, label="Teléfono", required=False)
+    fiel_sexo = forms.ChoiceField(
+        choices=[("", "---------"), *Sexo.choices],
+        label="Sexo",
+        required=False,
+    )
+
+    # --- Constancia del bautismo ---
+    # La casilla oculta trae el pk del bautismo enlazado desde buscar_persona.js.
+    bautismo = forms.IntegerField(
+        required=False, widget=forms.HiddenInput, label="Bautismo enlazado"
+    )
+    bautismo_fecha = forms.DateField(
+        required=False,
+        label="Fecha del bautismo",
+        widget=forms.DateInput(attrs={"type": "date"}),
+    )
+    bautismo_parroquia = forms.CharField(
+        max_length=255, required=False, label="Parroquia del bautismo"
+    )
+    bautismo_diocesis = forms.CharField(
+        max_length=255, required=False, label="Diócesis del bautismo"
+    )
+    bautismo_libro = forms.IntegerField(required=False, min_value=1, label="Libro del bautismo")
+    bautismo_folio = forms.IntegerField(required=False, min_value=1, label="Folio del bautismo")
+    bautismo_numero = forms.IntegerField(required=False, min_value=1, label="Número del bautismo")
+    bautismo_observaciones = forms.CharField(
+        max_length=500,
+        required=False,
+        label="Observaciones del bautismo",
+        widget=forms.Textarea(attrs={"rows": 2}),
+    )
+
+    CAMPOS_BAUTISMO_EXTERNO = (
+        "bautismo_fecha",
+        "bautismo_parroquia",
+        "bautismo_libro",
+        "bautismo_folio",
+        "bautismo_numero",
+    )
+
+    # --- Padres (solo se usan cuando el bautismo es externo) ---
+    padre_tipo_documento = forms.ChoiceField(
+        choices=[("", "---------"), *TipoDocumento.choices],
+        label="Tipo de documento del padre",
+        required=False,
+    )
+    padre_numero_documento = forms.CharField(
+        max_length=30, label="Número de documento del padre", required=False
+    )
+    padre_nombre = forms.CharField(max_length=100, label="Nombre del padre", required=False)
+    padre_apellido = forms.CharField(max_length=100, label="Apellido del padre", required=False)
+    madre_tipo_documento = forms.ChoiceField(
+        choices=[("", "---------"), *TipoDocumento.choices],
+        label="Tipo de documento de la madre",
+        required=False,
+    )
+    madre_numero_documento = forms.CharField(
+        max_length=30, label="Número de documento de la madre", required=False
+    )
+    madre_nombre = forms.CharField(max_length=100, label="Nombre de la madre", required=False)
+    madre_apellido = forms.CharField(max_length=100, label="Apellido de la madre", required=False)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for campo in self.fields.values():
+            clases = campo.widget.attrs.get("class", "")
+            campo.widget.attrs["class"] = f"{clases} form-control".strip()
+        self.documento_fiel = None
+        self.fiel_resuelto = None
+        self.bautismo_sistema = None
+        self.datos_bautismo_externo = None
+        self.documentos_padres = {}
+        # Sacramento que se está corrigiendo (para no marcarlo como duplicado).
+        self.excluir_sacramento = None
+        self._marcar_campos_persona()
+        self._marcar_tipos_dato()
+        self.fields["bautismo"].widget.attrs["data-bautismo-id"] = "si"
+        libro = self.initial.get("libro")
+        if libro is not None and hasattr(libro, "parroquia") and not self.initial.get("doy_fe"):
+            parroco = getattr(libro.parroquia, "parroco", None)
+            if parroco is not None:
+                self.initial["doy_fe"] = parroco.pk
+
+    def _marcar_campos_persona(self):
+        """Marca los campos que usa ``buscar_persona.js`` para autocompletar."""
+        self.fields["fiel_tipo_documento"].widget.attrs["data-documento-tipo"] = "tipo"
+        self.fields["fiel_numero_documento"].widget.attrs["data-documento-numero"] = "numero"
+        for campo, nombre in {
+            "fiel_nombres": "nombres",
+            "fiel_apellidos": "apellidos",
+            "fiel_fecha_nacimiento": "fecha_nacimiento",
+            "fiel_municipio_nacimiento": "municipio",
+            "fiel_sexo": "sexo",
+            "fiel_telefono": "telefono",
+        }.items():
+            self.fields[campo].widget.attrs["data-campo-persona"] = nombre
+
+    def _marcar_tipos_dato(self):
+        """Añade a los widgets los atributos que usa ``formularios.js``."""
+        for campo in (
+            "fiel_nombres",
+            "fiel_apellidos",
+            "padre_nombre",
+            "padre_apellido",
+            "madre_nombre",
+            "madre_apellido",
+        ):
+            self.fields[campo].widget.attrs["data-solo-letras"] = "si"
+        self.fields["fiel_telefono"].widget.attrs["data-solo-numeros"] = "si"
+        self.fields["fiel_telefono"].widget.attrs["inputmode"] = "numeric"
+        for campo in ("fiel_numero_documento", "padre_numero_documento", "madre_numero_documento"):
+            widget = self.fields[campo].widget
+            widget.attrs["data-solo-numeros"] = "si"
+            widget.attrs["inputmode"] = "numeric"
+
+    def reglas_iniciales(self):
+        return [REGLA_P5_CONFESION]
+
+    def preparar_reglas(self, datos):
+        self._validar_partida(datos)
+        self._validar_comulgante(datos)
+        self._validar_nombres_y_telefono(datos)
+        self._validar_bautismo(datos)
+        self._validar_padres_externos(datos)
+
+    def _validar_partida(self, datos):
+        libro = datos.get("libro")
+        if libro is not None and libro.estado != EstadoLibro.ABIERTO:
+            self.add_error("libro", "No se pueden inscribir partidas en un libro cerrado.")
+
+    def _validar_comulgante(self, datos):
+        documento = self._validar_documento(datos)
+        if not datos.get("fiel_sexo"):
+            self.add_error("fiel_sexo", "Indique el sexo del comulgante.")
+        hoy = timezone.localdate()
+        fecha_nac = datos.get("fiel_fecha_nacimiento")
+        if fecha_nac and fecha_nac > hoy:
+            self.add_error(
+                "fiel_fecha_nacimiento",
+                "La fecha de nacimiento no puede ser en el futuro.",
+            )
+        if documento:
+            self.fiel_resuelto = Fiel.objects.filter(
+                documento__tipo_documento=documento["tipo_documento"],
+                documento__numero_documento=documento["numero_documento"],
+            ).first()
+
+    def _validar_documento(self, datos):
+        tipo = datos.get("fiel_tipo_documento")
+        numero = (datos.get("fiel_numero_documento") or "").strip()
+        if not tipo and not numero:
+            self.add_error("fiel_tipo_documento", "El documento del comulgante es obligatorio.")
+            return None
+        if tipo and not numero:
+            self.add_error("fiel_numero_documento", "Indique el número del documento.")
+            return None
+        if numero and not tipo:
+            self.add_error("fiel_tipo_documento", "Seleccione el tipo de documento.")
+            return None
+        numero = normalizar_documento(tipo, numero)
+        try:
+            validar_documento(tipo, numero)
+        except ValidationError as error:
+            self.add_error("fiel_numero_documento", error.messages)
+            return None
+        datos["fiel_numero_documento"] = numero
+        self.cleaned_data["fiel_numero_documento"] = numero
+        self.documento_fiel = {"tipo_documento": tipo, "numero_documento": numero}
+        return self.documento_fiel
+
+    def _validar_nombres_y_telefono(self, datos):
+        for campo in (
+            "fiel_nombres",
+            "fiel_apellidos",
+            "padre_nombre",
+            "padre_apellido",
+            "madre_nombre",
+            "madre_apellido",
+        ):
+            valor = datos.get(campo)
+            if not valor:
+                continue
+            try:
+                solo_letras(valor)
+            except ValidationError as error:
+                self.add_error(campo, error.messages)
+        telefono = datos.get("fiel_telefono")
+        if telefono:
+            try:
+                validar_telefono(telefono)
+            except ValidationError as error:
+                self.add_error("fiel_telefono", error.messages)
+                return
+            datos["fiel_telefono"] = normalizar_telefono(telefono)
+            self.cleaned_data["fiel_telefono"] = datos["fiel_telefono"]
+
+    def _validar_bautismo(self, datos):
+        """Resuelve el bautismo enlazado del sistema o los datos externos."""
+        hay_externos = any(datos.get(campo) for campo in self.CAMPOS_BAUTISMO_EXTERNO)
+        bautismo_pk = datos.get("bautismo")
+        if bautismo_pk:
+            bautismo = (
+                Bautismo.objects.filter(pk=bautismo_pk, sacramento__estado__in=ESTADOS_VIGENTES)
+                .select_related("sacramento")
+                .first()
+            )
+            if bautismo is None:
+                self.add_error("bautismo", "El bautismo indicado no existe o no está activo.")
+            elif self.fiel_resuelto is None or bautismo.sacramento.fiel_id != self.fiel_resuelto.pk:
+                self.add_error("bautismo", "El bautismo indicado no corresponde a esta persona.")
+            else:
+                self.bautismo_sistema = bautismo
+        elif self.fiel_resuelto is not None:
+            self.bautismo_sistema = (
+                Bautismo.objects.filter(
+                    sacramento__fiel=self.fiel_resuelto,
+                    sacramento__estado__in=ESTADOS_VIGENTES,
+                )
+                .select_related("sacramento")
+                .first()
+            )
+        if self.bautismo_sistema is not None:
+            return
+        if not hay_externos:
+            return
+        requeridos = {
+            "bautismo_fecha": "Indique la fecha del bautismo.",
+            "bautismo_parroquia": "Indique la parroquia donde fue bautizado.",
+            "bautismo_libro": "Indique el libro del bautismo.",
+            "bautismo_folio": "Indique el folio del bautismo.",
+            "bautismo_numero": "Indique el número del bautismo.",
+        }
+        for campo, mensaje in requeridos.items():
+            if not datos.get(campo):
+                self.add_error(campo, mensaje)
+        fecha_externa = datos.get("bautismo_fecha")
+        if fecha_externa and fecha_externa > timezone.localdate():
+            self.add_error("bautismo_fecha", "La fecha del bautismo no puede ser en el futuro.")
+        if all(datos.get(campo) for campo in self.CAMPOS_BAUTISMO_EXTERNO):
+            self.datos_bautismo_externo = {
+                campo: datos.get(campo) for campo in self.CAMPOS_BAUTISMO_EXTERNO
+            }
+
+    def _validar_padres_externos(self, datos):
+        """Valida los padres escritos en el formulario (solo se usan si el bautismo es externo)."""
+        if self.bautismo_sistema is not None:
+            return
+        documentos = []
+        for rol in ("padre", "madre"):
+            tipo = datos.get(f"{rol}_tipo_documento")
+            numero = (datos.get(f"{rol}_numero_documento") or "").strip()
+            nombre = (datos.get(f"{rol}_nombre") or "").strip()
+            apellido = (datos.get(f"{rol}_apellido") or "").strip()
+            if not any((tipo, numero, nombre, apellido)):
+                continue
+            if not tipo and not numero:
+                self.add_error(f"{rol}_numero_documento", f"Indique el documento del {rol}.")
+                continue
+            if tipo and not numero:
+                self.add_error(
+                    f"{rol}_numero_documento", f"Indique el número del documento del {rol}."
+                )
+                continue
+            if numero and not tipo:
+                self.add_error(f"{rol}_tipo_documento", "Seleccione el tipo de documento.")
+                continue
+            numero = normalizar_documento(tipo, numero)
+            try:
+                validar_documento(tipo, numero)
+            except ValidationError as error:
+                self.add_error(f"{rol}_numero_documento", error.messages)
+                continue
+            datos[f"{rol}_numero_documento"] = numero
+            self.cleaned_data[f"{rol}_numero_documento"] = numero
+            documento = {"tipo_documento": tipo, "numero_documento": numero}
+            modelo = Padre if rol == "padre" else Madre
+            registrado = modelo.objects.filter(
+                documento__tipo_documento=tipo,
+                documento__numero_documento=numero,
+            ).first()
+            if registrado is None:
+                if not nombre:
+                    self.add_error(f"{rol}_nombre", f"Indique el nombre del {rol}.")
+                if not apellido:
+                    self.add_error(f"{rol}_apellido", f"Indique el apellido del {rol}.")
+            documento["nombre"] = nombre
+            documento["apellido"] = apellido
+            self.documentos_padres[rol] = documento
+            documentos.append((rol, documento))
+        if len(documentos) == 2 and self._mismo_documento(documentos[0][1], documentos[1][1]):
+            self.add_error(
+                "madre_numero_documento",
+                "El padre y la madre deben tener documentos distintos.",
+            )
+        for rol, documento in documentos:
+            if self._mismo_documento(self.documento_fiel, documento):
+                self.add_error(
+                    f"{rol}_numero_documento",
+                    f"El {rol} y el comulgante no pueden tener el mismo documento.",
+                )
+
+    @staticmethod
+    def _mismo_documento(uno, otro):
+        if not uno or not otro:
+            return False
+        return (
+            uno["tipo_documento"] == otro["tipo_documento"]
+            and uno["numero_documento"] == otro["numero_documento"]
+        )
+
+    def reglas_de(self, datos):
+        """Reglas P1 a P5 aplicables a los datos ya validados."""
+        reglas = []
+        fecha = datos.get("fecha")
+        hoy = timezone.localdate()
+
+        # P1 (c. 842, 912): debe constar el bautismo, enlazado o externo.
+        if self.bautismo_sistema is None and self.datos_bautismo_externo is None:
+            reglas.append(REGLA_P1_SIN_BAUTISMO)
+
+        # P2: una sola primera comunión activa o corregida por persona.
+        if self.fiel_resuelto is not None:
+            previas = PrimeraComunion.objects.filter(
+                sacramento__fiel=self.fiel_resuelto,
+                sacramento__estado__in=ESTADOS_VIGENTES,
+            ).select_related("sacramento__folio__libro")
+            if self.excluir_sacramento is not None:
+                previas = previas.exclude(sacramento=self.excluir_sacramento)
+            previa = previas.first()
+            if previa is not None:
+                sacramento = previa.sacramento
+                libro = sacramento.folio.libro
+                reglas.append(
+                    Regla(
+                        "P2",
+                        BLOQUEA,
+                        "Ya tiene Primera Comunión registrada: "
+                        f"Libro {libro.numero_libro or libro.nombre} · "
+                        f"Folio {sacramento.folio.numero_folio} · N.° {sacramento.numero}.",
+                    )
+                )
+
+        nacimiento = datos.get("fiel_fecha_nacimiento") or getattr(
+            self.fiel_resuelto, "fecha_nacimiento", None
+        )
+        if fecha:
+            # P3: la fecha no puede ser futura, ni anterior al nacimiento o al bautismo.
+            if fecha > hoy:
+                reglas.append(
+                    Regla(
+                        "P3",
+                        BLOQUEA,
+                        "La fecha de la Primera Comunión no puede ser en el futuro.",
+                    )
+                )
+            if nacimiento and fecha < nacimiento:
+                reglas.append(
+                    Regla(
+                        "P3",
+                        BLOQUEA,
+                        "La fecha de la Primera Comunión no puede ser anterior "
+                        "a la fecha de nacimiento.",
+                    )
+                )
+            if self.bautismo_sistema is not None:
+                fecha_bautismo = self.bautismo_sistema.sacramento.fecha
+            else:
+                fecha_bautismo = (self.datos_bautismo_externo or {}).get("bautismo_fecha")
+            if fecha_bautismo and fecha < fecha_bautismo:
+                reglas.append(
+                    Regla(
+                        "P3",
+                        BLOQUEA,
+                        "La fecha de la Primera Comunión no puede ser anterior a la del bautismo.",
+                    )
+                )
+            # P4 (c. 914; c. 97 §2): menor de EDAD_USO_RAZON en la fecha.
+            edad = edad_en_fecha(nacimiento, fecha)
+            if edad is not None and edad < settings.EDAD_USO_RAZON:
+                reglas.append(
+                    Regla(
+                        "P4",
+                        ADVIERTE,
+                        f"El comulgante tiene {edad} años en la fecha, menos de "
+                        f"{settings.EDAD_USO_RAZON} (c. 914; c. 97 §2): el párroco "
+                        "puede admitir excepción por causa justa.",
+                    )
+                )
+
+        reglas.append(REGLA_P5_CONFESION)
+        return reglas
+
+    def datos_para_servicio(self):
+        """Diccionario que consume ``sacramentos.services.registrar_primera_comunion``."""
+        libro = self.cleaned_data["libro"]
+        diocesis = self.cleaned_data.get("bautismo_diocesis", "").strip()
+        observaciones_externas = self.cleaned_data.get("bautismo_observaciones", "").strip()
+        observaciones_bautismo = ""
+        if diocesis:
+            observaciones_bautismo = f"Diócesis: {diocesis}."
+        if observaciones_externas:
+            observaciones_bautismo = " ".join(
+                parte for parte in (observaciones_bautismo, observaciones_externas) if parte
+            )
+        externo = self.datos_bautismo_externo or {}
+        return {
+            "partida": {
+                "libro": libro,
+                "fecha": self.cleaned_data["fecha"],
+                "parroquia": libro.parroquia,
+                "ministro": self.cleaned_data["ministro"],
+                "observaciones": self.cleaned_data.get("observaciones", ""),
+            },
+            "fiel": {
+                "tipo_documento": self.cleaned_data.get("fiel_tipo_documento"),
+                "numero_documento": self.cleaned_data.get("fiel_numero_documento"),
+                "nombres": self.cleaned_data.get("fiel_nombres", ""),
+                "apellidos": self.cleaned_data.get("fiel_apellidos", ""),
+                "fecha_nacimiento": self.cleaned_data.get("fiel_fecha_nacimiento"),
+                "municipio_nacimiento": self.cleaned_data.get("fiel_municipio_nacimiento"),
+                "telefono": self.cleaned_data.get("fiel_telefono", ""),
+                "sexo": self.cleaned_data.get("fiel_sexo") or None,
+            },
+            "bautismo_sistema": self.bautismo_sistema,
+            "bautismo_externo": {
+                "fecha": externo.get("bautismo_fecha"),
+                "parroquia": externo.get("bautismo_parroquia", ""),
+                "libro": externo.get("bautismo_libro"),
+                "folio": externo.get("bautismo_folio"),
+                "numero": externo.get("bautismo_numero"),
+                "observaciones": observaciones_bautismo,
+            },
+            "padre": self.documentos_padres.get("padre"),
+            "madre": self.documentos_padres.get("madre"),
+            "doy_fe": self.cleaned_data.get("doy_fe"),
+            "reglas_aceptadas": [
+                (regla.codigo, motivo) for regla, motivo in self.advertencias_aceptadas
+            ],
+        }
+
+
+def _partir_observaciones_bautismo(texto):
+    """Separa «Diócesis: X.» del resto de las observaciones del bautismo externo."""
+    texto = (texto or "").strip()
+    if not texto.startswith("Diócesis: "):
+        return "", texto
+    resto = texto[len("Diócesis: ") :]
+    corte = resto.find(".")
+    if corte == -1:
+        return resto.strip(), ""
+    return resto[:corte].strip(), resto[corte + 1 :].strip()
+
+
+class PrimeraComunionEditarForm(PrimeraComunionForm):
+    """Corrección de una partida de Primera Comunión ya registrada.
+
+    Reutiliza los campos y las validaciones de ``PrimeraComunionForm`` y añade el
+    ``motivo`` de la corrección. El libro, el folio, el número y la fecha de
+    registro quedan fijos (el libro en solo lectura). El comulgante no se edita
+    aquí: su tipo y número de documento, nombres y apellidos quedan en solo
+    lectura y solo se corrigen desde su ficha; si la persona está mal, se anula
+    la partida y se registra de nuevo. Los padres son de solo lectura cuando la
+    constancia del bautismo está enlazada a una partida del sistema (los aporta
+    esa partida) y se editan solo cuando el bautismo es externo.
+    """
+
+    motivo = forms.CharField(
+        label="Motivo de la corrección",
+        widget=forms.Textarea(attrs={"rows": 3}),
+        help_text="Explique qué se corrige. Queda registrado en el historial de la partida.",
+    )
+
+    CAMPOS_IDENTIDAD_COMULGANTE = (
+        "fiel_tipo_documento",
+        "fiel_numero_documento",
+        "fiel_nombres",
+        "fiel_apellidos",
+    )
+    CAMPOS_IDENTIDAD_PADRE = (
+        "padre_tipo_documento",
+        "padre_numero_documento",
+        "padre_nombre",
+        "padre_apellido",
+    )
+    CAMPOS_IDENTIDAD_MADRE = (
+        "madre_tipo_documento",
+        "madre_numero_documento",
+        "madre_nombre",
+        "madre_apellido",
+    )
+
+    def __init__(self, *args, primera=None, **kwargs):
+        self.primera = primera
+        if primera is not None and not kwargs.get("initial"):
+            kwargs["initial"] = self._initial_desde_primera(primera)
+        super().__init__(*args, **kwargs)
+        self.excluir_sacramento = primera.sacramento if primera is not None else None
+        if primera is not None:
+            libro = primera.sacramento.libro
+            self.fields["libro"].queryset = Libro.objects.filter(pk=libro.pk)
+            self.fields["libro"].initial = libro
+            self.fields["libro"].disabled = True
+            for campo in self.CAMPOS_IDENTIDAD_COMULGANTE:
+                self.fields[campo].disabled = True
+            if primera.bautismo_id:
+                for campo in self.CAMPOS_IDENTIDAD_PADRE + self.CAMPOS_IDENTIDAD_MADRE:
+                    self.fields[campo].disabled = True
+        self.aviso_partidas = self._contar_otras_partidas(primera)
+
+    @staticmethod
+    def _contar_otras_partidas(primera):
+        """Partidas distintas de esta en las que aparece el comulgante (0 si no hay)."""
+        if primera is None or not primera.sacramento.fiel_id:
+            return 0
+        return max(contar_partidas(FIEL, primera.sacramento.fiel_id) - 1, 0)
+
+    def _validar_partida(self, datos):
+        # Al corregir no se inscribe una partida nueva: el libro puede estar cerrado.
+        return
+
+    @staticmethod
+    def _inicial_persona(inicial, prefijo, persona):
+        if persona is None:
+            return
+        documento = getattr(persona, "documento", None)
+        if documento is not None:
+            inicial[f"{prefijo}_tipo_documento"] = documento.tipo_documento
+            inicial[f"{prefijo}_numero_documento"] = documento.numero_documento
+        inicial[f"{prefijo}_nombre"] = getattr(persona, "nombre", "")
+        inicial[f"{prefijo}_apellido"] = getattr(persona, "apellido", "")
+
+    def _initial_desde_primera(self, primera):
+        sacramento = primera.sacramento
+        fiel = sacramento.fiel
+        inicial = {
+            "libro": sacramento.libro_id,
+            "fecha": sacramento.fecha,
+            "ministro": sacramento.ministro_id,
+            "doy_fe": primera.doy_fe_id,
+            "observaciones": sacramento.observaciones,
+        }
+        if fiel is not None:
+            documento = fiel.documento if fiel.documento_id else None
+            inicial.update(
+                {
+                    "fiel_tipo_documento": documento.tipo_documento if documento else "",
+                    "fiel_numero_documento": documento.numero_documento if documento else "",
+                    "fiel_nombres": fiel.nombres,
+                    "fiel_apellidos": fiel.apellidos,
+                    "fiel_fecha_nacimiento": fiel.fecha_nacimiento,
+                    "fiel_telefono": fiel.telefono,
+                    "fiel_sexo": fiel.sexo,
+                }
+            )
+            municipio = fiel.municipio_nacimiento if fiel.municipio_nacimiento_id else None
+            if municipio is not None:
+                inicial["fiel_municipio_nacimiento"] = municipio.pk
+                inicial["fiel_departamento"] = municipio.departamento_id
+                inicial["fiel_pais"] = municipio.departamento.pais_id
+        if primera.bautismo_id:
+            inicial["bautismo"] = primera.bautismo_id
+        else:
+            inicial.update(
+                {
+                    "bautismo_fecha": primera.fecha_bautismo,
+                    "bautismo_parroquia": primera.parroquia_bautismo,
+                    "bautismo_libro": primera.libro_bautismo,
+                    "bautismo_folio": primera.folio_bautismo,
+                    "bautismo_numero": primera.numero_bautismo,
+                }
+            )
+            diocesis, observaciones = _partir_observaciones_bautismo(primera.observaciones_bautismo)
+            inicial["bautismo_diocesis"] = diocesis
+            inicial["bautismo_observaciones"] = observaciones
+        self._inicial_persona(inicial, "padre", primera.padre)
+        self._inicial_persona(inicial, "madre", primera.madre)
+        return inicial

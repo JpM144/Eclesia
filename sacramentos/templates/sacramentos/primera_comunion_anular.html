@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% block title %}Anular partida - Sistema de Gestión Parroquial{% endblock %}
+{% block heading %}Anular partida{% endblock %}
+
+{% block content %}
+<div class="card card-warning">
+  <div class="card-header">
+    <h3 class="card-title">Confirmar anulación</h3>
+  </div>
+  <div class="card-body">
+    <p>
+      ¿Seguro que deseas anular la partida de Primera Comunión
+      <strong>{{ primera_comunion.sacramento.fiel }}</strong>
+      (Folio {{ sacramento.folio.numero_folio }}, N.° {{ sacramento.numero }})?
+    </p>
+    <p class="text-muted">
+      La partida no se borra: queda en el libro con estado <strong>Anulado</strong>
+      y se anota el motivo en su margen y en el historial.
+    </p>
+
+    <form method="post" novalidate data-evitar-doble-envio>
+      {% csrf_token %}
+      {% include "sacramentos/includes/campo.html" with campo=form.motivo %}
+      <button type="submit" class="btn btn-warning">
+        <i class="fas fa-ban"></i> Anular partida
+      </button>
+      <a href="{% url 'sacramentos:primera_comunion_detalle' primera_comunion.pk %}" class="btn btn-secondary">Cancelar</a>
+    </form>
+  </div>
+</div>
+{% endblock %}

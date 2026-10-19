@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+
+{% block title %}Eliminar partida - Sistema de Gestión Parroquial{% endblock %}
+{% block heading %}Eliminar partida{% endblock %}
+
+{% block content %}
+<div class="card card-danger">
+  <div class="card-header">
+    <h3 class="card-title">Confirmar eliminación</h3>
+  </div>
+  <div class="card-body">
+    <p>
+      ¿Seguro que deseas eliminar definitivamente la partida de Primera Comunión
+      <strong>{{ primera_comunion.sacramento.fiel }}</strong>
+      (Folio {{ sacramento.folio.numero_folio }}, N.° {{ sacramento.numero }})?
+    </p>
+    <p class="text-muted">
+      Solo se elimina la última partida del libro, registrada hoy y sin anotaciones
+      marginales. Antes de borrarla se guarda una copia en el registro de partidas
+      eliminadas para poder auditarla después. Si la partida debe conservarse,
+      anúlala en su lugar.
+    </p>
+
+    <form method="post" novalidate data-evitar-doble-envio>
+      {% csrf_token %}
+      {% include "sacramentos/includes/campo.html" with campo=form.motivo %}
+      <button type="submit" class="btn btn-danger">
+        <i class="fas fa-trash"></i> Eliminar partida
+      </button>
+      <a href="{% url 'sacramentos:primera_comunion_detalle' primera_comunion.pk %}" class="btn btn-secondary">Cancelar</a>
+    </form>
+  </div>
+</div>
+{% endblock %}

@@ -598,8 +598,8 @@ class MenuLateralSacramentosTests(EscenarioBase):
     def test_etiquetas_pronto_sin_href(self):
         self.client.force_login(self.usuario)
         contenido = self._contenido(reverse("dashboard"))
-        # Bautismos no tiene "Pronto"; los otros 3 sí tienen "Pronto"
-        self.assertEqual(contenido.count('class="etiqueta-pronto"'), 3)
+        # Bautismos y Primera Comunión no tienen "Pronto"; los otros 2 sí
+        self.assertEqual(contenido.count('class="etiqueta-pronto"'), 2)
         pass
 
     def test_tema_css_define_variables_espaciado(self):

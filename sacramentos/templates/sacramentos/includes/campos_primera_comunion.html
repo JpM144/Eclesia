@@ -1,0 +1,94 @@
+{% comment %}
+Campos del comulgante y de la constancia del bautismo de la Primera Comunión.
+Se incluye con `with form=form` desde el alta (y más adelante la corrección).
+
+El bloque del comulgante lleva `data-mostrar-bautismo`: buscar_persona.js
+muestra ahí un enlace a la partida de bautismo del sistema en lugar del aviso
+rojo de duplicado, y rellena la casilla oculta `bautismo` con su pk.
+{% endcomment %}
+<h5 class="mt-4 mb-3">Datos del comulgante</h5>
+<div class="bloque-persona" data-rol="fiel" data-mostrar-bautismo="si">
+  <div class="row align-items-start">
+    <div class="col-md-4">{% include "sacramentos/includes/campo.html" with campo=form.fiel_tipo_documento %}</div>
+    <div class="col-md-5">{% include "sacramentos/includes/campo.html" with campo=form.fiel_numero_documento %}</div>
+    <div class="col-md-3">
+      <label class="d-block" aria-hidden="true">&nbsp;</label>
+      <button type="button" class="btn btn-outline-secondary btn-sm" data-buscar-persona>
+        <i class="fas fa-search"></i> Buscar
+      </button>
+    </div>
+  </div>
+  <div data-nota-persona class="text-muted small mb-2"></div>
+  {{ form.bautismo }}
+  <div class="row">
+    <div class="col-md-6">{% include "sacramentos/includes/campo.html" with campo=form.fiel_nombres %}</div>
+    <div class="col-md-6">{% include "sacramentos/includes/campo.html" with campo=form.fiel_apellidos %}</div>
+  </div>
+  <div class="row">
+    <div class="col-md-6">{% include "sacramentos/includes/campo.html" with campo=form.fiel_fecha_nacimiento %}</div>
+    <div class="col-md-6">{% include "sacramentos/includes/campo.html" with campo=form.fiel_sexo %}</div>
+  </div>
+  <div class="row">
+    <div class="col-md-4">{% include "sacramentos/includes/campo.html" with campo=form.fiel_pais %}</div>
+    <div class="col-md-4">{% include "sacramentos/includes/campo.html" with campo=form.fiel_departamento %}</div>
+    <div class="col-md-4">{% include "sacramentos/includes/campo.html" with campo=form.fiel_municipio_nacimiento %}</div>
+  </div>
+  <div class="row">
+    <div class="col-md-6">{% include "sacramentos/includes/campo.html" with campo=form.fiel_telefono %}</div>
+  </div>
+  <div class="row">
+    <div class="col-md-6">
+      <label for="id_bautismo_padre">Padre (según la partida de bautismo)</label>
+      <input type="text" id="id_bautismo_padre" class="form-control" data-campo-persona="padre" readonly>
+    </div>
+    <div class="col-md-6">
+      <label for="id_bautismo_madre">Madre (según la partida de bautismo)</label>
+      <input type="text" id="id_bautismo_madre" class="form-control" data-campo-persona="madre" readonly>
+    </div>
+  </div>
+  <p class="text-muted small mb-0">
+    Con bautismo enlazado los padres se toman de esa partida: aquí se muestran
+    solo como dato informativo. Si el bautismo es externo, escríbalos en la
+    sección «Padres del comulgante» del final.
+  </p>
+</div>
+
+<h5 class="mt-4 mb-3">Constancia del bautismo</h5>
+<p class="text-muted small">
+  Si el bautismo está registrado en este sistema, búsquelo arriba con el
+  documento del comulgante: esos datos se toman de la partida enlazada. Complete
+  este bloque solo cuando el bautismo fue en otra parroquia (fecha, parroquia,
+  libro, folio y número son obligatorios; la diócesis es opcional).
+</p>
+<div class="row">
+  <div class="col-md-4">{% include "sacramentos/includes/campo.html" with campo=form.bautismo_fecha %}</div>
+  <div class="col-md-4">{% include "sacramentos/includes/campo.html" with campo=form.bautismo_parroquia %}</div>
+  <div class="col-md-4">{% include "sacramentos/includes/campo.html" with campo=form.bautismo_diocesis %}</div>
+</div>
+<div class="row">
+  <div class="col-md-4">{% include "sacramentos/includes/campo.html" with campo=form.bautismo_libro %}</div>
+  <div class="col-md-4">{% include "sacramentos/includes/campo.html" with campo=form.bautismo_folio %}</div>
+  <div class="col-md-4">{% include "sacramentos/includes/campo.html" with campo=form.bautismo_numero %}</div>
+</div>
+{% include "sacramentos/includes/campo.html" with campo=form.bautismo_observaciones %}
+
+<h5 class="mt-4 mb-3">Padres del comulgante</h5>
+<p class="text-muted small">
+  Si el bautismo está registrado en este sistema, los padres se toman de la
+  partida enlazada (los campos de solo lectura de arriba) y esta sección se
+  ignora. Escríbalos solo cuando el bautismo es externo: cada padre es
+  opcional, pero quien se escriba necesita documento completo (tipo y número)
+  y nombre y apellido.
+</p>
+<div class="row">
+  <div class="col-md-3">{% include "sacramentos/includes/campo.html" with campo=form.padre_tipo_documento %}</div>
+  <div class="col-md-3">{% include "sacramentos/includes/campo.html" with campo=form.padre_numero_documento %}</div>
+  <div class="col-md-3">{% include "sacramentos/includes/campo.html" with campo=form.padre_nombre %}</div>
+  <div class="col-md-3">{% include "sacramentos/includes/campo.html" with campo=form.padre_apellido %}</div>
+</div>
+<div class="row">
+  <div class="col-md-3">{% include "sacramentos/includes/campo.html" with campo=form.madre_tipo_documento %}</div>
+  <div class="col-md-3">{% include "sacramentos/includes/campo.html" with campo=form.madre_numero_documento %}</div>
+  <div class="col-md-3">{% include "sacramentos/includes/campo.html" with campo=form.madre_nombre %}</div>
+  <div class="col-md-3">{% include "sacramentos/includes/campo.html" with campo=form.madre_apellido %}</div>
+</div>

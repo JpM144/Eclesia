@@ -240,10 +240,16 @@ def _editar_url(rol, fiel, padre, madre, padrino):
     return ""
 
 
-def _bautismo_referencia(fiel):
-    """«Libro · Folio · N.°» del bautismo activo o corregido del fiel, o vacío."""
+def _datos_bautismo(fiel):
+    """Datos del bautismo activo o corregido del fiel, o ``None`` si no consta.
+
+    Devuelve el pk (para enlazar la partida), la referencia «Libro · Folio ·
+    N.°», la parroquia, la fecha (ISO) y los padres de la partida de bautismo,
+    que los formularios de los demás sacramentos muestran como dato
+    informativo sin volverlos a pedir.
+    """
     if fiel is None:
-        return ""
+        return None
     from sacramentos.models import Bautismo
 
     bautismo = (
@@ -255,13 +261,20 @@ def _bautismo_referencia(fiel):
         .first()
     )
     if bautismo is None:
-        return ""
+        return None
     sacramento = bautismo.sacramento
     libro = sacramento.folio.libro
-    return (
-        f"Libro {libro.numero_libro or libro.nombre} · "
-        f"Folio {sacramento.folio.numero_folio} · N.° {sacramento.numero}"
-    )
+    return {
+        "id": bautismo.pk,
+        "referencia": (
+            f"Libro {libro.numero_libro or libro.nombre} · "
+            f"Folio {sacramento.folio.numero_folio} · N.° {sacramento.numero}"
+        ),
+        "parroquia": str(libro.parroquia),
+        "fecha": sacramento.fecha.isoformat() if sacramento.fecha else "",
+        "padre": str(bautismo.padre) if bautismo.padre else "",
+        "madre": str(bautismo.madre) if bautismo.madre else "",
+    }
 
 
 def api_padre(request):
@@ -281,7 +294,8 @@ def api_persona(request):
     persona con ese documento ya tiene nombre y apellidos se usan esos datos.
     Sin tipo de documento se busca solo por número; si hay varias personas con
     ese número se pide elegir el tipo. Si el fiel ya tiene bautismo activo o
-    corregido, lo devuelve con su referencia (libro, folio y número).
+    corregido, lo devuelve con su referencia (libro, folio y número), su pk y su
+    URL para enlazar la partida, y los padres de la partida de bautismo.
     """
     if request.method != "GET":
         return JsonResponse(
@@ -324,7 +338,7 @@ def api_persona(request):
         "editar_url": _editar_url(rol, fiel, padre, madre, padrino),
     }
     if rol == "fiel":
-        referencia = _bautismo_referencia(fiel)
+        datos_bautismo = _datos_bautismo(fiel)
         respuesta.update(
             {
                 "fecha_nacimiento": (
@@ -333,8 +347,24 @@ def api_persona(request):
                 "municipio": (fiel.municipio_nacimiento_id or "") if fiel else "",
                 "sexo": (fiel.sexo or "") if fiel else "",
                 "telefono": (fiel.telefono or "") if fiel else "",
-                "bautismo_activo": bool(referencia),
-                "bautismo_referencia": referencia,
+                "bautismo_activo": datos_bautismo is not None,
+                "bautismo_referencia": (datos_bautismo["referencia"] if datos_bautismo else ""),
             }
         )
+        # Los datos extra del bautismo solo se envían cuando hay bautismo
+        # enlazado: así un fiel sin bautismo responde exactamente con los
+        # campos de siempre.
+        if datos_bautismo:
+            respuesta.update(
+                {
+                    "bautismo_id": datos_bautismo["id"],
+                    "bautismo_url": reverse(
+                        "sacramentos:bautismo_detalle", args=[datos_bautismo["id"]]
+                    ),
+                    "bautismo_parroquia": datos_bautismo["parroquia"],
+                    "bautismo_fecha": datos_bautismo["fecha"],
+                    "bautismo_padre": datos_bautismo["padre"],
+                    "bautismo_madre": datos_bautismo["madre"],
+                }
+            )
     return JsonResponse(respuesta)

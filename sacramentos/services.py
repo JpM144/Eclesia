@@ -16,7 +16,15 @@ from core.choices import (
 from parroquias.services import folio_para_nueva_partida, siguiente_numero_partida
 from personas.models import Documento, Fiel, Madre, Padre, Padrino
 
-from .models import AnotacionMarginal, Bautismo, HistorialSacramento, PartidaEliminada, Sacramento
+from .models import (
+    AnotacionMarginal,
+    Bautismo,
+    HistorialSacramento,
+    PartidaEliminada,
+    PrimeraComunion,
+    Sacramento,
+)
+from .reglas import edad_en_fecha
 
 
 def registrar_historial(sacramento, accion, descripcion="", usuario=None):
@@ -293,6 +301,102 @@ def registrar_bautismo(datos, usuario):
 
 
 @transaction.atomic
+def registrar_primera_comunion(datos, usuario):
+    """Registra una Primera Comunión con los datos proporcionados.
+
+    El folio, la fecha de registro y la edad son automáticos: el folio sale de
+    la capacidad del libro, la fecha de registro es la del sistema y la edad se
+    calcula con la fecha de nacimiento y la del sacramento. Cuando el bautismo
+    está enlazado a una partida del sistema el padre y la madre son los de esa
+    partida (nunca los biológicos de la adopción); si el bautismo es externo se
+    guardan los padres escritos en el formulario (la diócesis viaja en
+    ``observaciones_bautismo``). Cada advertencia aceptada (reglas ADVIERTE)
+    queda en el historial con su código, el motivo y el usuario.
+
+    Args:
+        datos: dict con la estructura de PrimeraComunionForm.datos_para_servicio()
+        usuario: Usuario que realiza el registro
+
+    Returns:
+        (primera_comunion, reutilizadas): partida creada y personas reutilizadas
+    """
+    partida = datos.get("partida", {})
+    libro = partida.get("libro")
+    fiel, fue_reutilizado = _crear_o_reutilizar_fiel(datos.get("fiel", {}))
+    reutilizadas = ["fiel"] if fue_reutilizado else []
+
+    sacramento = Sacramento(
+        tipo=TipoSacramento.PRIMERA_COMUNION,
+        fiel=fiel,
+        libro=libro,
+        folio=folio_para_nueva_partida(libro),
+        numero=siguiente_numero_partida(libro),
+        fecha=partida.get("fecha"),
+        fecha_registro=timezone.localdate(),
+        parroquia=partida.get("parroquia"),
+        ministro=partida.get("ministro"),
+        estado=EstadoRegistro.ACTIVO,
+        observaciones=partida.get("observaciones", ""),
+        creado_por=usuario,
+    )
+    sacramento.full_clean()
+    sacramento.save()
+
+    bautismo = datos.get("bautismo_sistema")
+    externo = datos.get("bautismo_externo") or {}
+    if bautismo is not None:
+        padre, madre = bautismo.padre, bautismo.madre
+    else:
+        padre = _crear_o_reutilizar_padre(datos.get("padre"))
+        madre = _crear_o_reutilizar_madre(datos.get("madre"))
+    primera = PrimeraComunion(
+        sacramento=sacramento,
+        edad=edad_en_fecha(fiel.fecha_nacimiento, sacramento.fecha),
+        bautismo=bautismo,
+        padre=padre,
+        madre=madre,
+        fecha_bautismo=None if bautismo is not None else externo.get("fecha"),
+        parroquia_bautismo="" if bautismo is not None else externo.get("parroquia", ""),
+        libro_bautismo=None if bautismo is not None else externo.get("libro"),
+        folio_bautismo=None if bautismo is not None else externo.get("folio"),
+        numero_bautismo=None if bautismo is not None else externo.get("numero"),
+        observaciones_bautismo=("" if bautismo is not None else externo.get("observaciones", "")),
+        doy_fe=datos.get("doy_fe"),
+    )
+    primera.full_clean()
+    primera.save()
+
+    registrar_historial(
+        sacramento,
+        AccionHistorial.CREACION,
+        descripcion="Registro de Primera Comunión creado",
+        usuario=usuario,
+    )
+    for codigo, motivo in datos.get("reglas_aceptadas", []):
+        registrar_historial(
+            sacramento,
+            AccionHistorial.CREACION,
+            descripcion=f"Regla {codigo} verificada: {motivo}",
+            usuario=usuario,
+        )
+
+    return primera, reutilizadas
+
+
+def _pasar_a_corregido(sacramento, usuario):
+    """Bloquea partidas anuladas y deja una partida en estado ``CORREGIDO``.
+
+    Se usa al corregir partidas de cualquier sacramento: solo las activas pasan a
+    corregidas y en ambos casos queda registrado quién modificó la partida.
+    """
+    if sacramento.estado == EstadoRegistro.ANULADO:
+        raise ValidationError("No se puede corregir una partida anulada.")
+    if sacramento.estado == EstadoRegistro.ACTIVO:
+        sacramento.estado = EstadoRegistro.CORREGIDO
+    sacramento.modificado_por = usuario
+
+
+@transaction.atomic
 def corregir_bautismo(bautismo, datos, usuario, motivo):
     """Corrige los datos de una partida de bautismo (no cambia su lugar en el libro).
 
@@ -300,16 +404,11 @@ def corregir_bautismo(bautismo, datos, usuario, motivo):
     margen de la partida. La partida pasa a estado ``CORREGIDO`` si estaba activa.
     """
     sacramento = bautismo.sacramento
-    if sacramento.estado == EstadoRegistro.ANULADO:
-        raise ValidationError("No se puede corregir una partida anulada.")
+    _pasar_a_corregido(sacramento, usuario)
 
     fiel, padre, madre, padrino, madrina, _ = _personas_desde_datos(datos)
     _sincronizar_personas(datos, fiel)
     _aplicar_datos_bautismo(bautismo, fiel, padre, madre, padrino, madrina, datos)
-
-    if sacramento.estado == EstadoRegistro.ACTIVO:
-        sacramento.estado = EstadoRegistro.CORREGIDO
-    sacramento.modificado_por = usuario
 
     sacramento.full_clean()
     sacramento.save()
@@ -322,13 +421,87 @@ def corregir_bautismo(bautismo, datos, usuario, motivo):
 
 
 @transaction.atomic
-def anular_bautismo(bautismo, usuario, motivo):
-    """Anula una partida de bautismo conservándola en el libro.
+def corregir_primera_comunion(primera_comunion, datos, usuario, motivo):
+    """Corrige los datos de una partida de Primera Comunión (sin moverla de libro).
+
+    El comulgante es de solo lectura (se corrige desde su ficha o, si la persona
+    está mal, se anula la partida y se registra otra): aquí solo se sincronizan
+    sus datos mutables. Se pueden cambiar la constancia del bautismo (enlazada o
+    externa), la fecha, el ministro, los padres (solo con bautismo externo) y las
+    observaciones; el libro, el folio, el número y la fecha de registro quedan
+    fijos. Si la partida se corrige el mismo día en que se registró, el cambio
+    queda solo en el historial; pasado ese día la partida pasa a ``CORREGIDO``
+    y la corrección se anota también en el margen. Cada advertencia aceptada
+    (reglas ADVIERTE) queda en el historial con su código, el motivo y el
+    usuario.
+    """
+    sacramento = primera_comunion.sacramento
+    if sacramento.estado == EstadoRegistro.ANULADO:
+        raise ValidationError("No se puede corregir una partida anulada.")
+    mismo_dia = sacramento.fecha_registro == timezone.localdate()
+    if mismo_dia:
+        sacramento.modificado_por = usuario
+    else:
+        _pasar_a_corregido(sacramento, usuario)
+
+    fiel = sacramento.fiel
+    _sincronizar_personas(datos, fiel)
+    partida = datos.get("partida", {})
+    sacramento.fecha = partida.get("fecha")
+    sacramento.ministro = partida.get("ministro")
+    sacramento.observaciones = partida.get("observaciones", "")
+
+    bautismo = datos.get("bautismo_sistema")
+    externo = datos.get("bautismo_externo") or {}
+    if bautismo is not None:
+        padre, madre = bautismo.padre, bautismo.madre
+        primera_comunion.bautismo = bautismo
+        primera_comunion.fecha_bautismo = None
+        primera_comunion.parroquia_bautismo = ""
+        primera_comunion.libro_bautismo = None
+        primera_comunion.folio_bautismo = None
+        primera_comunion.numero_bautismo = None
+        primera_comunion.observaciones_bautismo = ""
+    else:
+        padre = _crear_o_reutilizar_padre(datos.get("padre"))
+        madre = _crear_o_reutilizar_madre(datos.get("madre"))
+        primera_comunion.bautismo = None
+        primera_comunion.fecha_bautismo = externo.get("fecha")
+        primera_comunion.parroquia_bautismo = externo.get("parroquia", "")
+        primera_comunion.libro_bautismo = externo.get("libro")
+        primera_comunion.folio_bautismo = externo.get("folio")
+        primera_comunion.numero_bautismo = externo.get("numero")
+        primera_comunion.observaciones_bautismo = externo.get("observaciones", "")
+    primera_comunion.padre = padre
+    primera_comunion.madre = madre
+    primera_comunion.edad = edad_en_fecha(fiel.fecha_nacimiento, sacramento.fecha)
+    primera_comunion.doy_fe = datos.get("doy_fe")
+
+    sacramento.full_clean()
+    sacramento.save()
+    primera_comunion.full_clean()
+    primera_comunion.save()
+
+    registrar_historial(sacramento, AccionHistorial.CORRECCION, motivo, usuario)
+    if not mismo_dia:
+        _registrar_anotacion_correccion(sacramento, motivo)
+    for codigo, motivo_regla in datos.get("reglas_aceptadas", []):
+        registrar_historial(
+            sacramento,
+            AccionHistorial.CORRECCION,
+            descripcion=f"Regla {codigo} verificada: {motivo_regla}",
+            usuario=usuario,
+        )
+    return primera_comunion
+
+
+@transaction.atomic
+def anular_sacramento(sacramento, usuario, motivo):
+    """Anula la partida de cualquier sacramento conservándola en el libro.
 
     Solo se anulan partidas activas o corregidas. Guarda el motivo en el historial
     y lo anota en el margen de la partida.
     """
-    sacramento = bautismo.sacramento
     if sacramento.estado == EstadoRegistro.ANULADO:
         raise ValidationError("La partida ya está anulada.")
 
@@ -338,18 +511,39 @@ def anular_bautismo(bautismo, usuario, motivo):
 
     registrar_historial(sacramento, AccionHistorial.ANULACION, motivo, usuario)
     _registrar_anotacion_correccion(sacramento, motivo)
+    return sacramento
+
+
+@transaction.atomic
+def anular_bautismo(bautismo, usuario, motivo):
+    """Anula una partida de bautismo conservándola en el libro."""
+    anular_sacramento(bautismo.sacramento, usuario, motivo)
     return bautismo
 
 
-def motivo_no_eliminable(bautismo):
+@transaction.atomic
+def anular_primera_comunion(primera_comunion, usuario, motivo):
+    """Anula una partida de Primera Comunión conservándola en el libro."""
+    anular_sacramento(primera_comunion.sacramento, usuario, motivo)
+    return primera_comunion
+
+
+def _sacramento_de(partida):
+    """El ``Sacramento`` subyacente de una partida (o la propia instancia)."""
+    return getattr(partida, "sacramento", partida)
+
+
+def motivo_no_eliminable(partida):
     """Motivo por el que una partida no se puede eliminar, o ``None`` si sí se puede.
 
-    Deben cumplirse TODAS estas condiciones: la partida está ACTIVA (ni anulada ni
-    corregida), es la última del libro (el número más alto), se registró hoy y no
-    tiene anotaciones marginales, ni como partida anotada ni como origen. Las
-    partidas anuladas y las corregidas nunca se eliminan: quedan como constancia.
+    Acepta la partida concreta (``Bautismo``, ``PrimeraComunion``…) o el propio
+    ``Sacramento``. Deben cumplirse TODAS estas condiciones: la partida está
+    ACTIVA (ni anulada ni corregida), es la última del libro (el número más
+    alto), se registró hoy y no tiene anotaciones marginales, ni como partida
+    anotada ni como origen. Las partidas anuladas y las corregidas nunca se
+    eliminan: quedan como constancia.
     """
-    sacramento = bautismo.sacramento
+    sacramento = _sacramento_de(partida)
     if sacramento.estado == EstadoRegistro.ANULADO:
         return "Las partidas anuladas no se eliminan, quedan como constancia"
     if Sacramento.objects.filter(
@@ -367,9 +561,27 @@ def motivo_no_eliminable(bautismo):
     return None
 
 
-def puede_eliminarse(bautismo):
+def puede_eliminarse(partida):
     """True solo si la partida cumple todas las condiciones para eliminarse."""
-    return motivo_no_eliminable(bautismo) is None
+    return motivo_no_eliminable(partida) is None
+
+
+def _guardar_partida_eliminada(sacramento, resumen, usuario, motivo):
+    """Copia una partida al histórico de eliminadas antes de borrarla."""
+    fiel = sacramento.fiel
+    return PartidaEliminada.objects.create(
+        tipo=sacramento.tipo,
+        libro=sacramento.libro,
+        folio_numero=sacramento.folio.numero_folio,
+        numero=sacramento.numero,
+        fecha=sacramento.fecha,
+        fecha_registro=sacramento.fecha_registro,
+        fiel_nombre=str(fiel) if fiel else "",
+        parroquia=sacramento.parroquia,
+        resumen=resumen,
+        motivo=motivo,
+        eliminado_por=usuario,
+    )
 
 
 @transaction.atomic
@@ -387,22 +599,28 @@ def eliminar_bautismo(bautismo, usuario, motivo):
         raise ValidationError(motivo_bloqueo)
 
     sacramento = bautismo.sacramento
-    fiel = sacramento.fiel
-    PartidaEliminada.objects.create(
-        tipo=sacramento.tipo,
-        libro=sacramento.libro,
-        folio_numero=sacramento.folio.numero_folio,
-        numero=sacramento.numero,
-        fecha=sacramento.fecha,
-        fecha_registro=sacramento.fecha_registro,
-        fiel_nombre=str(fiel) if fiel else "",
-        parroquia=sacramento.parroquia,
-        resumen=_resumen_partida(bautismo),
-        motivo=motivo,
-        eliminado_por=usuario,
-    )
+    _guardar_partida_eliminada(sacramento, _resumen_partida(bautismo), usuario, motivo)
     # Al borrar el Sacramento se borra en cascada el Bautismo, el historial y las
     # anotaciones marginales.
+    sacramento.delete()
+
+
+@transaction.atomic
+def eliminar_primera_comunion(primera_comunion, usuario, motivo):
+    """Elimina definitivamente una partida de Primera Comunión, guardando una copia.
+
+    Mismas condiciones y mismo rastro en ``PartidaEliminada`` que
+    ``eliminar_bautismo``: solo partidas activas, últimas del libro, registradas
+    hoy y sin anotaciones marginales.
+    """
+    motivo_bloqueo = motivo_no_eliminable(primera_comunion)
+    if motivo_bloqueo:
+        raise ValidationError(motivo_bloqueo)
+
+    sacramento = primera_comunion.sacramento
+    _guardar_partida_eliminada(
+        sacramento, _resumen_primera_comunion(primera_comunion), usuario, motivo
+    )
     sacramento.delete()
 
 
@@ -417,6 +635,29 @@ def _resumen_partida(bautismo):
         f"Madrina: {bautismo.madrina or '—'}",
         f"Testigo: {bautismo.testigo_nombre or '—'}",
         f"Fecha del bautismo: {sacramento.fecha}",
+        f"Fecha de registro: {sacramento.fecha_registro}",
+        f"Ministro: {sacramento.ministro or '—'}",
+        f"Observaciones: {sacramento.observaciones or '—'}",
+    ]
+    return "\n".join(lineas)
+
+
+def _resumen_primera_comunion(primera_comunion):
+    """Texto legible con los datos principales de la partida (para el histórico)."""
+    sacramento = primera_comunion.sacramento
+    padre, madre = padres_de_primera_comunion(primera_comunion)
+    if primera_comunion.bautismo_id:
+        constancia = "Bautismo enlazado a una partida del sistema"
+    elif primera_comunion.fecha_bautismo:
+        constancia = f"Bautismo externo del {_fecha_corta(primera_comunion.fecha_bautismo)}"
+    else:
+        constancia = "—"
+    lineas = [
+        f"Comulgante: {sacramento.fiel}" if sacramento.fiel else "Comulgante: —",
+        f"Padre: {padre or '—'}",
+        f"Madre: {madre or '—'}",
+        f"Constancia del bautismo: {constancia}",
+        f"Fecha de la Primera Comunión: {sacramento.fecha}",
         f"Fecha de registro: {sacramento.fecha_registro}",
         f"Ministro: {sacramento.ministro or '—'}",
         f"Observaciones: {sacramento.observaciones or '—'}",
@@ -544,6 +785,127 @@ def datos_hoja_bautismo(bautismo, para_certificado=False):
     }
 
 
+def padres_de_primera_comunion(primera_comunion):
+    """Padre y madre que muestra la partida de Primera Comunión.
+
+    Si hay bautismo enlazado se toman de esa partida (los padres legales, nunca
+    los biológicos de la adopción); si el bautismo es externo se usan los
+    registrados desde el formulario.
+    """
+    bautismo = primera_comunion.bautismo
+    if bautismo is not None:
+        return bautismo.padre, bautismo.madre
+    return primera_comunion.padre, primera_comunion.madre
+
+
+def datos_hoja_primera_comunion(primera_comunion, para_certificado=False):
+    """Datos de una partida de Primera Comunión para ``hoja_partida.html``.
+
+    Devuelve el título, el tipo de libro, la referencia (libro, folio y
+    número), la frase introductoria, las filas de datos, las notas marginales y
+    el estado. La constancia del bautismo puede venir de dos formas: la partida
+    enlazada del sistema (con su referencia) o los datos externos de otra
+    parroquia (la diócesis, si se registró, aparece en las observaciones del
+    bautismo y se muestra aquí).
+
+    Con ``para_certificado=True`` la hoja se prepara para el certificado: el
+    título es «CERTIFICADO DE PRIMERA COMUNIÓN», la frase introductoria
+    certifica la partida y cada persona aparece solo con su nombre (los
+    ministros con su cargo), sin tipo ni número de documento. Sin ese
+    parámetro (la ficha de la app) las personas se muestran con su documento.
+    """
+    sacramento = primera_comunion.sacramento
+    libro = sacramento.folio.libro
+    fiel = sacramento.fiel
+    parroquia = settings.NOMBRE_PARROQUIA or libro.parroquia.nombre
+    bautismo = primera_comunion.bautismo
+    padre, madre = padres_de_primera_comunion(primera_comunion)
+
+    if para_certificado:
+        titulo = "CERTIFICADO DE PRIMERA COMUNIÓN"
+        consta = (
+            f"El suscrito párroco certifica que en el Libro de Primera Comunión "
+            f"de {parroquia} se encuentra la siguiente partida:"
+        )
+        valor = _nombre_de
+    else:
+        titulo = "PARTIDA DE PRIMERA COMUNIÓN"
+        consta = f"En la Parroquia {parroquia}, se hace constar que:"
+        valor = _persona_con_documento
+
+    if bautismo is not None:
+        bautismo_sacramento = bautismo.sacramento
+        bautismo_libro = bautismo_sacramento.folio.libro
+        constancia = (
+            f"Bautismo en esta parroquia: "
+            f"Libro {bautismo_libro.numero_libro or bautismo_libro.nombre} · "
+            f"Folio {bautismo_sacramento.folio.numero_folio} · "
+            f"N.° {bautismo_sacramento.numero} · {_fecha_corta(bautismo_sacramento.fecha)}"
+        )
+    elif primera_comunion.fecha_bautismo:
+        partes = [_fecha_corta(primera_comunion.fecha_bautismo)]
+        if primera_comunion.parroquia_bautismo:
+            partes.append(f"Parroquia {primera_comunion.parroquia_bautismo}")
+        if primera_comunion.observaciones_bautismo:
+            partes.append(primera_comunion.observaciones_bautismo)
+        if primera_comunion.libro_bautismo:
+            partes.append(f"Libro {primera_comunion.libro_bautismo}")
+        if primera_comunion.folio_bautismo:
+            partes.append(f"Folio {primera_comunion.folio_bautismo}")
+        if primera_comunion.numero_bautismo:
+            partes.append(f"N.° {primera_comunion.numero_bautismo}")
+        constancia = " · ".join(partes)
+    else:
+        constancia = ""
+
+    filas = [
+        _fila("Comulgante", str(fiel) if fiel else ""),
+        _fila("Documento", _documento_de(fiel)),
+        _fila("Fecha de nacimiento", _fecha_corta(getattr(fiel, "fecha_nacimiento", None))),
+        _fila(
+            "Lugar de nacimiento",
+            str(fiel.municipio_nacimiento) if fiel and fiel.municipio_nacimiento_id else "",
+        ),
+        _fila(
+            "Edad en la fecha",
+            f"{primera_comunion.edad} año{'' if primera_comunion.edad == 1 else 's'}",
+        ),
+        _fila("Fecha de la Primera Comunión", _fecha_corta(sacramento.fecha)),
+        _fila("Constancia del bautismo", constancia),
+        _fila("Padre", valor(padre)),
+        _fila("Madre", valor(madre)),
+        _fila("Ministro que celebró", valor(sacramento.ministro)),
+        _fila("Quien da fe", valor(primera_comunion.doy_fe)),
+        _fila("Observaciones", sacramento.observaciones),
+    ]
+
+    notas = [
+        {
+            "tipo": anotacion.get_tipo_display(),
+            "fecha": _fecha_corta(anotacion.fecha),
+            "descripcion": anotacion.descripcion,
+        }
+        for anotacion in sacramento.anotaciones_marginales.all()
+    ]
+
+    return {
+        "titulo": titulo,
+        "consta": consta,
+        "tipo_libro": f"Libro de {libro.get_tipo_libro_display()}",
+        "referencia": (
+            f"Libro {libro.numero_libro or libro.nombre} · "
+            f"Folio {sacramento.folio.numero_folio} · N.° {sacramento.numero}"
+        ),
+        "parroquia": parroquia,
+        "diocesis": settings.NOMBRE_DIOCESIS,
+        "filas": filas,
+        "icono_agua": "core/iconos/caliz.svg",
+        "notas": notas,
+        "estado": sacramento.estado,
+        "estado_etiqueta": sacramento.get_estado_display(),
+    }
+
+
 MESES_EN_LETRAS = (
     "enero",
     "febrero",
@@ -588,19 +950,20 @@ def _nombre_sin_cargo(ministro):
     return f"{nombre} {getattr(ministro, 'apellido', '')}".strip()
 
 
-def datos_certificado_bautismo(bautismo, solicitud, usuario):
-    """Datos de cierre de un certificado de bautismo listo para la plantilla.
+def datos_cierre_certificado(sacramento, solicitud, usuario, doy_fe=None):
+    """Cierre de un certificado de cualquier sacramento, listo para la plantilla.
 
-    Recibe la partida, la solicitud ya validada (``SolicitudCertificadoForm``) y
-    el usuario que expide. Devuelve el texto del solicitante y la finalidad, el
-    municipio y la fecha de expedición en letras, el párroco que firma (solo su
-    nombre: el cargo se muestra en la línea de debajo) y el secretario(a) cuando
-    quien expide tiene ese rol. Nunca incluye datos internos, documentos ni los
-    padres biológicos (los aporta ``datos_hoja_bautismo``).
+    Recibe el ``Sacramento``, la solicitud ya validada
+    (``SolicitudCertificadoForm``), el usuario que expide y, opcionalmente, la
+    persona que da fe (si el párroco no está cargado en la parroquia). Devuelve
+    el texto del solicitante y la finalidad, el municipio y la fecha de
+    expedición en letras, el párroco que firma (solo su nombre: el cargo se
+    muestra en la línea de debajo) y el secretario(a) cuando quien expide
+    tiene ese rol. Nunca incluye datos internos, documentos ni padres
+    biológicos (los aporta la hoja de la partida).
     """
-    sacramento = bautismo.sacramento
     parroquia = sacramento.folio.libro.parroquia
-    parroco = getattr(parroquia, "parroco", None) or bautismo.doy_fe
+    parroco = getattr(parroquia, "parroco", None) or doy_fe
     return {
         "solicitante": solicitud["solicitante"],
         "relacion": solicitud["relacion_display"],
@@ -610,3 +973,15 @@ def datos_certificado_bautismo(bautismo, solicitud, usuario):
         "parroco": _nombre_sin_cargo(parroco),
         "secretario": _nombre_secretario(usuario),
     }
+
+
+def datos_certificado_bautismo(bautismo, solicitud, usuario):
+    """Cierre del certificado de bautismo (ver ``datos_cierre_certificado``)."""
+    return datos_cierre_certificado(bautismo.sacramento, solicitud, usuario, doy_fe=bautismo.doy_fe)
+
+
+def datos_certificado_primera_comunion(primera_comunion, solicitud, usuario):
+    """Cierre del certificado de Primera Comunión (ver ``datos_cierre_certificado``)."""
+    return datos_cierre_certificado(
+        primera_comunion.sacramento, solicitud, usuario, doy_fe=primera_comunion.doy_fe
+    )

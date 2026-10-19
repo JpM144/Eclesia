@@ -22,11 +22,13 @@
  *   campos y se limpian los datos rellenados.
  * - Si el bautizado ya tiene bautismo, o el sexo de un rol no corresponde
  *   (padre varón, madre mujer…), el aviso aparece al buscar, no solo al
- *   guardar.
+ *   guardar. Si el bloque lleva data-mostrar-bautismo (el formulario de
+ *   Primera Comunión), el bautismo enlazado se muestra como enlace verde a la
+ *   partida y su pk se guarda en la casilla oculta data-bautismo-id.
  * - El comportamiento se configura solo con atributos data-: data-rol del
  *   bloque, data-documento-tipo/numero del par de documento y
  *   data-campo-persona de cada campo rellenable (nombres, apellidos,
- *   fecha_nacimiento, municipio, sexo, telefono).
+ *   fecha_nacimiento, municipio, sexo, telefono, padre, madrina).
  * - Nunca se usa innerHTML con datos de personas: todo se inserta con
  *   textContent o con la propiedad value.
  */
@@ -41,6 +43,8 @@
     "municipio",
     "sexo",
     "telefono",
+    "padre",
+    "madre",
   ];
   var SOLO_DIGITOS = { CC: true, TI: true, RC: true };
   var ALFANUMERICO = { CE: true, PA: true };
@@ -134,6 +138,21 @@
     }
   }
 
+  function limpiarBautismo(bloque) {
+    var oculto = bloque.querySelector("[data-bautismo-id]");
+    if (oculto) {
+      oculto.value = "";
+    }
+  }
+
+  function fechaCorta(iso) {
+    var partes = (iso || "").split("-");
+    if (partes.length !== 3) {
+      return iso || "";
+    }
+    return partes[2] + "/" + partes[1] + "/" + partes[0];
+  }
+
   function agregarTexto(nota, texto, clase) {
     if (!texto) {
       return;
@@ -154,6 +173,15 @@
     nota.textContent = "";
     avisos.forEach(function (aviso) {
       agregarTexto(nota, aviso.texto, aviso.clase);
+      if (aviso.url) {
+        nota.appendChild(document.createTextNode(" "));
+        var enlaceAviso = document.createElement("a");
+        enlaceAviso.href = aviso.url;
+        enlaceAviso.target = "_blank";
+        enlaceAviso.rel = "noopener";
+        enlaceAviso.textContent = aviso.enlaceTexto || "Ver bautismo";
+        nota.appendChild(enlaceAviso);
+      }
     });
     if (urlEdicion) {
       nota.appendChild(document.createTextNode(" "));
@@ -188,6 +216,10 @@
     CAMPOS_RELLENABLES.forEach(function (nombre) {
       var valor = datos[nombre];
       if (valor === null || valor === undefined || valor === "") {
+        // padre y madre llegan como bautismo_padre/bautismo_madre
+        valor = datos["bautismo_" + nombre];
+      }
+      if (valor === null || valor === undefined || valor === "") {
         return;
       }
       setCampo(bloque, nombre, valor);
@@ -201,14 +233,32 @@
       { texto: MENSAJES.registrada + " " },
     ];
     if (datos.bautismo_activo) {
-      avisos.push({
-        texto:
-          " " +
-          MENSAJES.bautismo +
-          (datos.bautismo_referencia ? ": " + datos.bautismo_referencia : "") +
-          ".",
-        clase: "text-danger",
-      });
+      var oculto = bloque.querySelector("[data-bautismo-id]");
+      if (oculto) {
+        oculto.value = datos.bautismo_id || "";
+      }
+      if (bloque.hasAttribute("data-mostrar-bautismo")) {
+        avisos.push({
+          texto:
+            "Bautizado en " +
+            (datos.bautismo_parroquia ? datos.bautismo_parroquia + " · " : "") +
+            (datos.bautismo_referencia || "") +
+            (datos.bautismo_fecha ? " · " + fechaCorta(datos.bautismo_fecha) : "") +
+            ". ",
+          clase: "text-success",
+          url: datos.bautismo_url,
+          enlaceTexto: "Ver partida de bautismo",
+        });
+      } else {
+        avisos.push({
+          texto:
+            " " +
+            MENSAJES.bautismo +
+            (datos.bautismo_referencia ? ": " + datos.bautismo_referencia : "") +
+            ".",
+          clase: "text-danger",
+        });
+      }
     }
     var avisoSexo = AVISOS_SEXO[rol];
     if (avisoSexo && datos.sexo_fiel === avisoSexo.sexo) {
@@ -225,6 +275,7 @@
     if (estado === 404 || (datos && datos.encontrado === false)) {
       bloque.personaEncontrada = false;
       setSoloLectura(bloque, false);
+      limpiarBautismo(bloque);
       mostrarNota(bloque, [{ texto: MENSAJES.noEncontrada }]);
       return;
     }
@@ -290,6 +341,7 @@
     }
     bloque.personaEncontrada = false;
     limpiarRelleno(bloque);
+    limpiarBautismo(bloque);
     setSoloLectura(bloque, false);
     limpiarNota(bloque);
   }
