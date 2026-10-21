@@ -97,6 +97,10 @@ DATABASES = {
     }
 }
 
+# Cadena de conexión del proyecto de Supabase que usa el comando
+# ``respaldar_supabase``. Vacía por defecto y nunca se sube a Git.
+SUPABASE_DB_URL = config("SUPABASE_DB_URL", default="")
+
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators

@@ -1,0 +1,4460 @@
+[
+{
+  "model": "ubicacion.pais",
+  "pk": 8,
+  "fields": {
+    "nombre": "Colombia"
+  }
+},
+{
+  "model": "ubicacion.departamento",
+  "pk": 7,
+  "fields": {
+    "nombre": "Norte de Santander",
+    "pais": 8
+  }
+},
+{
+  "model": "ubicacion.municipio",
+  "pk": 7,
+  "fields": {
+    "nombre": "Ocaña",
+    "departamento": 7
+  }
+},
+{
+  "model": "personas.documento",
+  "pk": 234,
+  "fields": {
+    "tipo_documento": "CC",
+    "numero_documento": "9990000001"
+  }
+},
+{
+  "model": "personas.documento",
+  "pk": 235,
+  "fields": {
+    "tipo_documento": "CC",
+    "numero_documento": "9990000002"
+  }
+},
+{
+  "model": "personas.documento",
+  "pk": 236,
+  "fields": {
+    "tipo_documento": "CC",
+    "numero_documento": "9990000003"
+  }
+},
+{
+  "model": "personas.documento",
+  "pk": 237,
+  "fields": {
+    "tipo_documento": "CC",
+    "numero_documento": "9990000004"
+  }
+},
+{
+  "model": "personas.documento",
+  "pk": 238,
+  "fields": {
+    "tipo_documento": "CC",
+    "numero_documento": "9990000005"
+  }
+},
+{
+  "model": "personas.documento",
+  "pk": 290,
+  "fields": {
+    "tipo_documento": "CC",
+    "numero_documento": "9990000006"
+  }
+},
+{
+  "model": "personas.documento",
+  "pk": 241,
+  "fields": {
+    "tipo_documento": "CC",
+    "numero_documento": "9990000008"
+  }
+},
+{
+  "model": "personas.documento",
+  "pk": 242,
+  "fields": {
+    "tipo_documento": "CC",
+    "numero_documento": "9990000009"
+  }
+},
+{
+  "model": "personas.documento",
+  "pk": 245,
+  "fields": {
+    "tipo_documento": "CC",
+    "numero_documento": "9990000012"
+  }
+},
+{
+  "model": "personas.documento",
+  "pk": 246,
+  "fields": {
+    "tipo_documento": "CC",
+    "numero_documento": "9990000013"
+  }
+},
+{
+  "model": "personas.documento",
+  "pk": 249,
+  "fields": {
+    "tipo_documento": "CC",
+    "numero_documento": "9990000016"
+  }
+},
+{
+  "model": "personas.documento",
+  "pk": 250,
+  "fields": {
+    "tipo_documento": "CC",
+    "numero_documento": "9990000017"
+  }
+},
+{
+  "model": "personas.documento",
+  "pk": 253,
+  "fields": {
+    "tipo_documento": "CC",
+    "numero_documento": "9990000020"
+  }
+},
+{
+  "model": "personas.documento",
+  "pk": 254,
+  "fields": {
+    "tipo_documento": "CC",
+    "numero_documento": "9990000021"
+  }
+},
+{
+  "model": "personas.documento",
+  "pk": 257,
+  "fields": {
+    "tipo_documento": "CC",
+    "numero_documento": "9990000024"
+  }
+},
+{
+  "model": "personas.documento",
+  "pk": 258,
+  "fields": {
+    "tipo_documento": "CC",
+    "numero_documento": "9990000025"
+  }
+},
+{
+  "model": "personas.documento",
+  "pk": 262,
+  "fields": {
+    "tipo_documento": "CC",
+    "numero_documento": "9990000029"
+  }
+},
+{
+  "model": "personas.documento",
+  "pk": 263,
+  "fields": {
+    "tipo_documento": "CC",
+    "numero_documento": "9990000030"
+  }
+},
+{
+  "model": "personas.documento",
+  "pk": 264,
+  "fields": {
+    "tipo_documento": "CC",
+    "numero_documento": "9990000031"
+  }
+},
+{
+  "model": "personas.documento",
+  "pk": 265,
+  "fields": {
+    "tipo_documento": "CC",
+    "numero_documento": "9990000032"
+  }
+},
+{
+  "model": "personas.documento",
+  "pk": 266,
+  "fields": {
+    "tipo_documento": "CC",
+    "numero_documento": "9990000033"
+  }
+},
+{
+  "model": "personas.documento",
+  "pk": 267,
+  "fields": {
+    "tipo_documento": "CC",
+    "numero_documento": "9990000034"
+  }
+},
+{
+  "model": "personas.documento",
+  "pk": 268,
+  "fields": {
+    "tipo_documento": "CC",
+    "numero_documento": "9990000035"
+  }
+},
+{
+  "model": "personas.documento",
+  "pk": 269,
+  "fields": {
+    "tipo_documento": "CC",
+    "numero_documento": "9990000036"
+  }
+},
+{
+  "model": "personas.documento",
+  "pk": 270,
+  "fields": {
+    "tipo_documento": "CC",
+    "numero_documento": "9990000037"
+  }
+},
+{
+  "model": "personas.documento",
+  "pk": 271,
+  "fields": {
+    "tipo_documento": "CC",
+    "numero_documento": "9990000038"
+  }
+},
+{
+  "model": "personas.documento",
+  "pk": 272,
+  "fields": {
+    "tipo_documento": "CC",
+    "numero_documento": "9990000039"
+  }
+},
+{
+  "model": "personas.documento",
+  "pk": 273,
+  "fields": {
+    "tipo_documento": "CC",
+    "numero_documento": "9990000040"
+  }
+},
+{
+  "model": "personas.documento",
+  "pk": 239,
+  "fields": {
+    "tipo_documento": "RC",
+    "numero_documento": "9990000006"
+  }
+},
+{
+  "model": "personas.documento",
+  "pk": 240,
+  "fields": {
+    "tipo_documento": "RC",
+    "numero_documento": "9990000007"
+  }
+},
+{
+  "model": "personas.documento",
+  "pk": 243,
+  "fields": {
+    "tipo_documento": "RC",
+    "numero_documento": "9990000010"
+  }
+},
+{
+  "model": "personas.documento",
+  "pk": 244,
+  "fields": {
+    "tipo_documento": "RC",
+    "numero_documento": "9990000011"
+  }
+},
+{
+  "model": "personas.documento",
+  "pk": 247,
+  "fields": {
+    "tipo_documento": "RC",
+    "numero_documento": "9990000014"
+  }
+},
+{
+  "model": "personas.documento",
+  "pk": 248,
+  "fields": {
+    "tipo_documento": "RC",
+    "numero_documento": "9990000015"
+  }
+},
+{
+  "model": "personas.documento",
+  "pk": 251,
+  "fields": {
+    "tipo_documento": "RC",
+    "numero_documento": "9990000018"
+  }
+},
+{
+  "model": "personas.documento",
+  "pk": 252,
+  "fields": {
+    "tipo_documento": "RC",
+    "numero_documento": "9990000019"
+  }
+},
+{
+  "model": "personas.documento",
+  "pk": 255,
+  "fields": {
+    "tipo_documento": "RC",
+    "numero_documento": "9990000022"
+  }
+},
+{
+  "model": "personas.documento",
+  "pk": 256,
+  "fields": {
+    "tipo_documento": "RC",
+    "numero_documento": "9990000023"
+  }
+},
+{
+  "model": "personas.documento",
+  "pk": 259,
+  "fields": {
+    "tipo_documento": "RC",
+    "numero_documento": "9990000026"
+  }
+},
+{
+  "model": "personas.documento",
+  "pk": 260,
+  "fields": {
+    "tipo_documento": "RC",
+    "numero_documento": "9990000027"
+  }
+},
+{
+  "model": "personas.documento",
+  "pk": 261,
+  "fields": {
+    "tipo_documento": "RC",
+    "numero_documento": "9990000028"
+  }
+},
+{
+  "model": "personas.documento",
+  "pk": 274,
+  "fields": {
+    "tipo_documento": "RC",
+    "numero_documento": "9990000041"
+  }
+},
+{
+  "model": "personas.documento",
+  "pk": 275,
+  "fields": {
+    "tipo_documento": "RC",
+    "numero_documento": "9990000042"
+  }
+},
+{
+  "model": "personas.documento",
+  "pk": 276,
+  "fields": {
+    "tipo_documento": "RC",
+    "numero_documento": "9990000043"
+  }
+},
+{
+  "model": "personas.fiel",
+  "pk": 239,
+  "fields": {
+    "documento": 271,
+    "nombres": "Sara",
+    "apellidos": "Agudelo Marín",
+    "fecha_nacimiento": "1997-07-13",
+    "municipio_nacimiento": 7,
+    "telefono": "",
+    "sexo": "M"
+  }
+},
+{
+  "model": "personas.fiel",
+  "pk": 225,
+  "fields": {
+    "documento": 257,
+    "nombres": "Diego Fernando",
+    "apellidos": "Arango",
+    "fecha_nacimiento": "1981-04-28",
+    "municipio_nacimiento": 7,
+    "telefono": "",
+    "sexo": "H"
+  }
+},
+{
+  "model": "personas.fiel",
+  "pk": 228,
+  "fields": {
+    "documento": 260,
+    "nombres": "Gabriela",
+    "apellidos": "Arango Vélez",
+    "fecha_nacimiento": "2018-02-12",
+    "municipio_nacimiento": 7,
+    "telefono": "",
+    "sexo": "M"
+  }
+},
+{
+  "model": "personas.fiel",
+  "pk": 227,
+  "fields": {
+    "documento": 259,
+    "nombres": "Martín",
+    "apellidos": "Arango Vélez",
+    "fecha_nacimiento": "2026-09-01",
+    "municipio_nacimiento": 7,
+    "telefono": "",
+    "sexo": "H"
+  }
+},
+{
+  "model": "personas.fiel",
+  "pk": 238,
+  "fields": {
+    "documento": 270,
+    "nombres": "Esteban",
+    "apellidos": "Bedoya Salazar",
+    "fecha_nacimiento": "1993-09-29",
+    "municipio_nacimiento": 7,
+    "telefono": "",
+    "sexo": "H"
+  }
+},
+{
+  "model": "personas.fiel",
+  "pk": 243,
+  "fields": {
+    "documento": 275,
+    "nombres": "Manuela",
+    "apellidos": "Betancur Ríos",
+    "fecha_nacimiento": "2013-12-05",
+    "municipio_nacimiento": 7,
+    "telefono": "",
+    "sexo": "M"
+  }
+},
+{
+  "model": "personas.fiel",
+  "pk": 213,
+  "fields": {
+    "documento": 245,
+    "nombres": "Luis Alberto",
+    "apellidos": "Cárdenas",
+    "fecha_nacimiento": "1983-06-09",
+    "municipio_nacimiento": 7,
+    "telefono": "",
+    "sexo": "H"
+  }
+},
+{
+  "model": "personas.fiel",
+  "pk": 216,
+  "fields": {
+    "documento": 248,
+    "nombres": "Isabella",
+    "apellidos": "Cárdenas Torres",
+    "fecha_nacimiento": "2015-12-01",
+    "municipio_nacimiento": 7,
+    "telefono": "",
+    "sexo": "M"
+  }
+},
+{
+  "model": "personas.fiel",
+  "pk": 215,
+  "fields": {
+    "documento": 247,
+    "nombres": "Santiago",
+    "apellidos": "Cárdenas Torres",
+    "fecha_nacimiento": "2012-08-05",
+    "municipio_nacimiento": 7,
+    "telefono": "",
+    "sexo": "H"
+  }
+},
+{
+  "model": "personas.fiel",
+  "pk": 233,
+  "fields": {
+    "documento": 265,
+    "nombres": "Natalia",
+    "apellidos": "Cardona Mejía",
+    "fecha_nacimiento": "1991-04-22",
+    "municipio_nacimiento": 7,
+    "telefono": "",
+    "sexo": "M"
+  }
+},
+{
+  "model": "personas.fiel",
+  "pk": 237,
+  "fields": {
+    "documento": 269,
+    "nombres": "Gabriela",
+    "apellidos": "Castro Duarte",
+    "fecha_nacimiento": "1998-02-18",
+    "municipio_nacimiento": 7,
+    "telefono": "",
+    "sexo": "M"
+  }
+},
+{
+  "model": "personas.fiel",
+  "pk": 206,
+  "fields": {
+    "documento": 238,
+    "nombres": "Marta Lucía",
+    "apellidos": "Gómez",
+    "fecha_nacimiento": "1988-07-25",
+    "municipio_nacimiento": 7,
+    "telefono": "",
+    "sexo": "M"
+  }
+},
+{
+  "model": "personas.fiel",
+  "pk": 217,
+  "fields": {
+    "documento": 249,
+    "nombres": "Óscar Iván",
+    "apellidos": "Herrera",
+    "fecha_nacimiento": "1989-02-14",
+    "municipio_nacimiento": 7,
+    "telefono": "",
+    "sexo": "H"
+  }
+},
+{
+  "model": "personas.fiel",
+  "pk": 220,
+  "fields": {
+    "documento": 252,
+    "nombres": "Mariana",
+    "apellidos": "Herrera Muñoz",
+    "fecha_nacimiento": "2018-03-30",
+    "municipio_nacimiento": 7,
+    "telefono": "",
+    "sexo": "M"
+  }
+},
+{
+  "model": "personas.fiel",
+  "pk": 219,
+  "fields": {
+    "documento": 251,
+    "nombres": "Samuel",
+    "apellidos": "Herrera Muñoz",
+    "fecha_nacimiento": "2016-07-11",
+    "municipio_nacimiento": 7,
+    "telefono": "",
+    "sexo": "H"
+  }
+},
+{
+  "model": "personas.fiel",
+  "pk": 232,
+  "fields": {
+    "documento": 264,
+    "nombres": "Andrés Mauricio",
+    "apellidos": "Jiménez Peña",
+    "fecha_nacimiento": "1989-11-07",
+    "municipio_nacimiento": 7,
+    "telefono": "",
+    "sexo": "H"
+  }
+},
+{
+  "model": "personas.fiel",
+  "pk": 241,
+  "fields": {
+    "documento": 273,
+    "nombres": "Andrea Carolina",
+    "apellidos": "López Castro",
+    "fecha_nacimiento": "1988-10-24",
+    "municipio_nacimiento": 7,
+    "telefono": "",
+    "sexo": "M"
+  }
+},
+{
+  "model": "personas.fiel",
+  "pk": 242,
+  "fields": {
+    "documento": 274,
+    "nombres": "Santiago",
+    "apellidos": "Molina Herrera",
+    "fecha_nacimiento": "2012-06-17",
+    "municipio_nacimiento": 7,
+    "telefono": "",
+    "sexo": "H"
+  }
+},
+{
+  "model": "personas.fiel",
+  "pk": 235,
+  "fields": {
+    "documento": 267,
+    "nombres": "Daniela",
+    "apellidos": "Moreno Castaño",
+    "fecha_nacimiento": "1996-12-11",
+    "municipio_nacimiento": 7,
+    "telefono": "",
+    "sexo": "M"
+  }
+},
+{
+  "model": "personas.fiel",
+  "pk": 218,
+  "fields": {
+    "documento": 250,
+    "nombres": "Paola Andrea",
+    "apellidos": "Muñoz",
+    "fecha_nacimiento": "1990-05-21",
+    "municipio_nacimiento": 7,
+    "telefono": "",
+    "sexo": "M"
+  }
+},
+{
+  "model": "personas.fiel",
+  "pk": 221,
+  "fields": {
+    "documento": 253,
+    "nombres": "Jorge Hernán",
+    "apellidos": "Ospina",
+    "fecha_nacimiento": "1982-09-03",
+    "municipio_nacimiento": 7,
+    "telefono": "",
+    "sexo": "H"
+  }
+},
+{
+  "model": "personas.fiel",
+  "pk": 224,
+  "fields": {
+    "documento": 256,
+    "nombres": "Salomé",
+    "apellidos": "Ospina Ríos",
+    "fecha_nacimiento": "2019-06-08",
+    "municipio_nacimiento": 7,
+    "telefono": "",
+    "sexo": "M"
+  }
+},
+{
+  "model": "personas.fiel",
+  "pk": 223,
+  "fields": {
+    "documento": 255,
+    "nombres": "Tomás",
+    "apellidos": "Ospina Ríos",
+    "fecha_nacimiento": "2016-01-23",
+    "municipio_nacimiento": 7,
+    "telefono": "",
+    "sexo": "H"
+  }
+},
+{
+  "model": "personas.fiel",
+  "pk": 229,
+  "fields": {
+    "documento": 261,
+    "nombres": "Juan Esteban",
+    "apellidos": "Pérez Mora",
+    "fecha_nacimiento": "2015-03-09",
+    "municipio_nacimiento": 7,
+    "telefono": "",
+    "sexo": "H"
+  }
+},
+{
+  "model": "personas.fiel",
+  "pk": 240,
+  "fields": {
+    "documento": 272,
+    "nombres": "Cristian",
+    "apellidos": "Pineda Gómez",
+    "fecha_nacimiento": "1990-03-06",
+    "municipio_nacimiento": 7,
+    "telefono": "",
+    "sexo": "H"
+  }
+},
+{
+  "model": "personas.fiel",
+  "pk": 234,
+  "fields": {
+    "documento": 266,
+    "nombres": "Felipe",
+    "apellidos": "Quintero Rojas",
+    "fecha_nacimiento": "1994-08-03",
+    "municipio_nacimiento": 7,
+    "telefono": "",
+    "sexo": "H"
+  }
+},
+{
+  "model": "personas.fiel",
+  "pk": 236,
+  "fields": {
+    "documento": 268,
+    "nombres": "Alejandro",
+    "apellidos": "Ramírez Cano",
+    "fecha_nacimiento": "1987-05-26",
+    "municipio_nacimiento": 7,
+    "telefono": "",
+    "sexo": "H"
+  }
+},
+{
+  "model": "personas.fiel",
+  "pk": 205,
+  "fields": {
+    "documento": 237,
+    "nombres": "José Aníbal",
+    "apellidos": "Restrepo",
+    "fecha_nacimiento": "1986-03-12",
+    "municipio_nacimiento": 7,
+    "telefono": "",
+    "sexo": "H"
+  }
+},
+{
+  "model": "personas.fiel",
+  "pk": 207,
+  "fields": {
+    "documento": 239,
+    "nombres": "Juan José",
+    "apellidos": "Restrepo Gómez",
+    "fecha_nacimiento": "2010-05-03",
+    "municipio_nacimiento": 7,
+    "telefono": "",
+    "sexo": "H"
+  }
+},
+{
+  "model": "personas.fiel",
+  "pk": 208,
+  "fields": {
+    "documento": 240,
+    "nombres": "Laura Sofía",
+    "apellidos": "Restrepo Gómez",
+    "fecha_nacimiento": "2013-09-14",
+    "municipio_nacimiento": 7,
+    "telefono": "",
+    "sexo": "M"
+  }
+},
+{
+  "model": "personas.fiel",
+  "pk": 222,
+  "fields": {
+    "documento": 254,
+    "nombres": "Claudia Patricia",
+    "apellidos": "Ríos",
+    "fecha_nacimiento": "1983-12-19",
+    "municipio_nacimiento": 7,
+    "telefono": "",
+    "sexo": "M"
+  }
+},
+{
+  "model": "personas.fiel",
+  "pk": 210,
+  "fields": {
+    "documento": 242,
+    "nombres": "Diana Carolina",
+    "apellidos": "Ruiz",
+    "fecha_nacimiento": "1987-11-02",
+    "municipio_nacimiento": 7,
+    "telefono": "",
+    "sexo": "M"
+  }
+},
+{
+  "model": "personas.fiel",
+  "pk": 230,
+  "fields": {
+    "documento": 262,
+    "nombres": "Ricardo Andrés",
+    "apellidos": "Salazar Nieto",
+    "fecha_nacimiento": "1995-06-30",
+    "municipio_nacimiento": 7,
+    "telefono": "",
+    "sexo": "H"
+  }
+},
+{
+  "model": "personas.fiel",
+  "pk": 214,
+  "fields": {
+    "documento": 246,
+    "nombres": "Sandra Milena",
+    "apellidos": "Torres",
+    "fecha_nacimiento": "1984-10-30",
+    "municipio_nacimiento": 7,
+    "telefono": "",
+    "sexo": "M"
+  }
+},
+{
+  "model": "personas.fiel",
+  "pk": 231,
+  "fields": {
+    "documento": 263,
+    "nombres": "Camila",
+    "apellidos": "Vargas Lozano",
+    "fecha_nacimiento": "1992-01-15",
+    "municipio_nacimiento": 7,
+    "telefono": "",
+    "sexo": "M"
+  }
+},
+{
+  "model": "personas.fiel",
+  "pk": 226,
+  "fields": {
+    "documento": 258,
+    "nombres": "Yuliana Andrea",
+    "apellidos": "Vélez",
+    "fecha_nacimiento": "1984-08-16",
+    "municipio_nacimiento": 7,
+    "telefono": "",
+    "sexo": "M"
+  }
+},
+{
+  "model": "personas.fiel",
+  "pk": 209,
+  "fields": {
+    "documento": 241,
+    "nombres": "Carlos Eduardo",
+    "apellidos": "Zapata",
+    "fecha_nacimiento": "1985-01-20",
+    "municipio_nacimiento": 7,
+    "telefono": "",
+    "sexo": "H"
+  }
+},
+{
+  "model": "personas.fiel",
+  "pk": 211,
+  "fields": {
+    "documento": 243,
+    "nombres": "Andrés Felipe",
+    "apellidos": "Zapata Ruiz",
+    "fecha_nacimiento": "2011-04-18",
+    "municipio_nacimiento": 7,
+    "telefono": "",
+    "sexo": "H"
+  }
+},
+{
+  "model": "personas.fiel",
+  "pk": 212,
+  "fields": {
+    "documento": 244,
+    "nombres": "Valentina",
+    "apellidos": "Zapata Ruiz",
+    "fecha_nacimiento": "2014-02-27",
+    "municipio_nacimiento": 7,
+    "telefono": "",
+    "sexo": "M"
+  }
+},
+{
+  "model": "personas.fiel",
+  "pk": 244,
+  "fields": {
+    "documento": 276,
+    "nombres": "Julián",
+    "apellidos": "Zuluaga Ospina",
+    "fecha_nacimiento": "2009-04-11",
+    "municipio_nacimiento": 7,
+    "telefono": "",
+    "sexo": "H"
+  }
+},
+{
+  "model": "personas.padre",
+  "pk": 40,
+  "fields": {
+    "documento": 257,
+    "nombre": "Diego Fernando",
+    "apellido": "Arango"
+  }
+},
+{
+  "model": "personas.padre",
+  "pk": 37,
+  "fields": {
+    "documento": 245,
+    "nombre": "Luis Alberto",
+    "apellido": "Cárdenas"
+  }
+},
+{
+  "model": "personas.padre",
+  "pk": 38,
+  "fields": {
+    "documento": 249,
+    "nombre": "Óscar Iván",
+    "apellido": "Herrera"
+  }
+},
+{
+  "model": "personas.padre",
+  "pk": 39,
+  "fields": {
+    "documento": 253,
+    "nombre": "Jorge Hernán",
+    "apellido": "Ospina"
+  }
+},
+{
+  "model": "personas.padre",
+  "pk": 35,
+  "fields": {
+    "documento": 237,
+    "nombre": "José Aníbal",
+    "apellido": "Restrepo"
+  }
+},
+{
+  "model": "personas.padre",
+  "pk": 36,
+  "fields": {
+    "documento": 241,
+    "nombre": "Carlos Eduardo",
+    "apellido": "Zapata"
+  }
+},
+{
+  "model": "personas.madre",
+  "pk": 35,
+  "fields": {
+    "documento": 238,
+    "nombre": "Marta Lucía",
+    "apellido": "Gómez"
+  }
+},
+{
+  "model": "personas.madre",
+  "pk": 38,
+  "fields": {
+    "documento": 250,
+    "nombre": "Paola Andrea",
+    "apellido": "Muñoz"
+  }
+},
+{
+  "model": "personas.madre",
+  "pk": 39,
+  "fields": {
+    "documento": 254,
+    "nombre": "Claudia Patricia",
+    "apellido": "Ríos"
+  }
+},
+{
+  "model": "personas.madre",
+  "pk": 36,
+  "fields": {
+    "documento": 242,
+    "nombre": "Diana Carolina",
+    "apellido": "Ruiz"
+  }
+},
+{
+  "model": "personas.madre",
+  "pk": 37,
+  "fields": {
+    "documento": 246,
+    "nombre": "Sandra Milena",
+    "apellido": "Torres"
+  }
+},
+{
+  "model": "personas.madre",
+  "pk": 40,
+  "fields": {
+    "documento": 258,
+    "nombre": "Yuliana Andrea",
+    "apellido": "Vélez"
+  }
+},
+{
+  "model": "personas.padrino",
+  "pk": 53,
+  "fields": {
+    "nombre": "Alejandro Ramírez Cano",
+    "documento": 268
+  }
+},
+{
+  "model": "personas.padrino",
+  "pk": 49,
+  "fields": {
+    "nombre": "Andrés Mauricio Jiménez Peña",
+    "documento": 264
+  }
+},
+{
+  "model": "personas.padrino",
+  "pk": 48,
+  "fields": {
+    "nombre": "Camila Vargas Lozano",
+    "documento": 263
+  }
+},
+{
+  "model": "personas.padrino",
+  "pk": 52,
+  "fields": {
+    "nombre": "Daniela Moreno Castaño",
+    "documento": 267
+  }
+},
+{
+  "model": "personas.padrino",
+  "pk": 55,
+  "fields": {
+    "nombre": "Esteban Bedoya Salazar",
+    "documento": 270
+  }
+},
+{
+  "model": "personas.padrino",
+  "pk": 51,
+  "fields": {
+    "nombre": "Felipe Quintero Rojas",
+    "documento": 266
+  }
+},
+{
+  "model": "personas.padrino",
+  "pk": 54,
+  "fields": {
+    "nombre": "Gabriela Castro Duarte",
+    "documento": 269
+  }
+},
+{
+  "model": "personas.padrino",
+  "pk": 61,
+  "fields": {
+    "nombre": "Juan José",
+    "documento": 290
+  }
+},
+{
+  "model": "personas.padrino",
+  "pk": 50,
+  "fields": {
+    "nombre": "Natalia Cardona Mejía",
+    "documento": 265
+  }
+},
+{
+  "model": "parroquias.ministro",
+  "pk": 18,
+  "fields": {
+    "nombre": "Rafael",
+    "apellido": "Betancur Restrepo",
+    "cargo": "Párroco",
+    "fecha_nacimiento": "1965-06-12",
+    "telefono": "3000000001",
+    "email": "parroco.demo@ejemplo.co",
+    "documento": 234,
+    "parroquia": 11
+  }
+},
+{
+  "model": "parroquias.ministro",
+  "pk": 20,
+  "fields": {
+    "nombre": "Hernán",
+    "apellido": "Quiroga Peña",
+    "cargo": "Diácono",
+    "fecha_nacimiento": "1980-09-25",
+    "telefono": "3000000003",
+    "email": "diacono.demo@ejemplo.co",
+    "documento": 236,
+    "parroquia": 11
+  }
+},
+{
+  "model": "parroquias.ministro",
+  "pk": 19,
+  "fields": {
+    "nombre": "Andrés",
+    "apellido": "Salgado Medina",
+    "cargo": "Vicario",
+    "fecha_nacimiento": "1978-02-03",
+    "telefono": "3000000002",
+    "email": "vicario.demo@ejemplo.co",
+    "documento": 235,
+    "parroquia": 11
+  }
+},
+{
+  "model": "parroquias.parroquia",
+  "pk": 11,
+  "fields": {
+    "nombre": "Iglesia San Rafael",
+    "municipio": 7,
+    "direccion": "Carrera 7 # 12-34, Barrio Centro",
+    "telefono": "601 742 0000",
+    "email": "parroquia.demo@ejemplo.co",
+    "parroco": 18
+  }
+},
+{
+  "model": "parroquias.libro",
+  "pk": 44,
+  "fields": {
+    "nombre": "Bautismos 1",
+    "tipo_libro": "BAUTISMOS",
+    "detalle": "Libro de bautismos de Iglesia San Rafael.",
+    "numero_libro": 1,
+    "fecha_apertura": "2025-09-01",
+    "total_folios": 200,
+    "partidas_por_folio": 3,
+    "ministro_apertura": 18,
+    "estado": "ABIERTO",
+    "fecha_cierre": null,
+    "ministro_cierre": null,
+    "nota_cierre": "",
+    "observaciones": "",
+    "parroquia": 11
+  }
+},
+{
+  "model": "parroquias.libro",
+  "pk": 46,
+  "fields": {
+    "nombre": "Confirmaciones 1",
+    "tipo_libro": "CONFIRMACIONES",
+    "detalle": "Libro de confirmaciones de Iglesia San Rafael.",
+    "numero_libro": 1,
+    "fecha_apertura": "2025-09-01",
+    "total_folios": 200,
+    "partidas_por_folio": 3,
+    "ministro_apertura": 18,
+    "estado": "ABIERTO",
+    "fecha_cierre": null,
+    "ministro_cierre": null,
+    "nota_cierre": "",
+    "observaciones": "",
+    "parroquia": 11
+  }
+},
+{
+  "model": "parroquias.libro",
+  "pk": 47,
+  "fields": {
+    "nombre": "Matrimonios 1",
+    "tipo_libro": "MATRIMONIOS",
+    "detalle": "Libro de matrimonios de Iglesia San Rafael.",
+    "numero_libro": 1,
+    "fecha_apertura": "2025-09-01",
+    "total_folios": 200,
+    "partidas_por_folio": 3,
+    "ministro_apertura": 18,
+    "estado": "ABIERTO",
+    "fecha_cierre": null,
+    "ministro_cierre": null,
+    "nota_cierre": "",
+    "observaciones": "",
+    "parroquia": 11
+  }
+},
+{
+  "model": "parroquias.libro",
+  "pk": 45,
+  "fields": {
+    "nombre": "Primera Comunión 1",
+    "tipo_libro": "PRIMERA_COMUNION",
+    "detalle": "Libro de primera comunión de Iglesia San Rafael.",
+    "numero_libro": 1,
+    "fecha_apertura": "2025-09-01",
+    "total_folios": 200,
+    "partidas_por_folio": 3,
+    "ministro_apertura": 18,
+    "estado": "ABIERTO",
+    "fecha_cierre": null,
+    "ministro_cierre": null,
+    "nota_cierre": "",
+    "observaciones": "",
+    "parroquia": 11
+  }
+},
+{
+  "model": "parroquias.folio",
+  "pk": 66,
+  "fields": {
+    "libro": 44,
+    "numero_folio": 1,
+    "fecha_creacion": "2025-09-01",
+    "observaciones": ""
+  }
+},
+{
+  "model": "parroquias.folio",
+  "pk": 67,
+  "fields": {
+    "libro": 44,
+    "numero_folio": 2,
+    "fecha_creacion": "2025-09-01",
+    "observaciones": ""
+  }
+},
+{
+  "model": "parroquias.folio",
+  "pk": 68,
+  "fields": {
+    "libro": 44,
+    "numero_folio": 3,
+    "fecha_creacion": "2025-09-01",
+    "observaciones": ""
+  }
+},
+{
+  "model": "parroquias.folio",
+  "pk": 69,
+  "fields": {
+    "libro": 44,
+    "numero_folio": 4,
+    "fecha_creacion": "2025-09-01",
+    "observaciones": ""
+  }
+},
+{
+  "model": "parroquias.folio",
+  "pk": 70,
+  "fields": {
+    "libro": 44,
+    "numero_folio": 5,
+    "fecha_creacion": "2025-09-01",
+    "observaciones": ""
+  }
+},
+{
+  "model": "parroquias.folio",
+  "pk": 71,
+  "fields": {
+    "libro": 44,
+    "numero_folio": 6,
+    "fecha_creacion": "2025-09-01",
+    "observaciones": ""
+  }
+},
+{
+  "model": "parroquias.folio",
+  "pk": 72,
+  "fields": {
+    "libro": 44,
+    "numero_folio": 7,
+    "fecha_creacion": "2025-09-01",
+    "observaciones": ""
+  }
+},
+{
+  "model": "parroquias.folio",
+  "pk": 73,
+  "fields": {
+    "libro": 44,
+    "numero_folio": 8,
+    "fecha_creacion": "2025-09-01",
+    "observaciones": ""
+  }
+},
+{
+  "model": "parroquias.folio",
+  "pk": 74,
+  "fields": {
+    "libro": 44,
+    "numero_folio": 9,
+    "fecha_creacion": "2025-09-01",
+    "observaciones": ""
+  }
+},
+{
+  "model": "parroquias.folio",
+  "pk": 77,
+  "fields": {
+    "libro": 46,
+    "numero_folio": 1,
+    "fecha_creacion": "2025-09-01",
+    "observaciones": ""
+  }
+},
+{
+  "model": "parroquias.folio",
+  "pk": 78,
+  "fields": {
+    "libro": 46,
+    "numero_folio": 2,
+    "fecha_creacion": "2025-09-01",
+    "observaciones": ""
+  }
+},
+{
+  "model": "parroquias.folio",
+  "pk": 79,
+  "fields": {
+    "libro": 47,
+    "numero_folio": 1,
+    "fecha_creacion": "2025-09-01",
+    "observaciones": ""
+  }
+},
+{
+  "model": "parroquias.folio",
+  "pk": 80,
+  "fields": {
+    "libro": 47,
+    "numero_folio": 2,
+    "fecha_creacion": "2025-09-01",
+    "observaciones": ""
+  }
+},
+{
+  "model": "parroquias.folio",
+  "pk": 81,
+  "fields": {
+    "libro": 47,
+    "numero_folio": 3,
+    "fecha_creacion": "2025-09-01",
+    "observaciones": ""
+  }
+},
+{
+  "model": "parroquias.folio",
+  "pk": 75,
+  "fields": {
+    "libro": 45,
+    "numero_folio": 1,
+    "fecha_creacion": "2025-09-01",
+    "observaciones": ""
+  }
+},
+{
+  "model": "parroquias.folio",
+  "pk": 76,
+  "fields": {
+    "libro": 45,
+    "numero_folio": 2,
+    "fecha_creacion": "2025-09-01",
+    "observaciones": ""
+  }
+},
+{
+  "model": "sacramentos.sacramento",
+  "pk": 216,
+  "fields": {
+    "tipo": "BAUTISMO",
+    "fiel": 205,
+    "libro": 44,
+    "folio": 66,
+    "numero": 1,
+    "fecha": "2025-10-20",
+    "fecha_registro": "2025-10-20",
+    "parroquia": 11,
+    "ministro": 18,
+    "estado": "ANULADO",
+    "observaciones": "",
+    "creado_por": null,
+    "modificado_por": 5,
+    "creado_en": "2026-10-15T21:43:07.776Z",
+    "modificado_en": "2026-10-16T16:53:30.859Z"
+  }
+},
+{
+  "model": "sacramentos.sacramento",
+  "pk": 217,
+  "fields": {
+    "tipo": "BAUTISMO",
+    "fiel": 206,
+    "libro": 44,
+    "folio": 66,
+    "numero": 2,
+    "fecha": "2025-11-04",
+    "fecha_registro": "2025-11-04",
+    "parroquia": 11,
+    "ministro": 19,
+    "estado": "ACTIVO",
+    "observaciones": "",
+    "creado_por": null,
+    "modificado_por": null,
+    "creado_en": "2026-10-15T21:43:07.805Z",
+    "modificado_en": "2026-10-15T21:43:07.805Z"
+  }
+},
+{
+  "model": "sacramentos.sacramento",
+  "pk": 218,
+  "fields": {
+    "tipo": "BAUTISMO",
+    "fiel": 209,
+    "libro": 44,
+    "folio": 66,
+    "numero": 3,
+    "fecha": "2025-11-19",
+    "fecha_registro": "2025-11-19",
+    "parroquia": 11,
+    "ministro": 20,
+    "estado": "ACTIVO",
+    "observaciones": "",
+    "creado_por": null,
+    "modificado_por": null,
+    "creado_en": "2026-10-15T21:43:07.811Z",
+    "modificado_en": "2026-10-15T21:43:07.811Z"
+  }
+},
+{
+  "model": "sacramentos.sacramento",
+  "pk": 219,
+  "fields": {
+    "tipo": "BAUTISMO",
+    "fiel": 210,
+    "libro": 44,
+    "folio": 67,
+    "numero": 4,
+    "fecha": "2025-12-01",
+    "fecha_registro": "2025-12-01",
+    "parroquia": 11,
+    "ministro": 18,
+    "estado": "ACTIVO",
+    "observaciones": "",
+    "creado_por": null,
+    "modificado_por": null,
+    "creado_en": "2026-10-15T21:43:07.818Z",
+    "modificado_en": "2026-10-15T21:43:07.818Z"
+  }
+},
+{
+  "model": "sacramentos.sacramento",
+  "pk": 220,
+  "fields": {
+    "tipo": "BAUTISMO",
+    "fiel": 213,
+    "libro": 44,
+    "folio": 67,
+    "numero": 5,
+    "fecha": "2025-12-19",
+    "fecha_registro": "2025-12-19",
+    "parroquia": 11,
+    "ministro": 19,
+    "estado": "ANULADO",
+    "observaciones": "",
+    "creado_por": null,
+    "modificado_por": 5,
+    "creado_en": "2026-10-15T21:43:07.824Z",
+    "modificado_en": "2026-10-16T17:22:55.640Z"
+  }
+},
+{
+  "model": "sacramentos.sacramento",
+  "pk": 221,
+  "fields": {
+    "tipo": "BAUTISMO",
+    "fiel": 214,
+    "libro": 44,
+    "folio": 67,
+    "numero": 6,
+    "fecha": "2025-12-31",
+    "fecha_registro": "2025-12-31",
+    "parroquia": 11,
+    "ministro": 20,
+    "estado": "ACTIVO",
+    "observaciones": "",
+    "creado_por": null,
+    "modificado_por": null,
+    "creado_en": "2026-10-15T21:43:07.831Z",
+    "modificado_en": "2026-10-15T21:43:07.831Z"
+  }
+},
+{
+  "model": "sacramentos.sacramento",
+  "pk": 222,
+  "fields": {
+    "tipo": "BAUTISMO",
+    "fiel": 217,
+    "libro": 44,
+    "folio": 68,
+    "numero": 7,
+    "fecha": "2026-01-18",
+    "fecha_registro": "2026-01-18",
+    "parroquia": 11,
+    "ministro": 18,
+    "estado": "ACTIVO",
+    "observaciones": "",
+    "creado_por": null,
+    "modificado_por": null,
+    "creado_en": "2026-10-15T21:43:07.838Z",
+    "modificado_en": "2026-10-15T21:43:07.838Z"
+  }
+},
+{
+  "model": "sacramentos.sacramento",
+  "pk": 223,
+  "fields": {
+    "tipo": "BAUTISMO",
+    "fiel": 218,
+    "libro": 44,
+    "folio": 68,
+    "numero": 8,
+    "fecha": "2026-02-02",
+    "fecha_registro": "2026-02-02",
+    "parroquia": 11,
+    "ministro": 19,
+    "estado": "ANULADO",
+    "observaciones": "",
+    "creado_por": null,
+    "modificado_por": 5,
+    "creado_en": "2026-10-15T21:43:07.844Z",
+    "modificado_en": "2026-10-16T17:30:23.600Z"
+  }
+},
+{
+  "model": "sacramentos.sacramento",
+  "pk": 224,
+  "fields": {
+    "tipo": "BAUTISMO",
+    "fiel": 221,
+    "libro": 44,
+    "folio": 68,
+    "numero": 9,
+    "fecha": "2026-02-17",
+    "fecha_registro": "2026-02-17",
+    "parroquia": 11,
+    "ministro": 20,
+    "estado": "ACTIVO",
+    "observaciones": "",
+    "creado_por": null,
+    "modificado_por": null,
+    "creado_en": "2026-10-15T21:43:07.850Z",
+    "modificado_en": "2026-10-15T21:43:07.850Z"
+  }
+},
+{
+  "model": "sacramentos.sacramento",
+  "pk": 225,
+  "fields": {
+    "tipo": "BAUTISMO",
+    "fiel": 222,
+    "libro": 44,
+    "folio": 69,
+    "numero": 10,
+    "fecha": "2026-03-01",
+    "fecha_registro": "2026-03-01",
+    "parroquia": 11,
+    "ministro": 18,
+    "estado": "ACTIVO",
+    "observaciones": "",
+    "creado_por": null,
+    "modificado_por": null,
+    "creado_en": "2026-10-15T21:43:07.857Z",
+    "modificado_en": "2026-10-15T21:43:07.857Z"
+  }
+},
+{
+  "model": "sacramentos.sacramento",
+  "pk": 226,
+  "fields": {
+    "tipo": "BAUTISMO",
+    "fiel": 225,
+    "libro": 44,
+    "folio": 69,
+    "numero": 11,
+    "fecha": "2026-03-19",
+    "fecha_registro": "2026-03-19",
+    "parroquia": 11,
+    "ministro": 19,
+    "estado": "ACTIVO",
+    "observaciones": "",
+    "creado_por": null,
+    "modificado_por": null,
+    "creado_en": "2026-10-15T21:43:07.864Z",
+    "modificado_en": "2026-10-15T21:43:07.864Z"
+  }
+},
+{
+  "model": "sacramentos.sacramento",
+  "pk": 227,
+  "fields": {
+    "tipo": "BAUTISMO",
+    "fiel": 226,
+    "libro": 44,
+    "folio": 69,
+    "numero": 12,
+    "fecha": "2026-03-31",
+    "fecha_registro": "2026-03-31",
+    "parroquia": 11,
+    "ministro": 20,
+    "estado": "ACTIVO",
+    "observaciones": "",
+    "creado_por": null,
+    "modificado_por": null,
+    "creado_en": "2026-10-15T21:43:07.869Z",
+    "modificado_en": "2026-10-15T21:43:07.869Z"
+  }
+},
+{
+  "model": "sacramentos.sacramento",
+  "pk": 228,
+  "fields": {
+    "tipo": "BAUTISMO",
+    "fiel": 207,
+    "libro": 44,
+    "folio": 70,
+    "numero": 13,
+    "fecha": "2026-04-13",
+    "fecha_registro": "2026-04-13",
+    "parroquia": 11,
+    "ministro": 18,
+    "estado": "ACTIVO",
+    "observaciones": "",
+    "creado_por": null,
+    "modificado_por": null,
+    "creado_en": "2026-10-15T21:43:07.877Z",
+    "modificado_en": "2026-10-15T21:43:07.877Z"
+  }
+},
+{
+  "model": "sacramentos.sacramento",
+  "pk": 250,
+  "fields": {
+    "tipo": "CONFIRMACION",
+    "fiel": 205,
+    "libro": 46,
+    "folio": 77,
+    "numero": 1,
+    "fecha": "2026-04-18",
+    "fecha_registro": "2026-04-18",
+    "parroquia": 11,
+    "ministro": 19,
+    "estado": "ACTIVO",
+    "observaciones": "",
+    "creado_por": null,
+    "modificado_por": null,
+    "creado_en": "2026-10-15T21:43:08.028Z",
+    "modificado_en": "2026-10-15T21:43:08.028Z"
+  }
+},
+{
+  "model": "sacramentos.sacramento",
+  "pk": 229,
+  "fields": {
+    "tipo": "BAUTISMO",
+    "fiel": 208,
+    "libro": 44,
+    "folio": 70,
+    "numero": 14,
+    "fecha": "2026-04-28",
+    "fecha_registro": "2026-04-28",
+    "parroquia": 11,
+    "ministro": 19,
+    "estado": "ACTIVO",
+    "observaciones": "",
+    "creado_por": null,
+    "modificado_por": null,
+    "creado_en": "2026-10-15T21:43:07.884Z",
+    "modificado_en": "2026-10-15T21:43:07.884Z"
+  }
+},
+{
+  "model": "sacramentos.sacramento",
+  "pk": 230,
+  "fields": {
+    "tipo": "BAUTISMO",
+    "fiel": 211,
+    "libro": 44,
+    "folio": 70,
+    "numero": 15,
+    "fecha": "2026-05-13",
+    "fecha_registro": "2026-05-13",
+    "parroquia": 11,
+    "ministro": 20,
+    "estado": "ACTIVO",
+    "observaciones": "",
+    "creado_por": null,
+    "modificado_por": null,
+    "creado_en": "2026-10-15T21:43:07.890Z",
+    "modificado_en": "2026-10-15T21:43:07.890Z"
+  }
+},
+{
+  "model": "sacramentos.sacramento",
+  "pk": 251,
+  "fields": {
+    "tipo": "CONFIRMACION",
+    "fiel": 209,
+    "libro": 46,
+    "folio": 77,
+    "numero": 2,
+    "fecha": "2026-05-18",
+    "fecha_registro": "2026-05-18",
+    "parroquia": 11,
+    "ministro": 19,
+    "estado": "ACTIVO",
+    "observaciones": "",
+    "creado_por": null,
+    "modificado_por": null,
+    "creado_en": "2026-10-15T21:43:08.038Z",
+    "modificado_en": "2026-10-15T21:43:08.038Z"
+  }
+},
+{
+  "model": "sacramentos.sacramento",
+  "pk": 231,
+  "fields": {
+    "tipo": "BAUTISMO",
+    "fiel": 212,
+    "libro": 44,
+    "folio": 71,
+    "numero": 16,
+    "fecha": "2026-05-28",
+    "fecha_registro": "2026-05-28",
+    "parroquia": 11,
+    "ministro": 18,
+    "estado": "ACTIVO",
+    "observaciones": "",
+    "creado_por": null,
+    "modificado_por": null,
+    "creado_en": "2026-10-15T21:43:07.897Z",
+    "modificado_en": "2026-10-15T21:43:07.897Z"
+  }
+},
+{
+  "model": "sacramentos.sacramento",
+  "pk": 232,
+  "fields": {
+    "tipo": "BAUTISMO",
+    "fiel": 215,
+    "libro": 44,
+    "folio": 71,
+    "numero": 17,
+    "fecha": "2026-06-12",
+    "fecha_registro": "2026-06-12",
+    "parroquia": 11,
+    "ministro": 19,
+    "estado": "ACTIVO",
+    "observaciones": "",
+    "creado_por": null,
+    "modificado_por": null,
+    "creado_en": "2026-10-15T21:43:07.905Z",
+    "modificado_en": "2026-10-15T21:43:07.905Z"
+  }
+},
+{
+  "model": "sacramentos.sacramento",
+  "pk": 252,
+  "fields": {
+    "tipo": "CONFIRMACION",
+    "fiel": 213,
+    "libro": 46,
+    "folio": 77,
+    "numero": 3,
+    "fecha": "2026-06-17",
+    "fecha_registro": "2026-06-17",
+    "parroquia": 11,
+    "ministro": 19,
+    "estado": "ACTIVO",
+    "observaciones": "",
+    "creado_por": null,
+    "modificado_por": null,
+    "creado_en": "2026-10-15T21:43:08.044Z",
+    "modificado_en": "2026-10-15T21:43:08.044Z"
+  }
+},
+{
+  "model": "sacramentos.sacramento",
+  "pk": 233,
+  "fields": {
+    "tipo": "BAUTISMO",
+    "fiel": 216,
+    "libro": 44,
+    "folio": 71,
+    "numero": 18,
+    "fecha": "2026-06-27",
+    "fecha_registro": "2026-06-27",
+    "parroquia": 11,
+    "ministro": 20,
+    "estado": "ACTIVO",
+    "observaciones": "",
+    "creado_por": null,
+    "modificado_por": null,
+    "creado_en": "2026-10-15T21:43:07.912Z",
+    "modificado_en": "2026-10-15T21:43:07.912Z"
+  }
+},
+{
+  "model": "sacramentos.sacramento",
+  "pk": 234,
+  "fields": {
+    "tipo": "BAUTISMO",
+    "fiel": 219,
+    "libro": 44,
+    "folio": 72,
+    "numero": 19,
+    "fecha": "2026-07-12",
+    "fecha_registro": "2026-07-12",
+    "parroquia": 11,
+    "ministro": 18,
+    "estado": "ACTIVO",
+    "observaciones": "",
+    "creado_por": null,
+    "modificado_por": null,
+    "creado_en": "2026-10-15T21:43:07.919Z",
+    "modificado_en": "2026-10-15T21:43:07.919Z"
+  }
+},
+{
+  "model": "sacramentos.sacramento",
+  "pk": 253,
+  "fields": {
+    "tipo": "CONFIRMACION",
+    "fiel": 217,
+    "libro": 46,
+    "folio": 78,
+    "numero": 4,
+    "fecha": "2026-07-17",
+    "fecha_registro": "2026-07-17",
+    "parroquia": 11,
+    "ministro": 19,
+    "estado": "ACTIVO",
+    "observaciones": "",
+    "creado_por": null,
+    "modificado_por": null,
+    "creado_en": "2026-10-15T21:43:08.050Z",
+    "modificado_en": "2026-10-15T21:43:08.050Z"
+  }
+},
+{
+  "model": "sacramentos.sacramento",
+  "pk": 235,
+  "fields": {
+    "tipo": "BAUTISMO",
+    "fiel": 220,
+    "libro": 44,
+    "folio": 72,
+    "numero": 20,
+    "fecha": "2026-07-27",
+    "fecha_registro": "2026-07-27",
+    "parroquia": 11,
+    "ministro": 19,
+    "estado": "ACTIVO",
+    "observaciones": "",
+    "creado_por": null,
+    "modificado_por": null,
+    "creado_en": "2026-10-15T21:43:07.926Z",
+    "modificado_en": "2026-10-15T21:43:07.926Z"
+  }
+},
+{
+  "model": "sacramentos.sacramento",
+  "pk": 236,
+  "fields": {
+    "tipo": "BAUTISMO",
+    "fiel": 223,
+    "libro": 44,
+    "folio": 72,
+    "numero": 21,
+    "fecha": "2026-08-10",
+    "fecha_registro": "2026-08-10",
+    "parroquia": 11,
+    "ministro": 20,
+    "estado": "ACTIVO",
+    "observaciones": "",
+    "creado_por": null,
+    "modificado_por": null,
+    "creado_en": "2026-10-15T21:43:07.932Z",
+    "modificado_en": "2026-10-15T21:43:07.932Z"
+  }
+},
+{
+  "model": "sacramentos.sacramento",
+  "pk": 242,
+  "fields": {
+    "tipo": "PRIMERA_COMUNION",
+    "fiel": 207,
+    "libro": 45,
+    "folio": 75,
+    "numero": 1,
+    "fecha": "2026-08-11",
+    "fecha_registro": "2026-08-11",
+    "parroquia": 11,
+    "ministro": 18,
+    "estado": "ACTIVO",
+    "observaciones": "",
+    "creado_por": null,
+    "modificado_por": null,
+    "creado_en": "2026-10-15T21:43:07.978Z",
+    "modificado_en": "2026-10-15T21:43:07.979Z"
+  }
+},
+{
+  "model": "sacramentos.sacramento",
+  "pk": 254,
+  "fields": {
+    "tipo": "CONFIRMACION",
+    "fiel": 221,
+    "libro": 46,
+    "folio": 78,
+    "numero": 5,
+    "fecha": "2026-08-16",
+    "fecha_registro": "2026-08-16",
+    "parroquia": 11,
+    "ministro": 19,
+    "estado": "ACTIVO",
+    "observaciones": "",
+    "creado_por": null,
+    "modificado_por": null,
+    "creado_en": "2026-10-15T21:43:08.056Z",
+    "modificado_en": "2026-10-15T21:43:08.056Z"
+  }
+},
+{
+  "model": "sacramentos.sacramento",
+  "pk": 237,
+  "fields": {
+    "tipo": "BAUTISMO",
+    "fiel": 224,
+    "libro": 44,
+    "folio": 73,
+    "numero": 22,
+    "fecha": "2026-08-24",
+    "fecha_registro": "2026-08-24",
+    "parroquia": 11,
+    "ministro": 18,
+    "estado": "ACTIVO",
+    "observaciones": "",
+    "creado_por": null,
+    "modificado_por": null,
+    "creado_en": "2026-10-15T21:43:07.940Z",
+    "modificado_en": "2026-10-15T21:43:07.940Z"
+  }
+},
+{
+  "model": "sacramentos.sacramento",
+  "pk": 243,
+  "fields": {
+    "tipo": "PRIMERA_COMUNION",
+    "fiel": 208,
+    "libro": 45,
+    "folio": 75,
+    "numero": 2,
+    "fecha": "2026-08-26",
+    "fecha_registro": "2026-08-26",
+    "parroquia": 11,
+    "ministro": 19,
+    "estado": "ACTIVO",
+    "observaciones": "",
+    "creado_por": null,
+    "modificado_por": null,
+    "creado_en": "2026-10-15T21:43:07.987Z",
+    "modificado_en": "2026-10-15T21:43:07.987Z"
+  }
+},
+{
+  "model": "sacramentos.sacramento",
+  "pk": 249,
+  "fields": {
+    "tipo": "PRIMERA_COMUNION",
+    "fiel": 229,
+    "libro": 45,
+    "folio": 76,
+    "numero": 8,
+    "fecha": "2026-08-31",
+    "fecha_registro": "2026-08-31",
+    "parroquia": 11,
+    "ministro": 18,
+    "estado": "ACTIVO",
+    "observaciones": "",
+    "creado_por": null,
+    "modificado_por": null,
+    "creado_en": "2026-10-15T21:43:08.022Z",
+    "modificado_en": "2026-10-15T21:43:08.022Z"
+  }
+},
+{
+  "model": "sacramentos.sacramento",
+  "pk": 256,
+  "fields": {
+    "tipo": "MATRIMONIO",
+    "fiel": null,
+    "libro": 47,
+    "folio": 79,
+    "numero": 1,
+    "fecha": "2026-09-05",
+    "fecha_registro": "2026-09-05",
+    "parroquia": 11,
+    "ministro": 18,
+    "estado": "ACTIVO",
+    "observaciones": "",
+    "creado_por": null,
+    "modificado_por": null,
+    "creado_en": "2026-10-15T21:43:08.068Z",
+    "modificado_en": "2026-10-15T21:43:08.068Z"
+  }
+},
+{
+  "model": "sacramentos.sacramento",
+  "pk": 238,
+  "fields": {
+    "tipo": "BAUTISMO",
+    "fiel": 227,
+    "libro": 44,
+    "folio": 73,
+    "numero": 23,
+    "fecha": "2026-09-07",
+    "fecha_registro": "2026-09-07",
+    "parroquia": 11,
+    "ministro": 19,
+    "estado": "CORREGIDO",
+    "observaciones": "",
+    "creado_por": null,
+    "modificado_por": 5,
+    "creado_en": "2026-10-15T21:43:07.947Z",
+    "modificado_en": "2026-10-17T20:58:36.559Z"
+  }
+},
+{
+  "model": "sacramentos.sacramento",
+  "pk": 244,
+  "fields": {
+    "tipo": "PRIMERA_COMUNION",
+    "fiel": 211,
+    "libro": 45,
+    "folio": 75,
+    "numero": 3,
+    "fecha": "2026-09-10",
+    "fecha_registro": "2026-09-10",
+    "parroquia": 11,
+    "ministro": 20,
+    "estado": "ACTIVO",
+    "observaciones": "",
+    "creado_por": null,
+    "modificado_por": null,
+    "creado_en": "2026-10-15T21:43:07.993Z",
+    "modificado_en": "2026-10-15T21:43:07.993Z"
+  }
+},
+{
+  "model": "sacramentos.sacramento",
+  "pk": 257,
+  "fields": {
+    "tipo": "MATRIMONIO",
+    "fiel": null,
+    "libro": 47,
+    "folio": 80,
+    "numero": 2,
+    "fecha": "2026-09-20",
+    "fecha_registro": "2026-09-20",
+    "parroquia": 11,
+    "ministro": 18,
+    "estado": "ACTIVO",
+    "observaciones": "",
+    "creado_por": null,
+    "modificado_por": null,
+    "creado_en": "2026-10-15T21:43:08.088Z",
+    "modificado_en": "2026-10-15T21:43:08.088Z"
+  }
+},
+{
+  "model": "sacramentos.sacramento",
+  "pk": 239,
+  "fields": {
+    "tipo": "BAUTISMO",
+    "fiel": 228,
+    "libro": 44,
+    "folio": 73,
+    "numero": 24,
+    "fecha": "2026-09-20",
+    "fecha_registro": "2026-09-20",
+    "parroquia": 11,
+    "ministro": 20,
+    "estado": "ACTIVO",
+    "observaciones": "",
+    "creado_por": null,
+    "modificado_por": null,
+    "creado_en": "2026-10-15T21:43:07.954Z",
+    "modificado_en": "2026-10-15T21:43:07.954Z"
+  }
+},
+{
+  "model": "sacramentos.sacramento",
+  "pk": 245,
+  "fields": {
+    "tipo": "PRIMERA_COMUNION",
+    "fiel": 212,
+    "libro": 45,
+    "folio": 75,
+    "numero": 4,
+    "fecha": "2026-09-25",
+    "fecha_registro": "2026-09-25",
+    "parroquia": 11,
+    "ministro": 18,
+    "estado": "ACTIVO",
+    "observaciones": "",
+    "creado_por": null,
+    "modificado_por": null,
+    "creado_en": "2026-10-15T21:43:07.998Z",
+    "modificado_en": "2026-10-15T21:43:07.998Z"
+  }
+},
+{
+  "model": "sacramentos.sacramento",
+  "pk": 255,
+  "fields": {
+    "tipo": "CONFIRMACION",
+    "fiel": 230,
+    "libro": 46,
+    "folio": 78,
+    "numero": 6,
+    "fecha": "2026-09-25",
+    "fecha_registro": "2026-09-25",
+    "parroquia": 11,
+    "ministro": 19,
+    "estado": "ACTIVO",
+    "observaciones": "",
+    "creado_por": null,
+    "modificado_por": null,
+    "creado_en": "2026-10-15T21:43:08.061Z",
+    "modificado_en": "2026-10-15T21:43:08.061Z"
+  }
+},
+{
+  "model": "sacramentos.sacramento",
+  "pk": 240,
+  "fields": {
+    "tipo": "BAUTISMO",
+    "fiel": 244,
+    "libro": 44,
+    "folio": 74,
+    "numero": 25,
+    "fecha": "2026-09-30",
+    "fecha_registro": "2026-09-30",
+    "parroquia": 11,
+    "ministro": 18,
+    "estado": "ACTIVO",
+    "observaciones": "",
+    "creado_por": null,
+    "modificado_por": null,
+    "creado_en": "2026-10-15T21:43:07.961Z",
+    "modificado_en": "2026-10-15T21:43:07.961Z"
+  }
+},
+{
+  "model": "sacramentos.sacramento",
+  "pk": 258,
+  "fields": {
+    "tipo": "MATRIMONIO",
+    "fiel": null,
+    "libro": 47,
+    "folio": 81,
+    "numero": 3,
+    "fecha": "2026-10-03",
+    "fecha_registro": "2026-10-03",
+    "parroquia": 11,
+    "ministro": 18,
+    "estado": "ACTIVO",
+    "observaciones": "",
+    "creado_por": null,
+    "modificado_por": null,
+    "creado_en": "2026-10-15T21:43:08.100Z",
+    "modificado_en": "2026-10-15T21:43:08.100Z"
+  }
+},
+{
+  "model": "sacramentos.sacramento",
+  "pk": 246,
+  "fields": {
+    "tipo": "PRIMERA_COMUNION",
+    "fiel": 215,
+    "libro": 45,
+    "folio": 76,
+    "numero": 5,
+    "fecha": "2026-10-05",
+    "fecha_registro": "2026-10-05",
+    "parroquia": 11,
+    "ministro": 19,
+    "estado": "ACTIVO",
+    "observaciones": "",
+    "creado_por": null,
+    "modificado_por": null,
+    "creado_en": "2026-10-15T21:43:08.005Z",
+    "modificado_en": "2026-10-15T21:43:08.005Z"
+  }
+},
+{
+  "model": "sacramentos.sacramento",
+  "pk": 247,
+  "fields": {
+    "tipo": "PRIMERA_COMUNION",
+    "fiel": 216,
+    "libro": 45,
+    "folio": 76,
+    "numero": 6,
+    "fecha": "2026-10-05",
+    "fecha_registro": "2026-10-05",
+    "parroquia": 11,
+    "ministro": 20,
+    "estado": "ACTIVO",
+    "observaciones": "",
+    "creado_por": null,
+    "modificado_por": null,
+    "creado_en": "2026-10-15T21:43:08.011Z",
+    "modificado_en": "2026-10-15T21:43:08.011Z"
+  }
+},
+{
+  "model": "sacramentos.sacramento",
+  "pk": 248,
+  "fields": {
+    "tipo": "PRIMERA_COMUNION",
+    "fiel": 219,
+    "libro": 45,
+    "folio": 76,
+    "numero": 7,
+    "fecha": "2026-10-05",
+    "fecha_registro": "2026-10-05",
+    "parroquia": 11,
+    "ministro": 18,
+    "estado": "ACTIVO",
+    "observaciones": "",
+    "creado_por": null,
+    "modificado_por": null,
+    "creado_en": "2026-10-15T21:43:08.016Z",
+    "modificado_en": "2026-10-15T21:43:08.016Z"
+  }
+},
+{
+  "model": "sacramentos.bautismo",
+  "pk": 216,
+  "fields": {
+    "padre": null,
+    "madre": null,
+    "abuelo_paterno": "Hernán ",
+    "abuela_paterna": "Rosa ",
+    "abuelo_materno": "Alonso ",
+    "abuela_materna": "Clara ",
+    "tipo_hijo": "Biológico",
+    "testigo_nombre": "",
+    "padre_biologico_nombre": "",
+    "madre_biologica_nombre": "",
+    "padrino": 49,
+    "madrina": 48,
+    "quien_firma": 18,
+    "doy_fe": 18
+  }
+},
+{
+  "model": "sacramentos.bautismo",
+  "pk": 217,
+  "fields": {
+    "padre": null,
+    "madre": null,
+    "abuelo_paterno": "Hernán ",
+    "abuela_paterna": "Rosa ",
+    "abuelo_materno": "Alonso ",
+    "abuela_materna": "Clara ",
+    "tipo_hijo": "Biológico",
+    "testigo_nombre": "",
+    "padre_biologico_nombre": "",
+    "madre_biologica_nombre": "",
+    "padrino": 51,
+    "madrina": 50,
+    "quien_firma": 18,
+    "doy_fe": 18
+  }
+},
+{
+  "model": "sacramentos.bautismo",
+  "pk": 218,
+  "fields": {
+    "padre": null,
+    "madre": null,
+    "abuelo_paterno": "Hernán ",
+    "abuela_paterna": "Rosa ",
+    "abuelo_materno": "Alonso ",
+    "abuela_materna": "Clara ",
+    "tipo_hijo": "Biológico",
+    "testigo_nombre": "",
+    "padre_biologico_nombre": "",
+    "madre_biologica_nombre": "",
+    "padrino": 53,
+    "madrina": 52,
+    "quien_firma": 18,
+    "doy_fe": 18
+  }
+},
+{
+  "model": "sacramentos.bautismo",
+  "pk": 219,
+  "fields": {
+    "padre": null,
+    "madre": null,
+    "abuelo_paterno": "Hernán ",
+    "abuela_paterna": "Rosa ",
+    "abuelo_materno": "Alonso ",
+    "abuela_materna": "Clara ",
+    "tipo_hijo": "Biológico",
+    "testigo_nombre": "",
+    "padre_biologico_nombre": "",
+    "madre_biologica_nombre": "",
+    "padrino": 55,
+    "madrina": 54,
+    "quien_firma": 18,
+    "doy_fe": 18
+  }
+},
+{
+  "model": "sacramentos.bautismo",
+  "pk": 220,
+  "fields": {
+    "padre": null,
+    "madre": null,
+    "abuelo_paterno": "Hernán ",
+    "abuela_paterna": "Rosa ",
+    "abuelo_materno": "Alonso ",
+    "abuela_materna": "Clara ",
+    "tipo_hijo": "Biológico",
+    "testigo_nombre": "",
+    "padre_biologico_nombre": "",
+    "madre_biologica_nombre": "",
+    "padrino": 49,
+    "madrina": 48,
+    "quien_firma": 18,
+    "doy_fe": 18
+  }
+},
+{
+  "model": "sacramentos.bautismo",
+  "pk": 221,
+  "fields": {
+    "padre": null,
+    "madre": null,
+    "abuelo_paterno": "Hernán ",
+    "abuela_paterna": "Rosa ",
+    "abuelo_materno": "Alonso ",
+    "abuela_materna": "Clara ",
+    "tipo_hijo": "Biológico",
+    "testigo_nombre": "",
+    "padre_biologico_nombre": "",
+    "madre_biologica_nombre": "",
+    "padrino": 51,
+    "madrina": 50,
+    "quien_firma": 18,
+    "doy_fe": 18
+  }
+},
+{
+  "model": "sacramentos.bautismo",
+  "pk": 222,
+  "fields": {
+    "padre": null,
+    "madre": null,
+    "abuelo_paterno": "Hernán ",
+    "abuela_paterna": "Rosa ",
+    "abuelo_materno": "Alonso ",
+    "abuela_materna": "Clara ",
+    "tipo_hijo": "Biológico",
+    "testigo_nombre": "",
+    "padre_biologico_nombre": "",
+    "madre_biologica_nombre": "",
+    "padrino": 53,
+    "madrina": 52,
+    "quien_firma": 18,
+    "doy_fe": 18
+  }
+},
+{
+  "model": "sacramentos.bautismo",
+  "pk": 223,
+  "fields": {
+    "padre": null,
+    "madre": null,
+    "abuelo_paterno": "Hernán ",
+    "abuela_paterna": "Rosa ",
+    "abuelo_materno": "Alonso ",
+    "abuela_materna": "Clara ",
+    "tipo_hijo": "Biológico",
+    "testigo_nombre": "",
+    "padre_biologico_nombre": "",
+    "madre_biologica_nombre": "",
+    "padrino": 55,
+    "madrina": 54,
+    "quien_firma": 18,
+    "doy_fe": 18
+  }
+},
+{
+  "model": "sacramentos.bautismo",
+  "pk": 224,
+  "fields": {
+    "padre": null,
+    "madre": null,
+    "abuelo_paterno": "Hernán ",
+    "abuela_paterna": "Rosa ",
+    "abuelo_materno": "Alonso ",
+    "abuela_materna": "Clara ",
+    "tipo_hijo": "Biológico",
+    "testigo_nombre": "",
+    "padre_biologico_nombre": "",
+    "madre_biologica_nombre": "",
+    "padrino": 49,
+    "madrina": 48,
+    "quien_firma": 18,
+    "doy_fe": 18
+  }
+},
+{
+  "model": "sacramentos.bautismo",
+  "pk": 225,
+  "fields": {
+    "padre": null,
+    "madre": null,
+    "abuelo_paterno": "Hernán ",
+    "abuela_paterna": "Rosa ",
+    "abuelo_materno": "Alonso ",
+    "abuela_materna": "Clara ",
+    "tipo_hijo": "Biológico",
+    "testigo_nombre": "",
+    "padre_biologico_nombre": "",
+    "madre_biologica_nombre": "",
+    "padrino": 51,
+    "madrina": 50,
+    "quien_firma": 18,
+    "doy_fe": 18
+  }
+},
+{
+  "model": "sacramentos.bautismo",
+  "pk": 226,
+  "fields": {
+    "padre": null,
+    "madre": null,
+    "abuelo_paterno": "Hernán ",
+    "abuela_paterna": "Rosa ",
+    "abuelo_materno": "Alonso ",
+    "abuela_materna": "Clara ",
+    "tipo_hijo": "Biológico",
+    "testigo_nombre": "",
+    "padre_biologico_nombre": "",
+    "madre_biologica_nombre": "",
+    "padrino": 53,
+    "madrina": 52,
+    "quien_firma": 18,
+    "doy_fe": 18
+  }
+},
+{
+  "model": "sacramentos.bautismo",
+  "pk": 227,
+  "fields": {
+    "padre": null,
+    "madre": null,
+    "abuelo_paterno": "Hernán ",
+    "abuela_paterna": "Rosa ",
+    "abuelo_materno": "Alonso ",
+    "abuela_materna": "Clara ",
+    "tipo_hijo": "Biológico",
+    "testigo_nombre": "",
+    "padre_biologico_nombre": "",
+    "madre_biologica_nombre": "",
+    "padrino": 55,
+    "madrina": 54,
+    "quien_firma": 18,
+    "doy_fe": 18
+  }
+},
+{
+  "model": "sacramentos.bautismo",
+  "pk": 228,
+  "fields": {
+    "padre": 35,
+    "madre": 35,
+    "abuelo_paterno": "Hernán Restrepo",
+    "abuela_paterna": "Rosa Restrepo",
+    "abuelo_materno": "Alonso Gómez",
+    "abuela_materna": "Clara Gómez",
+    "tipo_hijo": "Biológico",
+    "testigo_nombre": "",
+    "padre_biologico_nombre": "",
+    "madre_biologica_nombre": "",
+    "padrino": 49,
+    "madrina": 48,
+    "quien_firma": 18,
+    "doy_fe": 18
+  }
+},
+{
+  "model": "sacramentos.bautismo",
+  "pk": 229,
+  "fields": {
+    "padre": 35,
+    "madre": 35,
+    "abuelo_paterno": "Hernán Restrepo",
+    "abuela_paterna": "Rosa Restrepo",
+    "abuelo_materno": "Alonso Gómez",
+    "abuela_materna": "Clara Gómez",
+    "tipo_hijo": "Biológico",
+    "testigo_nombre": "",
+    "padre_biologico_nombre": "",
+    "madre_biologica_nombre": "",
+    "padrino": 51,
+    "madrina": 50,
+    "quien_firma": 18,
+    "doy_fe": 18
+  }
+},
+{
+  "model": "sacramentos.bautismo",
+  "pk": 230,
+  "fields": {
+    "padre": 36,
+    "madre": 36,
+    "abuelo_paterno": "Hernán Zapata",
+    "abuela_paterna": "Rosa Zapata",
+    "abuelo_materno": "Alonso Ruiz",
+    "abuela_materna": "Clara Ruiz",
+    "tipo_hijo": "Biológico",
+    "testigo_nombre": "",
+    "padre_biologico_nombre": "",
+    "madre_biologica_nombre": "",
+    "padrino": 53,
+    "madrina": 52,
+    "quien_firma": 18,
+    "doy_fe": 18
+  }
+},
+{
+  "model": "sacramentos.bautismo",
+  "pk": 231,
+  "fields": {
+    "padre": 36,
+    "madre": 36,
+    "abuelo_paterno": "Hernán Zapata",
+    "abuela_paterna": "Rosa Zapata",
+    "abuelo_materno": "Alonso Ruiz",
+    "abuela_materna": "Clara Ruiz",
+    "tipo_hijo": "Biológico",
+    "testigo_nombre": "",
+    "padre_biologico_nombre": "",
+    "madre_biologica_nombre": "",
+    "padrino": 55,
+    "madrina": 54,
+    "quien_firma": 18,
+    "doy_fe": 18
+  }
+},
+{
+  "model": "sacramentos.bautismo",
+  "pk": 232,
+  "fields": {
+    "padre": 37,
+    "madre": 37,
+    "abuelo_paterno": "Hernán Cárdenas",
+    "abuela_paterna": "Rosa Cárdenas",
+    "abuelo_materno": "Alonso Torres",
+    "abuela_materna": "Clara Torres",
+    "tipo_hijo": "Biológico",
+    "testigo_nombre": "",
+    "padre_biologico_nombre": "",
+    "madre_biologica_nombre": "",
+    "padrino": 49,
+    "madrina": 48,
+    "quien_firma": 18,
+    "doy_fe": 18
+  }
+},
+{
+  "model": "sacramentos.bautismo",
+  "pk": 233,
+  "fields": {
+    "padre": 37,
+    "madre": 37,
+    "abuelo_paterno": "Hernán Cárdenas",
+    "abuela_paterna": "Rosa Cárdenas",
+    "abuelo_materno": "Alonso Torres",
+    "abuela_materna": "Clara Torres",
+    "tipo_hijo": "Biológico",
+    "testigo_nombre": "",
+    "padre_biologico_nombre": "",
+    "madre_biologica_nombre": "",
+    "padrino": 51,
+    "madrina": 50,
+    "quien_firma": 18,
+    "doy_fe": 18
+  }
+},
+{
+  "model": "sacramentos.bautismo",
+  "pk": 234,
+  "fields": {
+    "padre": 38,
+    "madre": 38,
+    "abuelo_paterno": "Hernán Herrera",
+    "abuela_paterna": "Rosa Herrera",
+    "abuelo_materno": "Alonso Muñoz",
+    "abuela_materna": "Clara Muñoz",
+    "tipo_hijo": "Biológico",
+    "testigo_nombre": "",
+    "padre_biologico_nombre": "",
+    "madre_biologica_nombre": "",
+    "padrino": 53,
+    "madrina": 52,
+    "quien_firma": 18,
+    "doy_fe": 18
+  }
+},
+{
+  "model": "sacramentos.bautismo",
+  "pk": 235,
+  "fields": {
+    "padre": 38,
+    "madre": 38,
+    "abuelo_paterno": "Hernán Herrera",
+    "abuela_paterna": "Rosa Herrera",
+    "abuelo_materno": "Alonso Muñoz",
+    "abuela_materna": "Clara Muñoz",
+    "tipo_hijo": "Biológico",
+    "testigo_nombre": "",
+    "padre_biologico_nombre": "",
+    "madre_biologica_nombre": "",
+    "padrino": 55,
+    "madrina": 54,
+    "quien_firma": 18,
+    "doy_fe": 18
+  }
+},
+{
+  "model": "sacramentos.bautismo",
+  "pk": 236,
+  "fields": {
+    "padre": 39,
+    "madre": 39,
+    "abuelo_paterno": "Hernán Ospina",
+    "abuela_paterna": "Rosa Ospina",
+    "abuelo_materno": "Alonso Ríos",
+    "abuela_materna": "Clara Ríos",
+    "tipo_hijo": "Biológico",
+    "testigo_nombre": "",
+    "padre_biologico_nombre": "",
+    "madre_biologica_nombre": "",
+    "padrino": 49,
+    "madrina": 48,
+    "quien_firma": 18,
+    "doy_fe": 18
+  }
+},
+{
+  "model": "sacramentos.bautismo",
+  "pk": 237,
+  "fields": {
+    "padre": 39,
+    "madre": 39,
+    "abuelo_paterno": "Hernán Ospina",
+    "abuela_paterna": "Rosa Ospina",
+    "abuelo_materno": "Alonso Ríos",
+    "abuela_materna": "Clara Ríos",
+    "tipo_hijo": "Biológico",
+    "testigo_nombre": "",
+    "padre_biologico_nombre": "",
+    "madre_biologica_nombre": "",
+    "padrino": 51,
+    "madrina": 50,
+    "quien_firma": 18,
+    "doy_fe": 18
+  }
+},
+{
+  "model": "sacramentos.bautismo",
+  "pk": 238,
+  "fields": {
+    "padre": 40,
+    "madre": 40,
+    "abuelo_paterno": "Hernán Arango",
+    "abuela_paterna": "Rosa Arango",
+    "abuelo_materno": "Alonso Vélez",
+    "abuela_materna": "Clara Vélez",
+    "tipo_hijo": "Biológico",
+    "testigo_nombre": "",
+    "padre_biologico_nombre": "",
+    "madre_biologica_nombre": "",
+    "padrino": 53,
+    "madrina": 52,
+    "quien_firma": 18,
+    "doy_fe": 18
+  }
+},
+{
+  "model": "sacramentos.bautismo",
+  "pk": 239,
+  "fields": {
+    "padre": 40,
+    "madre": 40,
+    "abuelo_paterno": "Hernán Arango",
+    "abuela_paterna": "Rosa Arango",
+    "abuelo_materno": "Alonso Vélez",
+    "abuela_materna": "Clara Vélez",
+    "tipo_hijo": "Biológico",
+    "testigo_nombre": "",
+    "padre_biologico_nombre": "",
+    "madre_biologica_nombre": "",
+    "padrino": 55,
+    "madrina": 54,
+    "quien_firma": 18,
+    "doy_fe": 18
+  }
+},
+{
+  "model": "sacramentos.bautismo",
+  "pk": 240,
+  "fields": {
+    "padre": null,
+    "madre": null,
+    "abuelo_paterno": "Hernán ",
+    "abuela_paterna": "Rosa ",
+    "abuelo_materno": "Alonso ",
+    "abuela_materna": "Clara ",
+    "tipo_hijo": "Biológico",
+    "testigo_nombre": "",
+    "padre_biologico_nombre": "",
+    "madre_biologica_nombre": "",
+    "padrino": 49,
+    "madrina": 48,
+    "quien_firma": 18,
+    "doy_fe": 18
+  }
+},
+{
+  "model": "sacramentos.primeracomunion",
+  "pk": 242,
+  "fields": {
+    "bautismo": 228,
+    "fecha_bautismo": null,
+    "parroquia_bautismo": "",
+    "municipio_bautismo": null,
+    "libro_bautismo": null,
+    "folio_bautismo": null,
+    "numero_bautismo": null,
+    "observaciones_bautismo": "",
+    "edad": 16,
+    "padre": null,
+    "madre": null,
+    "doy_fe": 18
+  }
+},
+{
+  "model": "sacramentos.primeracomunion",
+  "pk": 243,
+  "fields": {
+    "bautismo": 229,
+    "fecha_bautismo": null,
+    "parroquia_bautismo": "",
+    "municipio_bautismo": null,
+    "libro_bautismo": null,
+    "folio_bautismo": null,
+    "numero_bautismo": null,
+    "observaciones_bautismo": "",
+    "edad": 12,
+    "padre": null,
+    "madre": null,
+    "doy_fe": 18
+  }
+},
+{
+  "model": "sacramentos.primeracomunion",
+  "pk": 249,
+  "fields": {
+    "bautismo": null,
+    "fecha_bautismo": "2016-11-20",
+    "parroquia_bautismo": "Parroquia San Francisco de Asís",
+    "municipio_bautismo": 7,
+    "libro_bautismo": 3,
+    "folio_bautismo": 42,
+    "numero_bautismo": 215,
+    "observaciones_bautismo": "Bautizado en la parroquia de su barrio.",
+    "edad": 11,
+    "padre": null,
+    "madre": null,
+    "doy_fe": 18
+  }
+},
+{
+  "model": "sacramentos.primeracomunion",
+  "pk": 244,
+  "fields": {
+    "bautismo": 230,
+    "fecha_bautismo": null,
+    "parroquia_bautismo": "",
+    "municipio_bautismo": null,
+    "libro_bautismo": null,
+    "folio_bautismo": null,
+    "numero_bautismo": null,
+    "observaciones_bautismo": "",
+    "edad": 15,
+    "padre": null,
+    "madre": null,
+    "doy_fe": 18
+  }
+},
+{
+  "model": "sacramentos.primeracomunion",
+  "pk": 245,
+  "fields": {
+    "bautismo": 231,
+    "fecha_bautismo": null,
+    "parroquia_bautismo": "",
+    "municipio_bautismo": null,
+    "libro_bautismo": null,
+    "folio_bautismo": null,
+    "numero_bautismo": null,
+    "observaciones_bautismo": "",
+    "edad": 12,
+    "padre": null,
+    "madre": null,
+    "doy_fe": 18
+  }
+},
+{
+  "model": "sacramentos.primeracomunion",
+  "pk": 246,
+  "fields": {
+    "bautismo": 232,
+    "fecha_bautismo": null,
+    "parroquia_bautismo": "",
+    "municipio_bautismo": null,
+    "libro_bautismo": null,
+    "folio_bautismo": null,
+    "numero_bautismo": null,
+    "observaciones_bautismo": "",
+    "edad": 14,
+    "padre": null,
+    "madre": null,
+    "doy_fe": 18
+  }
+},
+{
+  "model": "sacramentos.primeracomunion",
+  "pk": 247,
+  "fields": {
+    "bautismo": 233,
+    "fecha_bautismo": null,
+    "parroquia_bautismo": "",
+    "municipio_bautismo": null,
+    "libro_bautismo": null,
+    "folio_bautismo": null,
+    "numero_bautismo": null,
+    "observaciones_bautismo": "",
+    "edad": 10,
+    "padre": null,
+    "madre": null,
+    "doy_fe": 18
+  }
+},
+{
+  "model": "sacramentos.primeracomunion",
+  "pk": 248,
+  "fields": {
+    "bautismo": 234,
+    "fecha_bautismo": null,
+    "parroquia_bautismo": "",
+    "municipio_bautismo": null,
+    "libro_bautismo": null,
+    "folio_bautismo": null,
+    "numero_bautismo": null,
+    "observaciones_bautismo": "",
+    "edad": 10,
+    "padre": null,
+    "madre": null,
+    "doy_fe": 18
+  }
+},
+{
+  "model": "sacramentos.confirmacion",
+  "pk": 250,
+  "fields": {
+    "bautismo": 216,
+    "fecha_bautismo": null,
+    "parroquia_bautismo": "",
+    "municipio_bautismo": null,
+    "libro_bautismo": null,
+    "folio_bautismo": null,
+    "numero_bautismo": null,
+    "observaciones_bautismo": "",
+    "edad": 40,
+    "padre": null,
+    "madre": null,
+    "padrino": 49,
+    "madrina": null,
+    "doy_fe": 19
+  }
+},
+{
+  "model": "sacramentos.confirmacion",
+  "pk": 251,
+  "fields": {
+    "bautismo": 218,
+    "fecha_bautismo": null,
+    "parroquia_bautismo": "",
+    "municipio_bautismo": null,
+    "libro_bautismo": null,
+    "folio_bautismo": null,
+    "numero_bautismo": null,
+    "observaciones_bautismo": "",
+    "edad": 41,
+    "padre": null,
+    "madre": null,
+    "padrino": 51,
+    "madrina": null,
+    "doy_fe": 19
+  }
+},
+{
+  "model": "sacramentos.confirmacion",
+  "pk": 252,
+  "fields": {
+    "bautismo": 220,
+    "fecha_bautismo": null,
+    "parroquia_bautismo": "",
+    "municipio_bautismo": null,
+    "libro_bautismo": null,
+    "folio_bautismo": null,
+    "numero_bautismo": null,
+    "observaciones_bautismo": "",
+    "edad": 43,
+    "padre": null,
+    "madre": null,
+    "padrino": 53,
+    "madrina": null,
+    "doy_fe": 19
+  }
+},
+{
+  "model": "sacramentos.confirmacion",
+  "pk": 253,
+  "fields": {
+    "bautismo": 222,
+    "fecha_bautismo": null,
+    "parroquia_bautismo": "",
+    "municipio_bautismo": null,
+    "libro_bautismo": null,
+    "folio_bautismo": null,
+    "numero_bautismo": null,
+    "observaciones_bautismo": "",
+    "edad": 37,
+    "padre": null,
+    "madre": null,
+    "padrino": 55,
+    "madrina": null,
+    "doy_fe": 19
+  }
+},
+{
+  "model": "sacramentos.confirmacion",
+  "pk": 254,
+  "fields": {
+    "bautismo": 224,
+    "fecha_bautismo": null,
+    "parroquia_bautismo": "",
+    "municipio_bautismo": null,
+    "libro_bautismo": null,
+    "folio_bautismo": null,
+    "numero_bautismo": null,
+    "observaciones_bautismo": "",
+    "edad": 43,
+    "padre": null,
+    "madre": null,
+    "padrino": 49,
+    "madrina": null,
+    "doy_fe": 19
+  }
+},
+{
+  "model": "sacramentos.confirmacion",
+  "pk": 255,
+  "fields": {
+    "bautismo": null,
+    "fecha_bautismo": "2004-04-18",
+    "parroquia_bautismo": "Parroquia Nuestra Señora del Carmen",
+    "municipio_bautismo": 7,
+    "libro_bautismo": 1,
+    "folio_bautismo": 88,
+    "numero_bautismo": 134,
+    "observaciones_bautismo": "",
+    "edad": 31,
+    "padre": null,
+    "madre": null,
+    "padrino": null,
+    "madrina": null,
+    "doy_fe": 19
+  }
+},
+{
+  "model": "sacramentos.matrimonio",
+  "pk": 256,
+  "fields": {
+    "expediente": 100,
+    "fecha_declaracion": "2026-07-07",
+    "dispensa_impedimento": "NO",
+    "impedimentos": "",
+    "dispensa_autoridad": "",
+    "fecha_dispensa": null,
+    "documento_dispensa": ""
+  }
+},
+{
+  "model": "sacramentos.matrimonio",
+  "pk": 257,
+  "fields": {
+    "expediente": 101,
+    "fecha_declaracion": "2026-07-22",
+    "dispensa_impedimento": "NO",
+    "impedimentos": "",
+    "dispensa_autoridad": "",
+    "fecha_dispensa": null,
+    "documento_dispensa": ""
+  }
+},
+{
+  "model": "sacramentos.matrimonio",
+  "pk": 258,
+  "fields": {
+    "expediente": 102,
+    "fecha_declaracion": "2026-08-04",
+    "dispensa_impedimento": "NO",
+    "impedimentos": "",
+    "dispensa_autoridad": "",
+    "fecha_dispensa": null,
+    "documento_dispensa": ""
+  }
+},
+{
+  "model": "sacramentos.contrayente",
+  "pk": 31,
+  "fields": {
+    "matrimonio": 256,
+    "fiel": 205,
+    "sexo": "H",
+    "parroquia_bautismo": 11,
+    "libro_bautismo": 1,
+    "folio_bautismo": 1,
+    "numero_bautismo": 1,
+    "parroquia_confirmacion": 11,
+    "fecha_confirmacion": "2026-03-19",
+    "direccion_residencia": "Carrera 7 # 12-34, Barrio Centro",
+    "nombre_padre": "José Restrepo",
+    "nombre_madre": "María Restrepo",
+    "edad": 40,
+    "estado_civil": "soltero",
+    "fecha_defuncion_conyuge": null,
+    "certificado_parroquia": "",
+    "religion": "Católica",
+    "profesion": "Docente",
+    "acepta_libertad_matrimonio": "SI",
+    "conoce_unidad_indisolubilidad": "SI",
+    "conoce_obligaciones_familia": "SI",
+    "impedimentos_anteriores": "NO",
+    "dispuesto_cumplir": "SI",
+    "lugar_despues_matrimonio": "Fijará su residencia en el barrio Centro."
+  }
+},
+{
+  "model": "sacramentos.contrayente",
+  "pk": 32,
+  "fields": {
+    "matrimonio": 256,
+    "fiel": 206,
+    "sexo": "M",
+    "parroquia_bautismo": 11,
+    "libro_bautismo": 1,
+    "folio_bautismo": 1,
+    "numero_bautismo": 2,
+    "parroquia_confirmacion": 11,
+    "fecha_confirmacion": "2026-04-03",
+    "direccion_residencia": "Carrera 7 # 12-34, Barrio Centro",
+    "nombre_padre": "José Gómez",
+    "nombre_madre": "María Gómez",
+    "edad": 38,
+    "estado_civil": "soltero",
+    "fecha_defuncion_conyuge": null,
+    "certificado_parroquia": "",
+    "religion": "Católica",
+    "profesion": "Docente",
+    "acepta_libertad_matrimonio": "SI",
+    "conoce_unidad_indisolubilidad": "SI",
+    "conoce_obligaciones_familia": "SI",
+    "impedimentos_anteriores": "NO",
+    "dispuesto_cumplir": "SI",
+    "lugar_despues_matrimonio": "Fijará su residencia en el barrio Centro."
+  }
+},
+{
+  "model": "sacramentos.contrayente",
+  "pk": 33,
+  "fields": {
+    "matrimonio": 257,
+    "fiel": 209,
+    "sexo": "H",
+    "parroquia_bautismo": 11,
+    "libro_bautismo": 1,
+    "folio_bautismo": 1,
+    "numero_bautismo": 3,
+    "parroquia_confirmacion": 11,
+    "fecha_confirmacion": "2026-04-18",
+    "direccion_residencia": "Carrera 7 # 12-34, Barrio Centro",
+    "nombre_padre": "José Zapata",
+    "nombre_madre": "María Zapata",
+    "edad": 41,
+    "estado_civil": "soltero",
+    "fecha_defuncion_conyuge": null,
+    "certificado_parroquia": "",
+    "religion": "Católica",
+    "profesion": "Docente",
+    "acepta_libertad_matrimonio": "SI",
+    "conoce_unidad_indisolubilidad": "SI",
+    "conoce_obligaciones_familia": "SI",
+    "impedimentos_anteriores": "NO",
+    "dispuesto_cumplir": "SI",
+    "lugar_despues_matrimonio": "Fijará su residencia en el barrio Centro."
+  }
+},
+{
+  "model": "sacramentos.contrayente",
+  "pk": 34,
+  "fields": {
+    "matrimonio": 257,
+    "fiel": 210,
+    "sexo": "M",
+    "parroquia_bautismo": 11,
+    "libro_bautismo": 1,
+    "folio_bautismo": 2,
+    "numero_bautismo": 4,
+    "parroquia_confirmacion": 11,
+    "fecha_confirmacion": "2026-04-30",
+    "direccion_residencia": "Carrera 7 # 12-34, Barrio Centro",
+    "nombre_padre": "José Ruiz",
+    "nombre_madre": "María Ruiz",
+    "edad": 38,
+    "estado_civil": "soltero",
+    "fecha_defuncion_conyuge": null,
+    "certificado_parroquia": "",
+    "religion": "Católica",
+    "profesion": "Docente",
+    "acepta_libertad_matrimonio": "SI",
+    "conoce_unidad_indisolubilidad": "SI",
+    "conoce_obligaciones_familia": "SI",
+    "impedimentos_anteriores": "NO",
+    "dispuesto_cumplir": "SI",
+    "lugar_despues_matrimonio": "Fijará su residencia en el barrio Centro."
+  }
+},
+{
+  "model": "sacramentos.contrayente",
+  "pk": 35,
+  "fields": {
+    "matrimonio": 258,
+    "fiel": 213,
+    "sexo": "H",
+    "parroquia_bautismo": 11,
+    "libro_bautismo": 1,
+    "folio_bautismo": 2,
+    "numero_bautismo": 5,
+    "parroquia_confirmacion": 11,
+    "fecha_confirmacion": "2026-05-18",
+    "direccion_residencia": "Carrera 7 # 12-34, Barrio Centro",
+    "nombre_padre": "José Cárdenas",
+    "nombre_madre": "María Cárdenas",
+    "edad": 43,
+    "estado_civil": "soltero",
+    "fecha_defuncion_conyuge": null,
+    "certificado_parroquia": "",
+    "religion": "Católica",
+    "profesion": "Docente",
+    "acepta_libertad_matrimonio": "SI",
+    "conoce_unidad_indisolubilidad": "SI",
+    "conoce_obligaciones_familia": "SI",
+    "impedimentos_anteriores": "NO",
+    "dispuesto_cumplir": "SI",
+    "lugar_despues_matrimonio": "Fijará su residencia en el barrio Centro."
+  }
+},
+{
+  "model": "sacramentos.contrayente",
+  "pk": 36,
+  "fields": {
+    "matrimonio": 258,
+    "fiel": 214,
+    "sexo": "M",
+    "parroquia_bautismo": 11,
+    "libro_bautismo": 1,
+    "folio_bautismo": 2,
+    "numero_bautismo": 6,
+    "parroquia_confirmacion": 11,
+    "fecha_confirmacion": "2026-05-30",
+    "direccion_residencia": "Carrera 7 # 12-34, Barrio Centro",
+    "nombre_padre": "José Torres",
+    "nombre_madre": "María Torres",
+    "edad": 41,
+    "estado_civil": "soltero",
+    "fecha_defuncion_conyuge": null,
+    "certificado_parroquia": "",
+    "religion": "Católica",
+    "profesion": "Docente",
+    "acepta_libertad_matrimonio": "SI",
+    "conoce_unidad_indisolubilidad": "SI",
+    "conoce_obligaciones_familia": "SI",
+    "impedimentos_anteriores": "NO",
+    "dispuesto_cumplir": "SI",
+    "lugar_despues_matrimonio": "Fijará su residencia en el barrio Centro."
+  }
+},
+{
+  "model": "sacramentos.testigomatrimonio",
+  "pk": 32,
+  "fields": {
+    "matrimonio": 256,
+    "tipo_documento": "CC",
+    "cedula": "9990000039",
+    "nombre": "Cristian Pineda Gómez",
+    "religion": "Católica",
+    "estado_civil": "casado",
+    "profesion": "Comerciante"
+  }
+},
+{
+  "model": "sacramentos.testigomatrimonio",
+  "pk": 31,
+  "fields": {
+    "matrimonio": 256,
+    "tipo_documento": "CC",
+    "cedula": "9990000038",
+    "nombre": "Sara Agudelo Marín",
+    "religion": "Católica",
+    "estado_civil": "casado",
+    "profesion": "Comerciante"
+  }
+},
+{
+  "model": "sacramentos.testigomatrimonio",
+  "pk": 33,
+  "fields": {
+    "matrimonio": 257,
+    "tipo_documento": "CC",
+    "cedula": "9990000040",
+    "nombre": "Andrea Carolina López Castro",
+    "religion": "Católica",
+    "estado_civil": "casado",
+    "profesion": "Comerciante"
+  }
+},
+{
+  "model": "sacramentos.testigomatrimonio",
+  "pk": 34,
+  "fields": {
+    "matrimonio": 257,
+    "tipo_documento": "RC",
+    "cedula": "9990000041",
+    "nombre": "Santiago Molina Herrera",
+    "religion": "Católica",
+    "estado_civil": "casado",
+    "profesion": "Comerciante"
+  }
+},
+{
+  "model": "sacramentos.testigomatrimonio",
+  "pk": 36,
+  "fields": {
+    "matrimonio": 258,
+    "tipo_documento": "RC",
+    "cedula": "9990000043",
+    "nombre": "Julián Zuluaga Ospina",
+    "religion": "Católica",
+    "estado_civil": "casado",
+    "profesion": "Comerciante"
+  }
+},
+{
+  "model": "sacramentos.testigomatrimonio",
+  "pk": 35,
+  "fields": {
+    "matrimonio": 258,
+    "tipo_documento": "RC",
+    "cedula": "9990000042",
+    "nombre": "Manuela Betancur Ríos",
+    "religion": "Católica",
+    "estado_civil": "casado",
+    "profesion": "Comerciante"
+  }
+},
+{
+  "model": "sacramentos.proclamamatrimonio",
+  "pk": 31,
+  "fields": {
+    "matrimonio": 256,
+    "numero": 1,
+    "fecha_proclama": "2026-08-15",
+    "resultado": "PUBLICADA",
+    "observaciones": ""
+  }
+},
+{
+  "model": "sacramentos.proclamamatrimonio",
+  "pk": 32,
+  "fields": {
+    "matrimonio": 256,
+    "numero": 2,
+    "fecha_proclama": "2026-08-22",
+    "resultado": "SIN_IMPEDIMENTOS",
+    "observaciones": ""
+  }
+},
+{
+  "model": "sacramentos.proclamamatrimonio",
+  "pk": 33,
+  "fields": {
+    "matrimonio": 257,
+    "numero": 1,
+    "fecha_proclama": "2026-08-30",
+    "resultado": "PUBLICADA",
+    "observaciones": ""
+  }
+},
+{
+  "model": "sacramentos.proclamamatrimonio",
+  "pk": 34,
+  "fields": {
+    "matrimonio": 257,
+    "numero": 2,
+    "fecha_proclama": "2026-09-06",
+    "resultado": "SIN_IMPEDIMENTOS",
+    "observaciones": ""
+  }
+},
+{
+  "model": "sacramentos.proclamamatrimonio",
+  "pk": 35,
+  "fields": {
+    "matrimonio": 258,
+    "numero": 1,
+    "fecha_proclama": "2026-09-12",
+    "resultado": "PUBLICADA",
+    "observaciones": ""
+  }
+},
+{
+  "model": "sacramentos.proclamamatrimonio",
+  "pk": 36,
+  "fields": {
+    "matrimonio": 258,
+    "numero": 2,
+    "fecha_proclama": "2026-09-19",
+    "resultado": "SIN_IMPEDIMENTOS",
+    "observaciones": ""
+  }
+},
+{
+  "model": "sacramentos.anotacionmarginal",
+  "pk": 71,
+  "fields": {
+    "sacramento": 216,
+    "sacramento_origen": 250,
+    "tipo": "CONFIRMACION",
+    "fecha": "2026-04-18",
+    "descripcion": "Se anota la confirmación recibida en esta parroquia, con la referencia de la partida.",
+    "estado": "ANOTADA",
+    "parroquia_destino": null,
+    "parroquia_destino_texto": "",
+    "fecha_comunicacion": null,
+    "creado_en": "2026-10-15T21:43:08.110Z"
+  }
+},
+{
+  "model": "sacramentos.anotacionmarginal",
+  "pk": 76,
+  "fields": {
+    "sacramento": 216,
+    "sacramento_origen": 256,
+    "tipo": "MATRIMONIO",
+    "fecha": "2026-09-05",
+    "descripcion": "Se anota el matrimonio celebrado en esta parroquia, con el número de expediente y partida.",
+    "estado": "ANOTADA",
+    "parroquia_destino": null,
+    "parroquia_destino_texto": "",
+    "fecha_comunicacion": null,
+    "creado_en": "2026-10-15T21:43:08.129Z"
+  }
+},
+{
+  "model": "sacramentos.anotacionmarginal",
+  "pk": 87,
+  "fields": {
+    "sacramento": 216,
+    "sacramento_origen": null,
+    "tipo": "ANULACION",
+    "fecha": "2026-10-16",
+    "descripcion": "dasdsad",
+    "estado": "ANOTADA",
+    "parroquia_destino": null,
+    "parroquia_destino_texto": "",
+    "fecha_comunicacion": null,
+    "creado_en": "2026-10-16T16:53:30.868Z"
+  }
+},
+{
+  "model": "sacramentos.anotacionmarginal",
+  "pk": 77,
+  "fields": {
+    "sacramento": 217,
+    "sacramento_origen": 256,
+    "tipo": "MATRIMONIO",
+    "fecha": "2026-09-05",
+    "descripcion": "Se anota el matrimonio celebrado en esta parroquia, con el número de expediente y partida.",
+    "estado": "ANOTADA",
+    "parroquia_destino": null,
+    "parroquia_destino_texto": "",
+    "fecha_comunicacion": null,
+    "creado_en": "2026-10-15T21:43:08.131Z"
+  }
+},
+{
+  "model": "sacramentos.anotacionmarginal",
+  "pk": 72,
+  "fields": {
+    "sacramento": 218,
+    "sacramento_origen": 251,
+    "tipo": "CONFIRMACION",
+    "fecha": "2026-05-18",
+    "descripcion": "Se anota la confirmación recibida en esta parroquia, con la referencia de la partida.",
+    "estado": "ANOTADA",
+    "parroquia_destino": null,
+    "parroquia_destino_texto": "",
+    "fecha_comunicacion": null,
+    "creado_en": "2026-10-15T21:43:08.122Z"
+  }
+},
+{
+  "model": "sacramentos.anotacionmarginal",
+  "pk": 78,
+  "fields": {
+    "sacramento": 218,
+    "sacramento_origen": 257,
+    "tipo": "MATRIMONIO",
+    "fecha": "2026-09-20",
+    "descripcion": "Se anota el matrimonio celebrado en esta parroquia, con el número de expediente y partida.",
+    "estado": "ANOTADA",
+    "parroquia_destino": null,
+    "parroquia_destino_texto": "",
+    "fecha_comunicacion": null,
+    "creado_en": "2026-10-15T21:43:08.132Z"
+  }
+},
+{
+  "model": "sacramentos.anotacionmarginal",
+  "pk": 79,
+  "fields": {
+    "sacramento": 219,
+    "sacramento_origen": 257,
+    "tipo": "MATRIMONIO",
+    "fecha": "2026-09-20",
+    "descripcion": "Se anota el matrimonio celebrado en esta parroquia, con el número de expediente y partida.",
+    "estado": "ANOTADA",
+    "parroquia_destino": null,
+    "parroquia_destino_texto": "",
+    "fecha_comunicacion": null,
+    "creado_en": "2026-10-15T21:43:08.134Z"
+  }
+},
+{
+  "model": "sacramentos.anotacionmarginal",
+  "pk": 73,
+  "fields": {
+    "sacramento": 220,
+    "sacramento_origen": 252,
+    "tipo": "CONFIRMACION",
+    "fecha": "2026-06-17",
+    "descripcion": "Se anota la confirmación recibida en esta parroquia, con la referencia de la partida.",
+    "estado": "ANOTADA",
+    "parroquia_destino": null,
+    "parroquia_destino_texto": "",
+    "fecha_comunicacion": null,
+    "creado_en": "2026-10-15T21:43:08.123Z"
+  }
+},
+{
+  "model": "sacramentos.anotacionmarginal",
+  "pk": 80,
+  "fields": {
+    "sacramento": 220,
+    "sacramento_origen": 258,
+    "tipo": "MATRIMONIO",
+    "fecha": "2026-10-03",
+    "descripcion": "Se anota el matrimonio celebrado en esta parroquia, con el número de expediente y partida.",
+    "estado": "ANOTADA",
+    "parroquia_destino": null,
+    "parroquia_destino_texto": "",
+    "fecha_comunicacion": null,
+    "creado_en": "2026-10-15T21:43:08.136Z"
+  }
+},
+{
+  "model": "sacramentos.anotacionmarginal",
+  "pk": 88,
+  "fields": {
+    "sacramento": 220,
+    "sacramento_origen": null,
+    "tipo": "ANULACION",
+    "fecha": "2026-10-16",
+    "descripcion": "okl",
+    "estado": "ANOTADA",
+    "parroquia_destino": null,
+    "parroquia_destino_texto": "",
+    "fecha_comunicacion": null,
+    "creado_en": "2026-10-16T17:22:55.643Z"
+  }
+},
+{
+  "model": "sacramentos.anotacionmarginal",
+  "pk": 81,
+  "fields": {
+    "sacramento": 221,
+    "sacramento_origen": 258,
+    "tipo": "MATRIMONIO",
+    "fecha": "2026-10-03",
+    "descripcion": "Se anota el matrimonio celebrado en esta parroquia, con el número de expediente y partida.",
+    "estado": "ANOTADA",
+    "parroquia_destino": null,
+    "parroquia_destino_texto": "",
+    "fecha_comunicacion": null,
+    "creado_en": "2026-10-15T21:43:08.138Z"
+  }
+},
+{
+  "model": "sacramentos.anotacionmarginal",
+  "pk": 74,
+  "fields": {
+    "sacramento": 222,
+    "sacramento_origen": 253,
+    "tipo": "CONFIRMACION",
+    "fecha": "2026-07-17",
+    "descripcion": "Se anota la confirmación recibida en esta parroquia, con la referencia de la partida.",
+    "estado": "ANOTADA",
+    "parroquia_destino": null,
+    "parroquia_destino_texto": "",
+    "fecha_comunicacion": null,
+    "creado_en": "2026-10-15T21:43:08.125Z"
+  }
+},
+{
+  "model": "sacramentos.anotacionmarginal",
+  "pk": 89,
+  "fields": {
+    "sacramento": 223,
+    "sacramento_origen": null,
+    "tipo": "ANULACION",
+    "fecha": "2026-10-16",
+    "descripcion": "ghjugj",
+    "estado": "ANOTADA",
+    "parroquia_destino": null,
+    "parroquia_destino_texto": "",
+    "fecha_comunicacion": null,
+    "creado_en": "2026-10-16T17:30:23.603Z"
+  }
+},
+{
+  "model": "sacramentos.anotacionmarginal",
+  "pk": 75,
+  "fields": {
+    "sacramento": 224,
+    "sacramento_origen": 254,
+    "tipo": "CONFIRMACION",
+    "fecha": "2026-08-16",
+    "descripcion": "Se anota la confirmación recibida en esta parroquia, con la referencia de la partida.",
+    "estado": "ANOTADA",
+    "parroquia_destino": null,
+    "parroquia_destino_texto": "",
+    "fecha_comunicacion": null,
+    "creado_en": "2026-10-15T21:43:08.127Z"
+  }
+},
+{
+  "model": "sacramentos.anotacionmarginal",
+  "pk": 90,
+  "fields": {
+    "sacramento": 238,
+    "sacramento_origen": null,
+    "tipo": "CORRECCION",
+    "fecha": "2026-10-17",
+    "descripcion": "zcsadsad",
+    "estado": "ANOTADA",
+    "parroquia_destino": null,
+    "parroquia_destino_texto": "",
+    "fecha_comunicacion": null,
+    "creado_en": "2026-10-17T20:58:36.564Z"
+  }
+},
+{
+  "model": "sacramentos.anotacionmarginal",
+  "pk": 82,
+  "fields": {
+    "sacramento": null,
+    "sacramento_origen": 249,
+    "tipo": "OTRO",
+    "fecha": "2026-08-31",
+    "descripcion": "Comunicar la primera comunión a la parroquia de bautismo.",
+    "estado": "POR_COMUNICAR",
+    "parroquia_destino": null,
+    "parroquia_destino_texto": "Parroquia San Francisco de Asís",
+    "fecha_comunicacion": null,
+    "creado_en": "2026-10-15T21:43:08.139Z"
+  }
+},
+{
+  "model": "sacramentos.anotacionmarginal",
+  "pk": 83,
+  "fields": {
+    "sacramento": null,
+    "sacramento_origen": 255,
+    "tipo": "CONFIRMACION",
+    "fecha": "2026-09-25",
+    "descripcion": "Comunicar la confirmación a la parroquia de bautismo.",
+    "estado": "POR_COMUNICAR",
+    "parroquia_destino": null,
+    "parroquia_destino_texto": "Parroquia Nuestra Señora del Carmen",
+    "fecha_comunicacion": null,
+    "creado_en": "2026-10-15T21:43:08.141Z"
+  }
+},
+{
+  "model": "sacramentos.anotacionmarginal",
+  "pk": 84,
+  "fields": {
+    "sacramento": null,
+    "sacramento_origen": 255,
+    "tipo": "CONFIRMACION",
+    "fecha": "2026-09-25",
+    "descripcion": "Notificación de la confirmación enviada y confirmada.",
+    "estado": "COMUNICADA",
+    "parroquia_destino": null,
+    "parroquia_destino_texto": "Parroquia Nuestra Señora del Carmen",
+    "fecha_comunicacion": "2026-10-02",
+    "creado_en": "2026-10-15T21:43:08.142Z"
+  }
+},
+{
+  "model": "sacramentos.historialsacramento",
+  "pk": 298,
+  "fields": {
+    "sacramento": 216,
+    "accion": "ANULACION",
+    "descripcion": "dasdsad",
+    "usuario": 5,
+    "fecha": "2026-10-16T16:53:30.861Z"
+  }
+},
+{
+  "model": "sacramentos.historialsacramento",
+  "pk": 273,
+  "fields": {
+    "sacramento": 216,
+    "accion": "MODIFICACION",
+    "descripcion": "Corrección de datos del padre o la madre.",
+    "usuario": null,
+    "fecha": "2025-11-19T15:00:00Z"
+  }
+},
+{
+  "model": "sacramentos.historialsacramento",
+  "pk": 246,
+  "fields": {
+    "sacramento": 216,
+    "accion": "CREACION",
+    "descripcion": "Registro creado en el libro de bautismos.",
+    "usuario": null,
+    "fecha": "2025-10-20T15:00:00Z"
+  }
+},
+{
+  "model": "sacramentos.historialsacramento",
+  "pk": 323,
+  "fields": {
+    "sacramento": 217,
+    "accion": "CERTIFICADO",
+    "descripcion": "Certificado expedido a Juan (Padre o madre) para Primera comunión.",
+    "usuario": 5,
+    "fecha": "2026-10-18T01:42:19.155Z"
+  }
+},
+{
+  "model": "sacramentos.historialsacramento",
+  "pk": 274,
+  "fields": {
+    "sacramento": 217,
+    "accion": "MODIFICACION",
+    "descripcion": "Corrección de datos del padre o la madre.",
+    "usuario": null,
+    "fecha": "2025-12-04T15:00:00Z"
+  }
+},
+{
+  "model": "sacramentos.historialsacramento",
+  "pk": 247,
+  "fields": {
+    "sacramento": 217,
+    "accion": "CREACION",
+    "descripcion": "Registro creado en el libro de bautismos.",
+    "usuario": null,
+    "fecha": "2025-11-04T15:00:00Z"
+  }
+},
+{
+  "model": "sacramentos.historialsacramento",
+  "pk": 275,
+  "fields": {
+    "sacramento": 218,
+    "accion": "MODIFICACION",
+    "descripcion": "Corrección de datos del padre o la madre.",
+    "usuario": null,
+    "fecha": "2025-12-19T15:00:00Z"
+  }
+},
+{
+  "model": "sacramentos.historialsacramento",
+  "pk": 248,
+  "fields": {
+    "sacramento": 218,
+    "accion": "CREACION",
+    "descripcion": "Registro creado en el libro de bautismos.",
+    "usuario": null,
+    "fecha": "2025-11-19T15:00:00Z"
+  }
+},
+{
+  "model": "sacramentos.historialsacramento",
+  "pk": 276,
+  "fields": {
+    "sacramento": 219,
+    "accion": "MODIFICACION",
+    "descripcion": "Corrección de datos del padre o la madre.",
+    "usuario": null,
+    "fecha": "2025-12-31T15:00:00Z"
+  }
+},
+{
+  "model": "sacramentos.historialsacramento",
+  "pk": 249,
+  "fields": {
+    "sacramento": 219,
+    "accion": "CREACION",
+    "descripcion": "Registro creado en el libro de bautismos.",
+    "usuario": null,
+    "fecha": "2025-12-01T15:00:00Z"
+  }
+},
+{
+  "model": "sacramentos.historialsacramento",
+  "pk": 299,
+  "fields": {
+    "sacramento": 220,
+    "accion": "ANULACION",
+    "descripcion": "okl",
+    "usuario": 5,
+    "fecha": "2026-10-16T17:22:55.642Z"
+  }
+},
+{
+  "model": "sacramentos.historialsacramento",
+  "pk": 277,
+  "fields": {
+    "sacramento": 220,
+    "accion": "MODIFICACION",
+    "descripcion": "Corrección de datos del padre o la madre.",
+    "usuario": null,
+    "fecha": "2026-01-18T15:00:00Z"
+  }
+},
+{
+  "model": "sacramentos.historialsacramento",
+  "pk": 250,
+  "fields": {
+    "sacramento": 220,
+    "accion": "CREACION",
+    "descripcion": "Registro creado en el libro de bautismos.",
+    "usuario": null,
+    "fecha": "2025-12-19T15:00:00Z"
+  }
+},
+{
+  "model": "sacramentos.historialsacramento",
+  "pk": 251,
+  "fields": {
+    "sacramento": 221,
+    "accion": "CREACION",
+    "descripcion": "Registro creado en el libro de bautismos.",
+    "usuario": null,
+    "fecha": "2025-12-31T15:00:00Z"
+  }
+},
+{
+  "model": "sacramentos.historialsacramento",
+  "pk": 252,
+  "fields": {
+    "sacramento": 222,
+    "accion": "CREACION",
+    "descripcion": "Registro creado en el libro de bautismos.",
+    "usuario": null,
+    "fecha": "2026-01-18T15:00:00Z"
+  }
+},
+{
+  "model": "sacramentos.historialsacramento",
+  "pk": 300,
+  "fields": {
+    "sacramento": 223,
+    "accion": "ANULACION",
+    "descripcion": "ghjugj",
+    "usuario": 5,
+    "fecha": "2026-10-16T17:30:23.602Z"
+  }
+},
+{
+  "model": "sacramentos.historialsacramento",
+  "pk": 253,
+  "fields": {
+    "sacramento": 223,
+    "accion": "CREACION",
+    "descripcion": "Registro creado en el libro de bautismos.",
+    "usuario": null,
+    "fecha": "2026-02-02T15:00:00Z"
+  }
+},
+{
+  "model": "sacramentos.historialsacramento",
+  "pk": 254,
+  "fields": {
+    "sacramento": 224,
+    "accion": "CREACION",
+    "descripcion": "Registro creado en el libro de bautismos.",
+    "usuario": null,
+    "fecha": "2026-02-17T15:00:00Z"
+  }
+},
+{
+  "model": "sacramentos.historialsacramento",
+  "pk": 255,
+  "fields": {
+    "sacramento": 225,
+    "accion": "CREACION",
+    "descripcion": "Registro creado en el libro de bautismos.",
+    "usuario": null,
+    "fecha": "2026-03-01T15:00:00Z"
+  }
+},
+{
+  "model": "sacramentos.historialsacramento",
+  "pk": 256,
+  "fields": {
+    "sacramento": 226,
+    "accion": "CREACION",
+    "descripcion": "Registro creado en el libro de bautismos.",
+    "usuario": null,
+    "fecha": "2026-03-19T15:00:00Z"
+  }
+},
+{
+  "model": "sacramentos.historialsacramento",
+  "pk": 257,
+  "fields": {
+    "sacramento": 227,
+    "accion": "CREACION",
+    "descripcion": "Registro creado en el libro de bautismos.",
+    "usuario": null,
+    "fecha": "2026-03-31T15:00:00Z"
+  }
+},
+{
+  "model": "sacramentos.historialsacramento",
+  "pk": 258,
+  "fields": {
+    "sacramento": 228,
+    "accion": "CREACION",
+    "descripcion": "Registro creado en el libro de bautismos.",
+    "usuario": null,
+    "fecha": "2026-04-13T15:00:00Z"
+  }
+},
+{
+  "model": "sacramentos.historialsacramento",
+  "pk": 286,
+  "fields": {
+    "sacramento": 250,
+    "accion": "CREACION",
+    "descripcion": "Registro creado en el libro de confirmaciones.",
+    "usuario": null,
+    "fecha": "2026-04-18T15:00:00Z"
+  }
+},
+{
+  "model": "sacramentos.historialsacramento",
+  "pk": 259,
+  "fields": {
+    "sacramento": 229,
+    "accion": "CREACION",
+    "descripcion": "Registro creado en el libro de bautismos.",
+    "usuario": null,
+    "fecha": "2026-04-28T15:00:00Z"
+  }
+},
+{
+  "model": "sacramentos.historialsacramento",
+  "pk": 260,
+  "fields": {
+    "sacramento": 230,
+    "accion": "CREACION",
+    "descripcion": "Registro creado en el libro de bautismos.",
+    "usuario": null,
+    "fecha": "2026-05-13T15:00:00Z"
+  }
+},
+{
+  "model": "sacramentos.historialsacramento",
+  "pk": 287,
+  "fields": {
+    "sacramento": 251,
+    "accion": "CREACION",
+    "descripcion": "Registro creado en el libro de confirmaciones.",
+    "usuario": null,
+    "fecha": "2026-05-18T15:00:00Z"
+  }
+},
+{
+  "model": "sacramentos.historialsacramento",
+  "pk": 261,
+  "fields": {
+    "sacramento": 231,
+    "accion": "CREACION",
+    "descripcion": "Registro creado en el libro de bautismos.",
+    "usuario": null,
+    "fecha": "2026-05-28T15:00:00Z"
+  }
+},
+{
+  "model": "sacramentos.historialsacramento",
+  "pk": 262,
+  "fields": {
+    "sacramento": 232,
+    "accion": "CREACION",
+    "descripcion": "Registro creado en el libro de bautismos.",
+    "usuario": null,
+    "fecha": "2026-06-12T15:00:00Z"
+  }
+},
+{
+  "model": "sacramentos.historialsacramento",
+  "pk": 288,
+  "fields": {
+    "sacramento": 252,
+    "accion": "CREACION",
+    "descripcion": "Registro creado en el libro de confirmaciones.",
+    "usuario": null,
+    "fecha": "2026-06-17T15:00:00Z"
+  }
+},
+{
+  "model": "sacramentos.historialsacramento",
+  "pk": 263,
+  "fields": {
+    "sacramento": 233,
+    "accion": "CREACION",
+    "descripcion": "Registro creado en el libro de bautismos.",
+    "usuario": null,
+    "fecha": "2026-06-27T15:00:00Z"
+  }
+},
+{
+  "model": "sacramentos.historialsacramento",
+  "pk": 264,
+  "fields": {
+    "sacramento": 234,
+    "accion": "CREACION",
+    "descripcion": "Registro creado en el libro de bautismos.",
+    "usuario": null,
+    "fecha": "2026-07-12T15:00:00Z"
+  }
+},
+{
+  "model": "sacramentos.historialsacramento",
+  "pk": 289,
+  "fields": {
+    "sacramento": 253,
+    "accion": "CREACION",
+    "descripcion": "Registro creado en el libro de confirmaciones.",
+    "usuario": null,
+    "fecha": "2026-07-17T15:00:00Z"
+  }
+},
+{
+  "model": "sacramentos.historialsacramento",
+  "pk": 265,
+  "fields": {
+    "sacramento": 235,
+    "accion": "CREACION",
+    "descripcion": "Registro creado en el libro de bautismos.",
+    "usuario": null,
+    "fecha": "2026-07-27T15:00:00Z"
+  }
+},
+{
+  "model": "sacramentos.historialsacramento",
+  "pk": 322,
+  "fields": {
+    "sacramento": 236,
+    "accion": "CERTIFICADO",
+    "descripcion": "Certificado expedido a Juan Mier (El mismo titular) para Matrimonio.",
+    "usuario": 5,
+    "fecha": "2026-10-18T01:39:16.930Z"
+  }
+},
+{
+  "model": "sacramentos.historialsacramento",
+  "pk": 266,
+  "fields": {
+    "sacramento": 236,
+    "accion": "CREACION",
+    "descripcion": "Registro creado en el libro de bautismos.",
+    "usuario": null,
+    "fecha": "2026-08-10T15:00:00Z"
+  }
+},
+{
+  "model": "sacramentos.historialsacramento",
+  "pk": 278,
+  "fields": {
+    "sacramento": 242,
+    "accion": "CREACION",
+    "descripcion": "Registro creado en el libro de primeras comuniones.",
+    "usuario": null,
+    "fecha": "2026-08-11T15:00:00Z"
+  }
+},
+{
+  "model": "sacramentos.historialsacramento",
+  "pk": 290,
+  "fields": {
+    "sacramento": 254,
+    "accion": "CREACION",
+    "descripcion": "Registro creado en el libro de confirmaciones.",
+    "usuario": null,
+    "fecha": "2026-08-16T15:00:00Z"
+  }
+},
+{
+  "model": "sacramentos.historialsacramento",
+  "pk": 267,
+  "fields": {
+    "sacramento": 237,
+    "accion": "CREACION",
+    "descripcion": "Registro creado en el libro de bautismos.",
+    "usuario": null,
+    "fecha": "2026-08-24T15:00:00Z"
+  }
+},
+{
+  "model": "sacramentos.historialsacramento",
+  "pk": 279,
+  "fields": {
+    "sacramento": 243,
+    "accion": "CREACION",
+    "descripcion": "Registro creado en el libro de primeras comuniones.",
+    "usuario": null,
+    "fecha": "2026-08-26T15:00:00Z"
+  }
+},
+{
+  "model": "sacramentos.historialsacramento",
+  "pk": 285,
+  "fields": {
+    "sacramento": 249,
+    "accion": "CREACION",
+    "descripcion": "Registro creado en el libro de primeras comuniones.",
+    "usuario": null,
+    "fecha": "2026-08-31T15:00:00Z"
+  }
+},
+{
+  "model": "sacramentos.historialsacramento",
+  "pk": 292,
+  "fields": {
+    "sacramento": 256,
+    "accion": "CREACION",
+    "descripcion": "Registro creado en el libro de matrimonios.",
+    "usuario": null,
+    "fecha": "2026-09-05T15:00:00Z"
+  }
+},
+{
+  "model": "sacramentos.historialsacramento",
+  "pk": 319,
+  "fields": {
+    "sacramento": 238,
+    "accion": "CERTIFICADO",
+    "descripcion": "Certificado expedido a Juan Mier (El mismo titular) para Primera comunión.",
+    "usuario": 5,
+    "fecha": "2026-10-18T01:00:06.989Z"
+  }
+},
+{
+  "model": "sacramentos.historialsacramento",
+  "pk": 318,
+  "fields": {
+    "sacramento": 238,
+    "accion": "CERTIFICADO",
+    "descripcion": "Certificado expedido a Juan Mier (El mismo titular) para Matrimonio.",
+    "usuario": 5,
+    "fecha": "2026-10-18T00:58:41.862Z"
+  }
+},
+{
+  "model": "sacramentos.historialsacramento",
+  "pk": 303,
+  "fields": {
+    "sacramento": 238,
+    "accion": "CERTIFICADO",
+    "descripcion": "Certificado expedido a Juan Mier (El mismo titular) para Matrimonio.",
+    "usuario": 5,
+    "fecha": "2026-10-17T20:59:27.244Z"
+  }
+},
+{
+  "model": "sacramentos.historialsacramento",
+  "pk": 302,
+  "fields": {
+    "sacramento": 238,
+    "accion": "CORRECCION",
+    "descripcion": "zcsadsad",
+    "usuario": 5,
+    "fecha": "2026-10-17T20:58:36.563Z"
+  }
+},
+{
+  "model": "sacramentos.historialsacramento",
+  "pk": 301,
+  "fields": {
+    "sacramento": 238,
+    "accion": "CERTIFICADO",
+    "descripcion": "Certificado expedido a Juan Mier (Familiar) para Primera comunión.",
+    "usuario": 5,
+    "fecha": "2026-10-17T20:51:41.023Z"
+  }
+},
+{
+  "model": "sacramentos.historialsacramento",
+  "pk": 268,
+  "fields": {
+    "sacramento": 238,
+    "accion": "CREACION",
+    "descripcion": "Registro creado en el libro de bautismos.",
+    "usuario": null,
+    "fecha": "2026-09-07T15:00:00Z"
+  }
+},
+{
+  "model": "sacramentos.historialsacramento",
+  "pk": 280,
+  "fields": {
+    "sacramento": 244,
+    "accion": "CREACION",
+    "descripcion": "Registro creado en el libro de primeras comuniones.",
+    "usuario": null,
+    "fecha": "2026-09-10T15:00:00Z"
+  }
+},
+{
+  "model": "sacramentos.historialsacramento",
+  "pk": 293,
+  "fields": {
+    "sacramento": 257,
+    "accion": "CREACION",
+    "descripcion": "Registro creado en el libro de matrimonios.",
+    "usuario": null,
+    "fecha": "2026-09-20T15:00:00Z"
+  }
+},
+{
+  "model": "sacramentos.historialsacramento",
+  "pk": 269,
+  "fields": {
+    "sacramento": 239,
+    "accion": "CREACION",
+    "descripcion": "Registro creado en el libro de bautismos.",
+    "usuario": null,
+    "fecha": "2026-09-20T15:00:00Z"
+  }
+},
+{
+  "model": "sacramentos.historialsacramento",
+  "pk": 281,
+  "fields": {
+    "sacramento": 245,
+    "accion": "CREACION",
+    "descripcion": "Registro creado en el libro de primeras comuniones.",
+    "usuario": null,
+    "fecha": "2026-09-25T15:00:00Z"
+  }
+},
+{
+  "model": "sacramentos.historialsacramento",
+  "pk": 291,
+  "fields": {
+    "sacramento": 255,
+    "accion": "CREACION",
+    "descripcion": "Registro creado en el libro de confirmaciones.",
+    "usuario": null,
+    "fecha": "2026-09-25T15:00:00Z"
+  }
+},
+{
+  "model": "sacramentos.historialsacramento",
+  "pk": 317,
+  "fields": {
+    "sacramento": 240,
+    "accion": "CERTIFICADO",
+    "descripcion": "Certificado expedido a Maria Solicitante (Padre o madre) para Matrimonio.",
+    "usuario": null,
+    "fecha": "2026-10-17T21:56:20.424Z"
+  }
+},
+{
+  "model": "sacramentos.historialsacramento",
+  "pk": 316,
+  "fields": {
+    "sacramento": 240,
+    "accion": "CERTIFICADO",
+    "descripcion": "Certificado expedido a Maria Solicitante (Padre o madre) para Matrimonio.",
+    "usuario": null,
+    "fecha": "2026-10-17T21:56:17.507Z"
+  }
+},
+{
+  "model": "sacramentos.historialsacramento",
+  "pk": 315,
+  "fields": {
+    "sacramento": 240,
+    "accion": "CERTIFICADO",
+    "descripcion": "Certificado expedido a Maria Solicitante (Padre o madre) para Matrimonio.",
+    "usuario": null,
+    "fecha": "2026-10-17T21:55:26.728Z"
+  }
+},
+{
+  "model": "sacramentos.historialsacramento",
+  "pk": 314,
+  "fields": {
+    "sacramento": 240,
+    "accion": "CERTIFICADO",
+    "descripcion": "Certificado expedido a Maria Solicitante (Padre o madre) para Matrimonio.",
+    "usuario": null,
+    "fecha": "2026-10-17T21:55:24.044Z"
+  }
+},
+{
+  "model": "sacramentos.historialsacramento",
+  "pk": 313,
+  "fields": {
+    "sacramento": 240,
+    "accion": "CERTIFICADO",
+    "descripcion": "Certificado expedido a Maria Solicitante (Padre o madre) para Matrimonio.",
+    "usuario": null,
+    "fecha": "2026-10-17T21:55:20.243Z"
+  }
+},
+{
+  "model": "sacramentos.historialsacramento",
+  "pk": 312,
+  "fields": {
+    "sacramento": 240,
+    "accion": "CERTIFICADO",
+    "descripcion": "Certificado expedido a Maria Solicitante (Padre o madre) para Matrimonio.",
+    "usuario": null,
+    "fecha": "2026-10-17T21:55:17.794Z"
+  }
+},
+{
+  "model": "sacramentos.historialsacramento",
+  "pk": 311,
+  "fields": {
+    "sacramento": 240,
+    "accion": "CERTIFICADO",
+    "descripcion": "Certificado expedido a Maria Solicitante (Padre o madre) para Matrimonio.",
+    "usuario": null,
+    "fecha": "2026-10-17T21:54:32.229Z"
+  }
+},
+{
+  "model": "sacramentos.historialsacramento",
+  "pk": 310,
+  "fields": {
+    "sacramento": 240,
+    "accion": "CERTIFICADO",
+    "descripcion": "Certificado expedido a Maria Solicitante (Padre o madre) para Matrimonio.",
+    "usuario": null,
+    "fecha": "2026-10-17T21:54:29.012Z"
+  }
+},
+{
+  "model": "sacramentos.historialsacramento",
+  "pk": 309,
+  "fields": {
+    "sacramento": 240,
+    "accion": "CERTIFICADO",
+    "descripcion": "Certificado expedido a Maria Solicitante (Padre o madre) para Matrimonio.",
+    "usuario": null,
+    "fecha": "2026-10-17T21:53:48.965Z"
+  }
+},
+{
+  "model": "sacramentos.historialsacramento",
+  "pk": 308,
+  "fields": {
+    "sacramento": 240,
+    "accion": "CERTIFICADO",
+    "descripcion": "Certificado expedido a Maria Solicitante (Padre o madre) para Matrimonio.",
+    "usuario": null,
+    "fecha": "2026-10-17T21:52:14.634Z"
+  }
+},
+{
+  "model": "sacramentos.historialsacramento",
+  "pk": 307,
+  "fields": {
+    "sacramento": 240,
+    "accion": "CERTIFICADO",
+    "descripcion": "Certificado expedido a Maria Solicitante (Padre o madre) para Matrimonio.",
+    "usuario": null,
+    "fecha": "2026-10-17T21:51:08.002Z"
+  }
+},
+{
+  "model": "sacramentos.historialsacramento",
+  "pk": 306,
+  "fields": {
+    "sacramento": 240,
+    "accion": "CERTIFICADO",
+    "descripcion": "Certificado expedido a Maria Solicitante (Padre o madre) para Matrimonio.",
+    "usuario": null,
+    "fecha": "2026-10-17T21:51:04.736Z"
+  }
+},
+{
+  "model": "sacramentos.historialsacramento",
+  "pk": 305,
+  "fields": {
+    "sacramento": 240,
+    "accion": "CERTIFICADO",
+    "descripcion": "Certificado expedido a Maria Solicitante (Padre o madre) para Matrimonio.",
+    "usuario": null,
+    "fecha": "2026-10-17T21:49:53.241Z"
+  }
+},
+{
+  "model": "sacramentos.historialsacramento",
+  "pk": 304,
+  "fields": {
+    "sacramento": 240,
+    "accion": "CERTIFICADO",
+    "descripcion": "Certificado expedido a Maria Solicitante (Padre o madre) para Matrimonio.",
+    "usuario": null,
+    "fecha": "2026-10-17T21:49:50.038Z"
+  }
+},
+{
+  "model": "sacramentos.historialsacramento",
+  "pk": 270,
+  "fields": {
+    "sacramento": 240,
+    "accion": "CREACION",
+    "descripcion": "Registro creado en el libro de bautismos.",
+    "usuario": null,
+    "fecha": "2026-09-30T15:00:00Z"
+  }
+},
+{
+  "model": "sacramentos.historialsacramento",
+  "pk": 294,
+  "fields": {
+    "sacramento": 258,
+    "accion": "CREACION",
+    "descripcion": "Registro creado en el libro de matrimonios.",
+    "usuario": null,
+    "fecha": "2026-10-03T15:00:00Z"
+  }
+},
+{
+  "model": "sacramentos.historialsacramento",
+  "pk": 282,
+  "fields": {
+    "sacramento": 246,
+    "accion": "CREACION",
+    "descripcion": "Registro creado en el libro de primeras comuniones.",
+    "usuario": null,
+    "fecha": "2026-10-05T15:00:00Z"
+  }
+},
+{
+  "model": "sacramentos.historialsacramento",
+  "pk": 329,
+  "fields": {
+    "sacramento": 247,
+    "accion": "CERTIFICADO",
+    "descripcion": "Certificado expedido a Juan Mier (El mismo titular) para Matrimonio.",
+    "usuario": 5,
+    "fecha": "2026-10-19T03:32:05.181Z"
+  }
+},
+{
+  "model": "sacramentos.historialsacramento",
+  "pk": 283,
+  "fields": {
+    "sacramento": 247,
+    "accion": "CREACION",
+    "descripcion": "Registro creado en el libro de primeras comuniones.",
+    "usuario": null,
+    "fecha": "2026-10-05T15:00:00Z"
+  }
+},
+{
+  "model": "sacramentos.historialsacramento",
+  "pk": 284,
+  "fields": {
+    "sacramento": 248,
+    "accion": "CREACION",
+    "descripcion": "Registro creado en el libro de primeras comuniones.",
+    "usuario": null,
+    "fecha": "2026-10-05T15:00:00Z"
+  }
+}
+]

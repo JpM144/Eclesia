@@ -5,3 +5,5 @@ __pycache__/
 db.sqlite3
 *.pyc
 .ruff_cache/
+respaldos/
+*.dump

@@ -28,6 +28,104 @@ python -m venv .venv
 .\.venv\Scripts\python manage.py migrate
 ```
 
+## Estructura de la base de datos en Git
+
+La estructura completa de la base (todas las tablas de PostgreSQL) se versiona en
+`docs/base_de_datos/`, sin datos personales:
+
+- `esquema.sql`: estructura generada con `pg_dump --schema-only --no-owner --no-privileges`.
+- `tablas.md`: catálogo de tablas con columnas, tipos, nulabilidad, llave primaria y llaves
+  foráneas, agrupado por aplicación de Django.
+- `datos_demo.json`: solo los datos de demostración (documentos `9990…`); nunca usuarios
+  reales, contraseñas ni sesiones.
+
+Se regeneran **después de cada migración** con:
+
+```powershell
+.\.venv\Scripts\python manage.py cargar_datos_demo   # solo si aún no hay datos demo
+.\.venv\Scripts\python manage.py exportar_esquema
+.\.venv\Scripts\python manage.py exportar_datos_demo
+```
+
+`exportar_esquema` necesita los binarios de PostgreSQL 17 (`pg_dump`) y `exportar_datos_demo`
+requiere que antes se hayan cargado los datos de demostración. La contraseña de la base local
+se pasa a `pg_dump` por la variable de entorno `PGPASSWORD`, nunca por la línea de comandos.
+
+## Respaldo en Supabase
+
+El comando `respaldar_supabase` vuelca la base local completa y la restaura en el proyecto de
+Supabase, dejando el esquema `public` protegido.
+
+### Configuración
+
+1. En el panel de Supabase: **Connect → Session pooler** (puerto **5432**) y copia la cadena
+   de conexión.
+2. Guárdala en `.env` (nunca en Git) como:
+
+   ```
+   SUPABASE_DB_URL=postgresql://postgres.<proyecto>:<contraseña>@<host>:5432/postgres
+   ```
+
+   `.env.example` documenta la variable; el valor real solo vive en `.env`, que está en
+   `.gitignore`.
+
+### Uso
+
+```powershell
+.\.venv\Scripts\python manage.py respaldar_supabase
+.\.venv\Scripts\python manage.py respaldar_supabase --solo-local
+```
+
+- Genera `respaldos/respaldo_AAAAMMDD_HHMM.dump` (`pg_dump --format=custom`) y conserva solo
+  los **últimos 7** respaldos.
+- Restaura en Supabase con `pg_restore --clean --if-exists --no-owner --no-privileges`,
+  tocando **solo** el esquema `public` (no los esquemas propios de Supabase: `auth`,
+  `storage`, `realtime`, `extensions`, `graphql`, `vault`, etc.).
+- Activa **Row Level Security** en todas las tablas de `public` (sin crear políticas) y
+  revoca los privilegios de `anon` y `authenticated` sobre tablas y secuencias, de modo que
+  la API pública de Supabase no expone nada.
+- Al final compara el número de filas por tabla entre local y Supabase y muestra la consulta
+  de RLS (`pg_tables.rowsecurity`); si algo no coincide, termina con error.
+- `--solo-local` genera el `.dump` sin subirlo (útil también sin `SUPABASE_DB_URL`).
+- Si falta `SUPABASE_DB_URL`, avisa y no hace nada.
+
+La cadena y la contraseña nunca aparecen en la línea de comandos ni en la salida del comando:
+viajan por variables de entorno y la cadena se muestra enmascarada
+(`postgresql://postgres.***@host:5432/postgres`). Los `.dump` y la carpeta `respaldos/` están
+en `.gitignore`.
+
+### Restaurar desde Supabase a una base local nueva
+
+Si se pierde la base local, se puede reconstruir desde Supabase. La contraseña viaja por
+variables de entorno, nunca en la línea de comandos:
+
+```powershell
+# 1. Vuelca Supabase a un archivo custom.
+$env:PGHOST = "<host del Session pooler>"
+$env:PGPORT = "5432"
+$env:PGUSER = "postgres.<proyecto>"
+$env:PGPASSWORD = "<contraseña de Supabase>"
+$env:PGDATABASE = "postgres"
+& "C:\Program Files\PostgreSQL\17\bin\pg_dump.exe" `
+  --format=custom --no-owner --no-privileges --schema=public `
+  --file respaldos\desde_supabase.dump
+
+# 2. Crea una base local vacía (.env apuntando a ella) y restaura.
+$env:PGHOST = "localhost"
+$env:PGUSER = "<usuario local>"
+$env:PGPASSWORD = "<contraseña local>"
+$env:PGDATABASE = "<base local>"
+& "C:\Program Files\PostgreSQL\17\bin\pg_restore.exe" `
+  --no-owner --no-privileges --schema=public `
+  -d <base local> respaldos\desde_supabase.dump
+```
+
+### Advertencia
+
+Supabase **pausa los proyectos gratuitos inactivos**. Un proyecto pausado no acepta
+conexiones: entra al panel y reactívalo antes de respaldar. Mientras esté pausado, la copia en
+Supabase no se actualiza; conserva también los `.dump` locales.
+
 ## Levantar el servidor
 
 ```powershell
