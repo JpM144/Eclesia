@@ -7,3 +7,6 @@ db.sqlite3
 .ruff_cache/
 respaldos/
 *.dump
+
+# Recursos descargados por generar_modelo_fisico (mermaid y fuentes)
+herramientas/

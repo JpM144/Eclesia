@@ -1,0 +1,389 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Modelo físico de la base de datos — Sistema de Gestión Parroquial</title>
+<style>
+  @page {
+    size: letter;
+    margin: 16mm 16mm 18mm 16mm;
+    @bottom-left {
+      content: "Modelo físico — Sistema de Gestión Parroquial";
+      font-family: "Inter", "Segoe UI", sans-serif;
+      font-size: 7.5pt;
+      color: #64748b;
+    }
+    @bottom-right {
+      content: "Página " counter(page) " de " counter(pages);
+      font-family: "Inter", "Segoe UI", sans-serif;
+      font-size: 7.5pt;
+      color: #64748b;
+    }
+  }
+  @page :first {
+    @bottom-left { content: none; }
+    @bottom-right { content: none; }
+  }
+  @page horizontal { size: letter landscape; }
+
+  * { box-sizing: border-box; }
+  html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body {
+    margin: 0;
+    font-family: "Inter", "Segoe UI", system-ui, sans-serif;
+    font-size: 9.5pt;
+    line-height: 1.45;
+    color: #1e293b;
+    background: #ffffff;
+  }
+  h1, h2, h3, h4 { color: #1e2a4a; font-weight: 600; line-height: 1.25; }
+  h2 {
+    font-size: 15pt;
+    margin: 0 0 10pt;
+    padding-bottom: 4pt;
+    border-bottom: 1.2pt solid #1e2a4a;
+  }
+  h3 { font-size: 12pt; margin: 14pt 0 6pt; }
+  h4 { font-size: 10pt; margin: 0 0 2pt; }
+  p { margin: 0 0 6pt; }
+  a { color: inherit; text-decoration: none; }
+  code, .mono { font-family: "JetBrains Mono", Consolas, monospace; font-size: 0.92em; }
+  code, .mono, pre, .columnas, .detalle, .indice { font-variant-ligatures: none; }
+  .suave { color: #64748b; }
+  .salto { break-before: page; }
+
+  /* Portada */
+  .portada {
+    height: 245mm;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 0 6mm;
+  }
+  .portada .marca {
+    font-size: 9pt;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #64748b;
+    margin-bottom: 10pt;
+  }
+  .portada h1 { font-size: 28pt; font-weight: 700; margin: 0 0 8pt; }
+  .portada .subtitulo { font-size: 15pt; color: #34405a; margin: 0 0 22pt; }
+  .portada .linea { width: 60mm; border-top: 2pt solid #1e2a4a; margin-bottom: 22pt; }
+  .portada dl { margin: 0; display: grid; grid-template-columns: 30mm 1fr; row-gap: 6pt; }
+  .portada dt { color: #64748b; font-size: 9pt; padding-top: 1pt; }
+  .portada dd { margin: 0; font-size: 11pt; }
+  .portada .pie-portada { margin-top: 40mm; font-size: 8.5pt; color: #64748b; }
+
+  /* Índice */
+  .indice { list-style: none; margin: 0; padding: 0; }
+  .indice li { margin: 0; }
+  .indice a { display: flex; align-items: baseline; gap: 4pt; padding: 1.05pt 0; }
+  .indice a::after { content: none; }
+  .indice .texto { white-space: nowrap; }
+  .indice .puntos { flex: 1; border-bottom: 0.8pt dotted #94a3b8; transform: translateY(-2pt); }
+  .indice .indice-pagina { min-width: 16pt; text-align: right; font-variant-numeric: tabular-nums; }
+  .indice .nivel-1 { font-weight: 600; color: #1e2a4a; margin-top: 5pt; font-size: 10pt; }
+  .indice .nivel-2 { padding-left: 12pt; font-size: 9pt; }
+  .indice .nivel-3 { padding-left: 24pt; font-size: 8pt; color: #34405a; }
+  .indice .nivel-3 .texto { font-family: "JetBrains Mono", Consolas, monospace; }
+
+  /* Tablas */
+  table { width: 100%; border-collapse: collapse; }
+  thead { display: table-header-group; }
+  tr { break-inside: avoid; }
+  th {
+    text-align: left;
+    font-weight: 600;
+    color: #1e2a4a;
+    background: #eef2f8;
+    border-bottom: 0.8pt solid #1e2a4a;
+  }
+  th, td { padding: 2.4pt 4pt; vertical-align: top; }
+  td { border-bottom: 0.5pt solid #e6e9f0; }
+  .tabla-resumen { font-size: 9pt; margin: 4pt 0 10pt; }
+  .tabla-resumen td.num, .tabla-resumen th.num { text-align: right; }
+  .tabla-resumen tfoot td { font-weight: 600; border-top: 0.8pt solid #1e2a4a; }
+  .convenciones { margin: 0 0 8pt; padding-left: 14pt; }
+  .convenciones li { margin-bottom: 3pt; }
+  .nota {
+    border-left: 2pt solid #55677f;
+    background: #f4f6fa;
+    padding: 5pt 8pt;
+    font-size: 8.5pt;
+    margin: 8pt 0;
+  }
+
+  /* Diagramas */
+  .pagina-diagrama { break-before: page; }
+  .pagina-diagrama.horizontal { page: horizontal; }
+  .cabecera-diagrama h3 { margin-top: 0; }
+  .cabecera-diagrama p { font-size: 8.5pt; color: #64748b; }
+  .diagrama { margin: 4pt 0 0; display: flex; justify-content: center; }
+  .diagrama .mermaid { white-space: pre; font-family: "JetBrains Mono", monospace; font-size: 7pt; }
+  .diagrama svg { display: block; }
+  .leyenda { font-size: 7.5pt; color: #64748b; margin-top: 4pt; }
+  .leyenda code { color: #1e293b; }
+  .muestra {
+    display: inline-block;
+    width: 9pt;
+    height: 7pt;
+    border: 0.6pt solid #1e2a4a;
+    vertical-align: -1pt;
+    margin-right: 3pt;
+  }
+
+  /* Diccionario */
+  .modulo-titulo { break-after: avoid; }
+  .tabla-dic { margin: 0 0 14pt; }
+  .tabla-dic .encabezado { break-inside: avoid; break-after: avoid; }
+  .tabla-dic h4 .nombre { font-family: "JetBrains Mono", Consolas, monospace; font-weight: 600; }
+  .tabla-dic h4 .titulo { font-weight: 500; color: #64748b; font-size: 9pt; margin-left: 4pt; }
+  .tabla-dic .descripcion { font-size: 8.5pt; margin-bottom: 4pt; }
+  .columnas { font-size: 7.4pt; table-layout: fixed; }
+  .columnas td { overflow-wrap: anywhere; }
+  .columnas .c-nombre { width: 24%; font-family: "JetBrains Mono", Consolas, monospace; }
+  .columnas td.c-nombre { font-size: 6.9pt; }
+  .columnas .c-tipo { width: 14%; font-family: "JetBrains Mono", Consolas, monospace; }
+  .columnas td.c-tipo { font-size: 6.9pt; }
+  .columnas .c-nulo { width: 5%; text-align: center; }
+  .columnas .c-defecto { width: 9%; }
+  .columnas .c-clave { width: 20%; }
+  .columnas .c-desc { width: 28%; }
+  .columnas .clave { display: block; font-weight: 600; color: #1e2a4a; }
+  .columnas .clave .mono { font-weight: 400; color: #34405a; }
+  .subtitulo-tabla {
+    font-size: 7.6pt;
+    font-weight: 600;
+    color: #34405a;
+    margin: 5pt 0 1pt;
+    break-after: avoid;
+  }
+  .detalle { font-size: 6.9pt; table-layout: fixed; }
+  .detalle th { background: #f4f6fa; border-bottom-width: 0.5pt; }
+  .detalle td { overflow-wrap: anywhere; }
+  .detalle .d-nombre { width: 34%; font-family: "JetBrains Mono", Consolas, monospace; }
+  .detalle .d-tipo { width: 13%; }
+  .detalle .d-def { width: 53%; font-family: "JetBrains Mono", Consolas, monospace; }
+  .detalle .d-def .suave { font-family: "Inter", sans-serif; }
+
+  /* Tablas de Django */
+  .seccion-continua { margin-top: 22pt; break-inside: avoid; }
+  .tabla-django { font-size: 8.5pt; }
+  .tabla-django td:first-child { width: 34%; font-family: "JetBrains Mono", Consolas, monospace; }
+
+  /* Anexo DDL */
+  .ddl {
+    font-family: "JetBrains Mono", Consolas, monospace;
+    font-size: 5.9pt;
+    line-height: 1.32;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    column-count: 2;
+    column-gap: 7mm;
+    column-rule: 0.5pt solid #e6e9f0;
+    margin: 0;
+    color: #1e293b;
+  }
+</style>
+</head>
+<body>
+
+<section class="portada">
+  <div class="marca">Documento técnico</div>
+  <h1>Modelo físico de la base de datos</h1>
+  <p class="subtitulo">Sistema de Gestión Parroquial</p>
+  <div class="linea"></div>
+  <dl>
+    <dt>Autor</dt><dd>{{ autor }}</dd>
+    {% if asignatura %}<dt>Asignatura</dt><dd class="asignatura">{{ asignatura }}</dd>{% endif %}
+    {% if profesor %}<dt>Profesor</dt><dd class="profesor">{{ profesor }}</dd>{% endif %}
+    <dt>Fecha</dt><dd>{{ fecha }}</dd>
+  </dl>
+  <p class="pie-portada">PostgreSQL {{ version.corta }} · esquema <code>public</code> ·
+    leído de {% if origen == "supabase" %}Supabase{% else %}la base local{% endif %}</p>
+</section>
+
+<section class="salto" id="indice">
+  <h2>Contenido</h2>
+  <ul class="indice">
+    <li class="nivel-1"><a href="#s-general"><span class="texto">1. Información general</span><span class="puntos"></span><span class="indice-pagina" data-destino="s-general"></span></a></li>
+    <li class="nivel-1"><a href="#s-diagramas"><span class="texto">2. Diagrama entidad-relación físico</span><span class="puntos"></span><span class="indice-pagina" data-destino="s-diagramas"></span></a></li>
+    {% for d in diagramas %}
+    <li class="nivel-2"><a href="#{{ d.id }}"><span class="texto">2.{{ forloop.counter }}. {{ d.titulo }}</span><span class="puntos"></span><span class="indice-pagina" data-destino="{{ d.id }}"></span></a></li>
+    {% endfor %}
+    <li class="nivel-1"><a href="#s-diccionario"><span class="texto">3. Diccionario de datos</span><span class="puntos"></span><span class="indice-pagina" data-destino="s-diccionario"></span></a></li>
+    {% for modulo in modulos %}
+    <li class="nivel-2"><a href="#{{ modulo.id }}"><span class="texto">3.{{ forloop.counter }}. {{ modulo.titulo }}</span><span class="puntos"></span><span class="indice-pagina" data-destino="{{ modulo.id }}"></span></a></li>
+    {% for tabla in modulo.tablas %}
+    <li class="nivel-3"><a href="#{{ tabla.ancla }}"><span class="texto">{{ tabla.nombre }}</span><span class="puntos"></span><span class="indice-pagina" data-destino="{{ tabla.ancla }}"></span></a></li>
+    {% endfor %}
+    {% endfor %}
+    <li class="nivel-1"><a href="#s-django"><span class="texto">4. Tablas internas de Django</span><span class="puntos"></span><span class="indice-pagina" data-destino="s-django"></span></a></li>
+    <li class="nivel-1"><a href="#s-ddl"><span class="texto">5. Anexo: DDL de las tablas propias</span><span class="puntos"></span><span class="indice-pagina" data-destino="s-ddl"></span></a></li>
+  </ul>
+</section>
+
+<section class="salto" id="s-general">
+  <h2>1. Información general</h2>
+  <p><strong>Motor:</strong> PostgreSQL {{ version.corta }}, versión leída del servidor
+    {% if origen == "supabase" %}de Supabase{% else %}local{% endif %}
+    (<span class="mono">{{ version.larga }}</span>).</p>
+  <p><strong>Alojamiento:</strong> la base de trabajo es una instancia PostgreSQL local del
+    proyecto Django. Se respalda en Supabase (PostgreSQL administrado) con el comando
+    <code>respaldar_supabase</code>, que restaura la misma estructura y activa Row Level
+    Security. Todas las tablas viven en el esquema <code>public</code>. Este documento se
+    generó leyendo el catálogo de {% if origen == "supabase" %}Supabase{% else %}la base local{% endif %},
+    sin consultar filas de datos.</p>
+  <p><strong>Tablas:</strong> {{ propias|length }} tablas propias del sistema y
+    {{ django|length }} tablas internas de Django{% if otras %}, más {{ otras|length }} tabla{{ otras|length|pluralize }} de otro origen{% endif %}.
+    Las tablas propias suman {{ total_columnas }} columnas, {{ total_foraneas }} llaves foráneas
+    y {{ total_indices }} índices.</p>
+
+  <table class="tabla-resumen">
+    <thead><tr><th>Módulo</th><th class="num">Tablas</th><th class="num">Columnas</th><th class="num">Llaves foráneas</th><th class="num">Índices</th></tr></thead>
+    <tbody>
+      {% for fila in resumen %}
+      <tr><td>{{ fila.titulo }}</td><td class="num">{{ fila.tablas }}</td><td class="num">{{ fila.columnas }}</td><td class="num">{{ fila.foraneas }}</td><td class="num">{{ fila.indices }}</td></tr>
+      {% endfor %}
+    </tbody>
+    <tfoot><tr><td>Total</td><td class="num">{{ propias|length }}</td><td class="num">{{ total_columnas }}</td><td class="num">{{ total_foraneas }}</td><td class="num">{{ total_indices }}</td></tr></tfoot>
+  </table>
+
+  <h3>Convenciones de nombres</h3>
+  <ul class="convenciones">
+    <li><strong>Tabla</strong> = <code>app_modelo</code> en minúsculas, sin separar las palabras
+      del modelo (por ejemplo, <code>sacramentos_primeracomunion</code>).</li>
+    <li><strong>Llave primaria</strong>: columna <code>id</code> de tipo identidad. Las tablas de
+      detalle 1:1 de un sacramento (bautismo, confirmación, primera comunión, matrimonio y la
+      nota marginal) usan como llave primaria la misma llave foránea a su tabla principal.</li>
+    <li><strong>Llaves foráneas</strong>: terminan en <code>_id</code> y siempre apuntan a la
+      columna <code>id</code> (o a la llave primaria) de la tabla referenciada.</li>
+    <li><strong>Restricciones e índices</strong>: los que define el modelo llevan nombre propio
+      (<code>unico_…</code>, <code>libro_…</code>); los que generan Django o PostgreSQL llevan
+      la tabla, la columna y un sufijo: <code>_pkey</code> (llave primaria), <code>_key</code> o
+      <code>_uniq</code> (único), <code>_fk_…</code> (foránea), <code>_check</code> y
+      <code>_like</code> (índice para búsquedas con <code>LIKE</code>).</li>
+  </ul>
+  <p class="nota">Django 5.2 crea las llaves foráneas como <code>ON DELETE NO ACTION</code> y
+    <code>DEFERRABLE INITIALLY DEFERRED</code>; la regla de borrado del modelo
+    (<code>PROTECT</code>, <code>CASCADE</code>, <code>SET NULL</code>) la aplica Django antes de
+    borrar. El diccionario muestra las dos: la de la base y la del modelo.</p>
+</section>
+
+{% for d in diagramas %}
+<section class="pagina-diagrama" {% if forloop.first %}id="s-diagramas"{% endif %}>
+  <div class="cabecera-diagrama">
+    {% if forloop.first %}<h2>2. Diagrama entidad-relación físico</h2>{% endif %}
+    <h3 id="{{ d.id }}">2.{{ forloop.counter }}. {{ d.titulo }}</h3>
+    <p>{{ d.nota }}</p>
+  </div>
+  <figure class="diagrama" id="f-{{ d.id }}" data-letra="{{ d.letra }}"{% if d.separacion_lr %} data-separacion-lr="{{ d.separacion_lr }}"{% endif %}{% if d.modulos %} data-colorear="1"{% endif %}>
+    <div class="mermaid">{{ d.codigo }}</div>
+  </figure>
+  {% if d.modulos %}
+  <p class="leyenda modulos-leyenda">{% for m in d.modulos %}<span class="muestra" style="background: {{ m.color }}"></span><code>{{ m.etiqueta }}_</code> {{ m.titulo }}{% if not forloop.last %} &nbsp; {% endif %}{% endfor %}</p>
+  {% endif %}
+  <p class="leyenda">Cardinalidad (pata de gallo): <code>||</code> exactamente uno ·
+    <code>|o</code> cero o uno · <code>o{</code> cero o muchos · <code>o|</code> cero o uno del
+    lado hijo. PK = llave primaria, FK = llave foránea, UK = única.
+    {% if forloop.first and foraneas_django %}No se dibujan las foráneas hacia tablas de Django:
+    {% for f in foraneas_django %}<code>{{ f }}</code>{% if not forloop.last %}, {% endif %}{% endfor %}.{% endif %}</p>
+</section>
+{% endfor %}
+
+<section class="salto" id="s-diccionario">
+  <h2>3. Diccionario de datos</h2>
+  <p>Una ficha por tabla propia, agrupadas por módulo. <strong>Nulo</strong> indica si la columna
+    admite <code>NULL</code>. <strong>Por defecto</strong> es el valor que asigna la base; cuando
+    lo asigna Django se indica «Django: …». <strong>Clave</strong>: PK llave primaria, FK llave
+    foránea (con la tabla y columna referenciadas), UQ valor único.</p>
+  {% for modulo in modulos %}
+  <h3 class="modulo-titulo" id="{{ modulo.id }}">3.{{ forloop.counter }}. {{ modulo.titulo }}</h3>
+  {% for tabla in modulo.tablas %}
+  <div class="tabla-dic" id="{{ tabla.ancla }}">
+    <div class="encabezado">
+      <h4><span class="nombre">{{ tabla.nombre }}</span>{% if tabla.titulo %}<span class="titulo">{{ tabla.titulo }}</span>{% endif %}</h4>
+      {% if tabla.descripcion %}<p class="descripcion">{{ tabla.descripcion }}</p>{% endif %}
+    </div>
+    <table class="columnas">
+      <thead><tr>
+        <th class="c-nombre">Columna</th><th class="c-tipo">Tipo</th><th class="c-nulo">Nulo</th>
+        <th class="c-defecto">Por defecto</th><th class="c-clave">Clave</th><th class="c-desc">Descripción</th>
+      </tr></thead>
+      <tbody>
+        {% for c in tabla.columnas %}
+        <tr>
+          <td class="c-nombre">{{ c.nombre }}</td>
+          <td class="c-tipo">{{ c.tipo }}</td>
+          <td class="c-nulo">{% if c.nulo %}Sí{% else %}No{% endif %}</td>
+          <td class="c-defecto">{% if c.defecto %}{{ c.defecto }}{% elif c.defecto_django %}<span class="suave">Django: {{ c.defecto_django }}</span>{% else %}<span class="suave">—</span>{% endif %}</td>
+          <td class="c-clave">
+            {% if c.pk %}<span class="clave">PK</span>{% endif %}
+            {% if c.fk %}<span class="clave">FK → <span class="mono">{{ c.fk.tabla }}.{{ c.fk.columna }}</span></span>{% endif %}
+            {% if c.unica and not c.pk %}<span class="clave">UQ</span>{% endif %}
+          </td>
+          <td class="c-desc">{{ c.descripcion }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% if tabla.restricciones %}
+    <div class="subtitulo-tabla">Restricciones</div>
+    <table class="detalle">
+      <thead><tr><th class="d-nombre">Nombre</th><th class="d-tipo">Tipo</th><th class="d-def">Definición</th></tr></thead>
+      <tbody>
+        {% for r in tabla.restricciones %}
+        <tr><td class="d-nombre">{{ r.nombre }}</td><td class="d-tipo">{{ r.tipo }}</td><td class="d-def">{{ r.definicion }}{% if r.nota %}<br><span class="suave">{{ r.nota }}</span>{% endif %}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% endif %}
+    {% if tabla.indices %}
+    <div class="subtitulo-tabla">Índices</div>
+    <table class="detalle">
+      <thead><tr><th class="d-nombre">Nombre</th><th class="d-tipo">Tipo</th><th class="d-def">Definición</th></tr></thead>
+      <tbody>
+        {% for i in tabla.indices %}
+        <tr><td class="d-nombre">{{ i.nombre }}</td><td class="d-tipo">{{ i.clase }}</td><td class="d-def">{{ i.definicion }}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% endif %}
+  </div>
+  {% endfor %}
+  {% endfor %}
+</section>
+
+<section class="seccion-continua" id="s-django">
+  <h2>4. Tablas internas de Django</h2>
+  <p>Estas tablas las crea y administra el framework Django con sus aplicaciones
+    <code>auth</code>, <code>admin</code>, <code>contenttypes</code> y <code>sessions</code>. El
+    sistema las usa para usuarios, permisos y sesiones, pero no forman parte del modelo de la
+    parroquia, por eso no aparecen en el diagrama ni en el diccionario.</p>
+  <table class="tabla-django">
+    <thead><tr><th>Tabla</th><th>Para qué sirve</th></tr></thead>
+    <tbody>
+      {% for t in django %}
+      <tr><td>{{ t.nombre }}</td><td>{{ t.descripcion|default:"Tabla interna del framework Django." }}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% if otras %}
+  <h3>Otras tablas del esquema</h3>
+  <p>Tablas presentes en <code>public</code> que no pertenecen al sistema ni a Django:</p>
+  <table class="tabla-django">
+    <tbody>{% for t in otras %}<tr><td>{{ t.nombre }}</td><td>Tabla externa a la aplicación.</td></tr>{% endfor %}</tbody>
+  </table>
+  {% endif %}
+</section>
+
+<section class="salto" id="s-ddl">
+  <h2>5. Anexo: DDL de las tablas propias</h2>
+  <p class="suave">Salida de <code>pg_dump --schema-only --no-owner --no-privileges</code> limitada a
+    las {{ propias|length }} tablas propias, sin comentarios ni ajustes de sesión.</p>
+  <pre class="ddl">{{ ddl }}</pre>
+</section>
+
+</body>
+</html>
